@@ -4,7 +4,7 @@ This repo contains an updated, 1.2.1 64-bit port of [EqualizerAPO](https://sourc
 
 The port here is inspired and checked against a previous port of EqualizerAPO (https://github.com/chebum/equalizer-apo-64) to double precision processing, while also instead using AVX2 for reduced CPU usage and latency.
 
-Double procession processing (64 bit internal pipeline) in EqualizerAPO maintains precision and quality when applying multiple overlapping effects, namely convolution, large parametric EQ setups or GraphicEQ's. While its a general quality increase, its mainly noticable in more complex EqualierAPO usage.
+Double procession processing (64 bit internal pipeline) in EqualizerAPO maintains precision and quality when applying multiple overlapping effects, namely convolution, large parametric EQ setups or GraphicEQ's. Effects mainly noticable in more complex EqualierAPO usage, though depending on how FFTW3 processes various filters it could have benefits elsewhere.
 
 No functionality was added or modified, though VSTs will likely not work with the present code (needs testing).
 
