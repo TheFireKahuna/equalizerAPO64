@@ -1,0 +1,297 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="stdafx.h" />
+    <ClInclude Include="filters\BiQuad.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\BiQuadFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\BiQuadFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\ChannelFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\ChannelFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\ConvolutionFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\ConvolutionFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\CopyFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\CopyFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\DelayFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\DelayFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\DeviceFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\ExpressionFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\GraphicEQFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\GraphicEQFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\IfFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\IIRFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\IIRFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\IncludeFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\PreampFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\PreampFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\StageFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\VSTPluginFilter.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\VSTPluginFilterFactory.h">
+      <Filter>filters</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\AbstractLibrary.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\aeffectx.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ChannelHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\GainIterator.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\LogHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\PrecisionTimer.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\RegistryHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\ScopeGuard.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\StringHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\UncaughtExceptions.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\VSTPluginInstance.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="helpers\VSTPluginLibrary.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="libHybridConv-0.1.1\libHybridConv_eapo.h">
+      <Filter>libHybridConv-0.1.1</Filter>
+    </ClInclude>
+    <ClInclude Include="parser\RegexFunctions.h">
+      <Filter>parser</Filter>
+    </ClInclude>
+    <ClInclude Include="parser\RegistryFunctions.h">
+      <Filter>parser</Filter>
+    </ClInclude>
+    <ClInclude Include="parser\StringOperators.h">
+      <Filter>parser</Filter>
+    </ClInclude>
+    <ClInclude Include="VoicemeeterAPOInfo.h" />
+    <ClInclude Include="AbstractAPOInfo.h" />
+    <ClInclude Include="DeviceAPOInfo.h" />
+    <ClInclude Include="FilterConfiguration.h" />
+    <ClInclude Include="FilterEngine.h" />
+    <ClInclude Include="IFilter.h" />
+    <ClInclude Include="IFilterFactory.h" />
+    <ClInclude Include="filters\loudnessCorrection\ParameterArchive.h">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\loudnessCorrection\VolumeController.h">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.h">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClInclude>
+    <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilter.h">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClInclude>
+    <ClInclude Include="parser\LogicalOperators.h">
+      <Filter>parser</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="stdafx.cpp" />
+    <ClCompile Include="filters\BiQuad.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\BiQuadFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\BiQuadFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ChannelFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ChannelFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ConvolutionFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ConvolutionFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\CopyFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\CopyFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\DelayFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\DelayFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\DeviceFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\ExpressionFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\GraphicEQFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\GraphicEQFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IfFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IIRFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IIRFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\IncludeFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\PreampFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\PreampFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\StageFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\VSTPluginFilter.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\VSTPluginFilterFactory.cpp">
+      <Filter>filters</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\AbstractLibrary.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\ChannelHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\GainIterator.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\LogHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\RegistryHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\StringHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginInstance.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="helpers\VSTPluginLibrary.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp">
+      <Filter>libHybridConv-0.1.1</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\RegexFunctions.cpp">
+      <Filter>parser</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\RegistryFunctions.cpp">
+      <Filter>parser</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\StringOperators.cpp">
+      <Filter>parser</Filter>
+    </ClCompile>
+    <ClCompile Include="VoicemeeterAPOInfo.cpp" />
+    <ClCompile Include="AbstractAPOInfo.cpp" />
+    <ClCompile Include="DeviceAPOInfo.cpp" />
+    <ClCompile Include="FilterConfiguration.cpp" />
+    <ClCompile Include="FilterEngine.cpp" />
+    <ClCompile Include="IFilter.cpp" />
+    <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.cpp">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClCompile>
+    <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilter.cpp">
+      <Filter>filters\loudnessCorrection</Filter>
+    </ClCompile>
+    <ClCompile Include="parser\LogicalOperators.cpp">
+      <Filter>parser</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="filters">
+      <UniqueIdentifier>{b8ae5fab-edba-40a4-b387-18079935b5ba}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="helpers">
+      <UniqueIdentifier>{25ac0a12-b62f-4862-90ba-30f97623714b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="libHybridConv-0.1.1">
+      <UniqueIdentifier>{4c157803-cb45-40b5-b4d5-25bf8dbcc6e6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="parser">
+      <UniqueIdentifier>{4a6738bc-7359-4b18-bdb4-1f443f41e528}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="filters\loudnessCorrection">
+      <UniqueIdentifier>{c473f978-6002-42aa-adf5-3b5f10868d2d}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EqualizerAPO.licenseheader" />
+  </ItemGroup>
+</Project>

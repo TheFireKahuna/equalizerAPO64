@@ -1,0 +1,264 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{6758B50E-B9F0-4389-A61D-A842F0545E1B}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+    <RootNamespace>Common</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v142</PlatformToolset>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+    <CharacterSet>Unicode</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <IncludePath>$(SolutionDir);$(IncludePath);C:\Program Files\libsndfile\include;C:\Program Files\muparserx_v3_0_1\parser;C:\Program Files (x86)\fftw3</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <IncludePath>$(SolutionDir);$(IncludePath);C:\Program Files\Mega-Nerd\libsndfile\include;C:\Program Files\muparserx_v3_0_1\parser;C:\Program Files\fftw3</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <IncludePath>$(SolutionDir);$(IncludePath);C:\Program Files\libsndfile\include;C:\Program Files\muparserx_v3_0_1\parser;C:\Program Files (x86)\fftw3</IncludePath>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <IncludePath>$(SolutionDir);$(IncludePath);C:\Program Files\Mega-Nerd\libsndfile\include;C:\Program Files\muparserx_v3_0_1\parser;C:\Program Files\fftw3</IncludePath>
+    <LibraryPath>C:\Program Files\Mega-Nerd\libsndfile\lib;C:\Program Files\muparserx_v3_0_1\lib64;C:\Program Files\fftw3;$(LibraryPath)</LibraryPath>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <ClCompile>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <WarningLevel>Level3</WarningLevel>
+      <Optimization>Disabled</Optimization>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+      <PrecompiledHeader>Use</PrecompiledHeader>
+      <Optimization>MaxSpeed</Optimization>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <StringPooling>true</StringPooling>
+      <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableFiberSafeOptimizations>true</EnableFiberSafeOptimizations>
+      <EnforceTypeConversionRules>true</EnforceTypeConversionRules>
+      <LanguageStandard>stdcpplatest</LanguageStandard>
+      <AdditionalOptions>/Ob3 %(AdditionalOptions)</AdditionalOptions>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <LanguageStandard_C>stdc17</LanguageStandard_C>
+    </ClCompile>
+    <Link>
+      <SubSystem>Windows</SubSystem>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <OptimizeReferences>true</OptimizeReferences>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClInclude Include="AbstractAPOInfo.h" />
+    <ClInclude Include="DeviceAPOInfo.h" />
+    <ClInclude Include="FilterConfiguration.h" />
+    <ClInclude Include="FilterEngine.h" />
+    <ClInclude Include="filters\BiQuad.h" />
+    <ClInclude Include="filters\BiQuadFilter.h" />
+    <ClInclude Include="filters\BiQuadFilterFactory.h" />
+    <ClInclude Include="filters\ChannelFilter.h" />
+    <ClInclude Include="filters\ChannelFilterFactory.h" />
+    <ClInclude Include="filters\ConvolutionFilter.h" />
+    <ClInclude Include="filters\ConvolutionFilterFactory.h" />
+    <ClInclude Include="filters\CopyFilter.h" />
+    <ClInclude Include="filters\CopyFilterFactory.h" />
+    <ClInclude Include="filters\DelayFilter.h" />
+    <ClInclude Include="filters\DelayFilterFactory.h" />
+    <ClInclude Include="filters\DeviceFilterFactory.h" />
+    <ClInclude Include="filters\ExpressionFilterFactory.h" />
+    <ClInclude Include="filters\GraphicEQFilter.h" />
+    <ClInclude Include="filters\GraphicEQFilterFactory.h" />
+    <ClInclude Include="filters\IfFilterFactory.h" />
+    <ClInclude Include="filters\IIRFilter.h" />
+    <ClInclude Include="filters\IIRFilterFactory.h" />
+    <ClInclude Include="filters\IncludeFilterFactory.h" />
+    <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.h" />
+    <ClInclude Include="filters\loudnessCorrection\LoudnessCorrectionFilter.h" />
+    <ClInclude Include="filters\loudnessCorrection\ParameterArchive.h" />
+    <ClInclude Include="filters\loudnessCorrection\VolumeController.h" />
+    <ClInclude Include="filters\PreampFilter.h" />
+    <ClInclude Include="filters\PreampFilterFactory.h" />
+    <ClInclude Include="filters\StageFilterFactory.h" />
+    <ClInclude Include="filters\VSTPluginFilter.h" />
+    <ClInclude Include="filters\VSTPluginFilterFactory.h" />
+    <ClInclude Include="helpers\AbstractLibrary.h" />
+    <ClInclude Include="helpers\aeffectx.h" />
+    <ClInclude Include="helpers\ChannelHelper.h" />
+    <ClInclude Include="helpers\GainIterator.h" />
+    <ClInclude Include="helpers\LogHelper.h" />
+    <ClInclude Include="helpers\PrecisionTimer.h" />
+    <ClInclude Include="helpers\RegistryHelper.h" />
+    <ClInclude Include="helpers\ScopeGuard.h" />
+    <ClInclude Include="helpers\StringHelper.h" />
+    <ClInclude Include="helpers\UncaughtExceptions.h" />
+    <ClInclude Include="helpers\VSTPluginInstance.h" />
+    <ClInclude Include="helpers\VSTPluginLibrary.h" />
+    <ClInclude Include="IFilter.h" />
+    <ClInclude Include="IFilterFactory.h" />
+    <ClInclude Include="libHybridConv-0.1.1\libHybridConv_eapo.h" />
+    <ClInclude Include="parser\LogicalOperators.h" />
+    <ClInclude Include="parser\RegexFunctions.h" />
+    <ClInclude Include="parser\RegistryFunctions.h" />
+    <ClInclude Include="parser\StringOperators.h" />
+    <ClInclude Include="VoicemeeterAPOInfo.h" />
+    <ClInclude Include="stdafx.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="AbstractAPOInfo.cpp" />
+    <ClCompile Include="DeviceAPOInfo.cpp" />
+    <ClCompile Include="FilterConfiguration.cpp" />
+    <ClCompile Include="FilterEngine.cpp" />
+    <ClCompile Include="filters\BiQuad.cpp" />
+    <ClCompile Include="filters\BiQuadFilter.cpp" />
+    <ClCompile Include="filters\BiQuadFilterFactory.cpp" />
+    <ClCompile Include="filters\ChannelFilter.cpp" />
+    <ClCompile Include="filters\ChannelFilterFactory.cpp" />
+    <ClCompile Include="filters\ConvolutionFilter.cpp" />
+    <ClCompile Include="filters\ConvolutionFilterFactory.cpp" />
+    <ClCompile Include="filters\CopyFilter.cpp" />
+    <ClCompile Include="filters\CopyFilterFactory.cpp" />
+    <ClCompile Include="filters\DelayFilter.cpp" />
+    <ClCompile Include="filters\DelayFilterFactory.cpp" />
+    <ClCompile Include="filters\DeviceFilterFactory.cpp" />
+    <ClCompile Include="filters\ExpressionFilterFactory.cpp" />
+    <ClCompile Include="filters\GraphicEQFilter.cpp" />
+    <ClCompile Include="filters\GraphicEQFilterFactory.cpp" />
+    <ClCompile Include="filters\IfFilterFactory.cpp" />
+    <ClCompile Include="filters\IIRFilter.cpp" />
+    <ClCompile Include="filters\IIRFilterFactory.cpp" />
+    <ClCompile Include="filters\IncludeFilterFactory.cpp" />
+    <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilterFactory.cpp" />
+    <ClCompile Include="filters\loudnessCorrection\LoudnessCorrectionFilter.cpp" />
+    <ClCompile Include="filters\loudnessCorrection\VolumeController.cpp" />
+    <ClCompile Include="filters\PreampFilter.cpp" />
+    <ClCompile Include="filters\PreampFilterFactory.cpp" />
+    <ClCompile Include="filters\StageFilterFactory.cpp" />
+    <ClCompile Include="filters\VSTPluginFilter.cpp" />
+    <ClCompile Include="filters\VSTPluginFilterFactory.cpp" />
+    <ClCompile Include="helpers\AbstractLibrary.cpp" />
+    <ClCompile Include="helpers\ChannelHelper.cpp" />
+    <ClCompile Include="helpers\GainIterator.cpp" />
+    <ClCompile Include="helpers\LogHelper.cpp" />
+    <ClCompile Include="helpers\RegistryHelper.cpp" />
+    <ClCompile Include="helpers\StringHelper.cpp" />
+    <ClCompile Include="helpers\VSTPluginInstance.cpp" />
+    <ClCompile Include="helpers\VSTPluginLibrary.cpp" />
+    <ClCompile Include="IFilter.cpp" />
+    <ClCompile Include="libHybridConv-0.1.1\libHybridConv_eapo.cpp" />
+    <ClCompile Include="parser\LogicalOperators.cpp" />
+    <ClCompile Include="parser\RegexFunctions.cpp" />
+    <ClCompile Include="parser\RegistryFunctions.cpp" />
+    <ClCompile Include="parser\StringOperators.cpp" />
+    <ClCompile Include="VoicemeeterAPOInfo.cpp" />
+    <ClCompile Include="stdafx.cpp">
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
+      <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Create</PrecompiledHeader>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EqualizerAPO.licenseheader" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

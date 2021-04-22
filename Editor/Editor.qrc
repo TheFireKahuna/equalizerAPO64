@@ -1,0 +1,29 @@
+<RCC>
+    <qresource prefix="/">
+        <file>translations/Editor_de.qm</file>
+        <file>translations/qtbase_de.qm</file>
+        <file>icons/document-open.ico</file>
+        <file>icons/document-save.ico</file>
+        <file>icons/accessories-text-editor.ico</file>
+        <file>icons/applications-graphics-rotated.ico</file>
+        <file>icons/document-new.ico</file>
+        <file>icons/document-save-as.ico</file>
+        <file>icons/edit-copy.ico</file>
+        <file>icons/edit-cut.ico</file>
+        <file>icons/edit-delete.ico</file>
+        <file>icons/edit-paste.ico</file>
+        <file>icons/format-justify-fill-rotated.ico</file>
+        <file>icons/go-up.ico</file>
+        <file>icons/list-add-green.ico</file>
+        <file>icons/list-remove-red.ico</file>
+        <file>icons/arrow_right.ico</file>
+        <file>icons/power_off.ico</file>
+        <file>icons/power_on.ico</file>
+        <file>icons/invert_response.ico</file>
+        <file>icons/normalize_response.ico</file>
+        <file>icons/reset_response.ico</file>
+        <file>icons/resize_corner.ico</file>
+        <file>sounds/pinkNoise.flac</file>
+        <file>icons/edit-select-all.ico</file>
+    </qresource>
+</RCC>

@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClInclude Include="VoicemeeterClient.h" />
+    <ClInclude Include="..\stdafx.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="..\helpers\MemoryHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="VoicemeeterRemote.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="VoicemeeterClient.cpp" />
+    <ClCompile Include="..\stdafx.cpp" />
+    <ClCompile Include="..\helpers\MemoryHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="VoicemeeterClient.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="helpers">
+      <UniqueIdentifier>{eb32c27d-e4c2-4cad-a72d-b798d4514714}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="..\EqualizerAPO.licenseheader" />
+  </ItemGroup>
+</Project>

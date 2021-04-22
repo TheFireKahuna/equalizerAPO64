@@ -1,0 +1,35 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="ClassFactory.cpp" />
+    <ClCompile Include="DllMain.cpp" />
+    <ClCompile Include="EqualizerAPO.cpp" />
+    <ClCompile Include="..\helpers\MemoryHelper.cpp">
+      <Filter>helpers</Filter>
+    </ClCompile>
+    <ClCompile Include="..\stdafx.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="ClassFactory.h" />
+    <ClInclude Include="EqualizerAPO.h" />
+    <ClInclude Include="resource.h" />
+    <ClInclude Include="..\helpers\MemoryHelper.h">
+      <Filter>helpers</Filter>
+    </ClInclude>
+    <ClInclude Include="..\stdafx.h" />
+    <ClInclude Include="..\version.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="EqualizerAPO.rc" />
+    <ResourceCompile Include="EqualizerAPO64.rc" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="EqualizerAPO.def" />
+    <None Include="..\EqualizerAPO.licenseheader" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="helpers">
+      <UniqueIdentifier>{95612e70-aead-4faa-bcfe-525a3c68d8ec}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>
