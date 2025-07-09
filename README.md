@@ -11,9 +11,8 @@ No functionality was added or modified otherwise.
 ## Installation
 1. You will need standard Equalizer APO 1.4.2 installed on your system.
 2. Disable Equalizer APO for all audio devices via the **Equalizer APO Device Selector**.
-3. Reboot your computer.
-4. Unpack the [attached zip archive](https://github.com/TheFireKahuna/equalizerAPO64/releases/) into the Equalizer APO installation folder. Replace EqualizerAPO.dll. *Consider backing up the original directory before doing this, otherwise you will need to reinstall EqualizerAPO to remove this.*
-5. Re-enable Equalizer APO for any relevant audio devices via the **Equalizer APO Device Selector**. This will load the modified 64-bit audio processing engine for immediate use.
+3. Unpack the [attached zip archive](https://github.com/TheFireKahuna/equalizerAPO64/releases/) into the Equalizer APO installation folder. Replace EqualizerAPO.dll. *Consider backing up the original directory before doing this, otherwise you will need to reinstall EqualizerAPO to remove this.*
+4. Re-enable Equalizer APO for any relevant audio devices via the **Equalizer APO Device Selector**. This will load the modified 64-bit audio processing engine for immediate use.
 
 ## Uninstall
 
