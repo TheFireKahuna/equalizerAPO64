@@ -1,27 +1,27 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <algorithm>
 #include <QWheelEvent>
 #include <QScrollBar>
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "FrequencyPlotItem.h"
 #include "FrequencyPlotView.h"
 
@@ -30,7 +30,7 @@ using namespace std;
 FrequencyPlotView::FrequencyPlotView(QWidget* parent)
 	: QGraphicsView(parent)
 {
-	setViewportMargins(DPIHelper::scale(32), 0, 0, DPIHelper::scale(20));
+	setViewportMargins(GUIHelper::scale(32), 0, 0, GUIHelper::scale(20));
 	hRuler = new FrequencyPlotHRuler(this);
 	vRuler = new FrequencyPlotVRuler(this);
 	hRuler->setMouseTracking(true);
@@ -61,7 +61,7 @@ void FrequencyPlotView::drawBackground(QPainter* painter, const QRectF& drawRect
 	FrequencyPlotScene* s = scene();
 	QPointF topLeft = mapToScene(0, 0);
 	QPointF bottomRight = mapToScene(viewport()->width(), viewport()->height());
-	double dbStep = abs(s->yToDb(0) - s->yToDb(DPIHelper::scale(30)));
+	double dbStep = abs(s->yToDb(0) - s->yToDb(GUIHelper::scale(30)));
 
 	double dbBase = pow(10, floor(log10(dbStep)));
 	if (dbStep >= 5 * dbBase)
@@ -74,7 +74,8 @@ void FrequencyPlotView::drawBackground(QPainter* painter, const QRectF& drawRect
 	double fromDb = floor(s->yToDb(rect.top() + rect.height()) / dbStep) * dbStep;
 	double toDb = ceil(s->yToDb(rect.top()) / dbStep) * dbStep;
 
-	painter->setPen(QColor(200, 200, 200));
+	bool dark = GUIHelper::isDarkMode();
+	painter->setPen(dark ? QColor(90, 90, 90) : QColor(200, 200, 200));
 	for (double db = fromDb; db <= toDb; db += dbStep)
 	{
 		double y = floor(s->dbToY(db)) + 0.5;
@@ -179,7 +180,7 @@ void FrequencyPlotView::wheelEvent(QWheelEvent* event)
 {
 	event->accept();
 	int delta = event->angleDelta().y();
-	zoom(delta, delta, event->x(), event->y());
+	zoom(delta, delta, event->position().x(), event->position().y());
 }
 
 void FrequencyPlotView::scrollContentsBy(int dx, int dy)

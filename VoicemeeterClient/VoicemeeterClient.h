@@ -1,6 +1,6 @@
 /*
     This file is part of Equalizer APO, a system-wide equalizer.
-    Copyright (C) 2017  Jonas Thedering
+    Copyright (C) 2022  Jonas Thedering
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -29,20 +29,41 @@ class VoicemeeterClient
 public:
 	VoicemeeterClient(const std::vector<std::wstring>& outputs);
 	~VoicemeeterClient();
-	void start();
-	void stop();
-
+	void run();
 	void handle(long nCommand, void* lpData, long nnn);
-	bool restart = false;
 
 private:
+	void initSoftware();
+	void detectVoicemeeterType();
+	void endSoftware();
+	void handleCommand(WPARAM wparam, LPARAM lparam);
 	bool isBufferSilent(float** sampleData, long sampleCount);
 
+	std::vector<std::wstring> outputs;
 	unsigned long mainThreadId;
 	T_VBVMR_INTERFACE vmr;
+	size_t wTimer = 0;
+	bool connected = true;
+	float sampleRate = 0.0f;
+	unsigned maxFrameCount = 0;
+
 	std::vector<FilterEngine*> engines;
 	std::vector<int> idleSampleCounts;
-	bool loggedIn = false;
-	long voicemeeterType = 1;
-	std::vector<std::wstring> outputs;
+};
+
+class InitError
+{
+public:
+	InitError(const std::wstring& message)
+		: message(message)
+	{
+	}
+
+	std::wstring getMessage()
+	{
+		return message;
+	}
+
+private:
+	std::wstring message;
 };

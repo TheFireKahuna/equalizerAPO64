@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "DeviceFilterGUIDialog.h"
 #include "ui_DeviceFilterGUIDialog.h"
 
@@ -31,7 +31,7 @@ DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterG
 	ui(new Ui::DeviceFilterGUIDialog)
 {
 	ui->setupUi(this);
-	resize(DPIHelper::scale(QSize(500, 350)));
+	resize(GUIHelper::scale(QSize(500, 350)));
 
 	bool all = pattern.trimmed() == "all";
 	ui->allDevicesCheckBox->setChecked(all);
@@ -45,7 +45,7 @@ DeviceFilterGUIDialog::DeviceFilterGUIDialog(DeviceFilterGUI* gui, DeviceFilterG
 	outputNode->setExpanded(true);
 	QTreeWidgetItem* inputNode = new QTreeWidgetItem(ui->treeWidget, QStringList(tr("Capture devices")));
 	inputNode->setExpanded(true);
-	const QList<shared_ptr<AbstractAPOInfo> >& devices = factory->getDevices();
+	const QList<shared_ptr<AbstractAPOInfo>>& devices = factory->getDevices();
 	for (const shared_ptr<AbstractAPOInfo>& apoInfo : devices)
 	{
 		QStringList values;
@@ -99,7 +99,7 @@ QString DeviceFilterGUIDialog::getPattern()
 				{
 					if (pattern != "")
 						pattern += "; ";
-					shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<shared_ptr<AbstractAPOInfo> >();
+					shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<shared_ptr<AbstractAPOInfo>>();
 					pattern += QString::fromStdWString(apoInfo->getDeviceString());
 				}
 			}
@@ -122,7 +122,7 @@ void DeviceFilterGUIDialog::on_showOnlyInstalledCheckBox_toggled(bool checked)
 		for (int j = 0; j < groupItem->childCount(); j++)
 		{
 			QTreeWidgetItem* item = groupItem->child(j);
-			shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<shared_ptr<AbstractAPOInfo> >();
+			shared_ptr<AbstractAPOInfo> apoInfo = item->data(0, Qt::UserRole).value<shared_ptr<AbstractAPOInfo>>();
 			item->setHidden(item->checkState(0) != Qt::Checked && !apoInfo->isInstalled() && checked);
 		}
 	}

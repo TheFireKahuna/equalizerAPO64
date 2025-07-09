@@ -1,26 +1,28 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2012  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2012  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "stdafx.h"
 #include <mmdeviceapi.h>
+#include <audioclient.h>
 #include <mmreg.h>
 #include <shellapi.h>
+#include <comdef.h>
 
 #include "DeviceAPOInfo.h"
 #include "VoicemeeterAPOInfo.h"
@@ -41,9 +43,11 @@ using namespace std;
 static const wchar_t* preMixChildGuidValueName = L"PreMixChild";
 static const wchar_t* postMixChildGuidValueName = L"PostMixChild";
 static const wchar_t* allowSilentBufferValueName = L"AllowSilentBufferModification";
+static const wchar_t* disableAutoAdjustValueName = L"DisableAutomaticAdjustment";
 static const wchar_t* versionValueName = L"Version";
 static const wchar_t* connectionValueName = L"{a45c254e-df1c-4efd-8020-67d146a850e0},2";
 static const wchar_t* deviceValueName = L"{b3f8fa53-0004-438e-9003-51a46e139bfc},6";
+static const wchar_t* combinedDeviceValueName = L"{b3f8fa53-0004-438e-9003-51a46e139bfc},41";
 static const wchar_t* formatValueName = L"{f19f064d-082c-4e27-bc73-6882a1bb8e4c},0";
 static const wchar_t* channelMaskValueName = L"{1da5d803-d492-4edd-8c23-e0c0ffee7f0e},3";
 static const wchar_t* lfxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1";
@@ -51,6 +55,9 @@ static const wchar_t* gfxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d
 static const wchar_t* sfxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5";
 static const wchar_t* mfxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},6";
 static const wchar_t* efxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},7";
+static const wchar_t* multiSfxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},13";
+static const wchar_t* multiMfxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},14";
+static const wchar_t* multiEfxGuidValueName = L"{d04e05a6-594b-4fb6-a80d-01af5eed7d1d},15";
 static const unsigned allGuidValueNameCount = 5;
 static const wchar_t* allGuidValueNames[] = {lfxGuidValueName, gfxGuidValueName, sfxGuidValueName, mfxGuidValueName, efxGuidValueName};
 enum GuidValueIndices
@@ -70,9 +77,9 @@ static const wchar_t* disableEnhancementsValueName = L"{1da5d803-d492-4edd-8c23-
 static const wchar_t* installVersion = L"2";
 static PROPERTYKEY guidPropertyKey = {{0x1da5d803, 0xd492, 0x4edd, 0x8c, 0x23, 0xe0, 0xc0, 0xff, 0xee, 0x7f, 0x0e}, 4};
 
-vector<shared_ptr<AbstractAPOInfo> > DeviceAPOInfo::loadAllInfos(bool input)
+vector<shared_ptr<AbstractAPOInfo>> DeviceAPOInfo::loadAllInfos(bool input)
 {
-	vector<shared_ptr<AbstractAPOInfo> > result;
+	vector<shared_ptr<AbstractAPOInfo>> result;
 
 	vector<wstring> deviceGuidStrings = RegistryHelper::enumSubKeys(input ? captureKeyPath : renderKeyPath);
 	wstring defaultDeviceGuid = getDefaultDevice(input);
@@ -186,6 +193,9 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	unsigned long deviceState = RegistryHelper::readDWORDValue(keyPath, L"DeviceState");
 	if (deviceState & DEVICE_STATE_NOTPRESENT)
 		return false;
+	// somehow, disabled devices do not actually use DEVICE_STATE_DISABLED in registry but 0x10000000
+	disabled = deviceState & DEVICE_STATE_DISABLED || deviceState & 0x10000000;
+	unplugged = deviceState & DEVICE_STATE_UNPLUGGED;
 
 	this->deviceGuid = deviceGuid;
 
@@ -236,6 +246,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 	currentInstallState.useOriginalAPOPreMix = true;
 	currentInstallState.useOriginalAPOPostMix = !input;
 	currentInstallState.allowSilentBufferModification = false;
+	currentInstallState.autoAdjust = true;
 
 	if (!RegistryHelper::keyExists(keyPath + L"\\FxProperties"))
 	{
@@ -247,9 +258,16 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 		for (int i = 0; i < allGuidValueNameCount; i++)
 		{
 			if (RegistryHelper::valueExists(keyPath + L"\\FxProperties", allGuidValueNames[i]))
-				originalApoGuids[i] = RegistryHelper::readValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
+			{
+				wstring originalApoGuid = RegistryHelper::readValue(keyPath + L"\\FxProperties", allGuidValueNames[i]);
+				if (originalApoGuid == RegistryHelper::getGuidString(EQUALIZERAPO_PRE_MIX_GUID) || originalApoGuid == RegistryHelper::getGuidString(EQUALIZERAPO_POST_MIX_GUID))
+					originalApoGuid = APOGUID_NOVALUE;
+				originalApoGuids[i] = originalApoGuid;
+			}
 			else
+			{
 				originalApoGuids[i] = APOGUID_NOVALUE;
+			}
 		}
 
 		bool found = false;
@@ -284,7 +302,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 				{
 					version = RegistryHelper::readValue(childApoPath L"\\" + deviceGuid, versionValueName);
 					if (version != installVersion)
-						throw RegistryException(L"Unsupported version of APO installation detected! Please uninstall newer Equalizer APO before using this version of Configurator.");
+						throw RegistryException(L"Unsupported version of APO installation detected! Please uninstall newer Equalizer APO before using this version of Device Selector.");
 				}
 				else
 				{
@@ -321,6 +339,8 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 
 					if (RegistryHelper::valueExists(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName))
 						currentInstallState.allowSilentBufferModification = RegistryHelper::readValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName) != L"false";
+					if (RegistryHelper::valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
+						currentInstallState.autoAdjust = RegistryHelper::readValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName) == L"false";
 				}
 				else
 				{
@@ -336,7 +356,7 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 					}
 				}
 			}
-			else if (RegistryHelper::valueExists(childApoPath, deviceGuid))
+			else if (RegistryHelper::keyExists(childApoPath) && RegistryHelper::valueExists(childApoPath, deviceGuid))
 			{
 				for (int i = 0; i < allGuidValueNameCount; i++)
 				{
@@ -350,6 +370,27 @@ bool DeviceAPOInfo::load(const wstring& deviceGuid, wstring defaultDeviceGuid)
 						break;
 					}
 				}
+			}
+		}
+		else
+		{
+			if (RegistryHelper::isWindowsVersionAtLeast(6, 3)) // Windows 8.1
+			{
+				// only use LFX/GFX if the audio driver supplied only those APOs
+				if (RegistryHelper::keyExists(keyPath + L"\\FxProperties")
+					&& (RegistryHelper::valueExists(keyPath + L"\\FxProperties", lfxGuidValueName) || RegistryHelper::valueExists(keyPath + L"\\FxProperties", gfxGuidValueName))
+					&& !RegistryHelper::valueExists(keyPath + L"\\FxProperties", sfxGuidValueName)
+					&& !RegistryHelper::valueExists(keyPath + L"\\FxProperties", mfxGuidValueName)
+					&& !RegistryHelper::valueExists(keyPath + L"\\FxProperties", efxGuidValueName)
+					&& !RegistryHelper::valueExists(keyPath + L"\\FxProperties", multiSfxGuidValueName)
+					&& !RegistryHelper::valueExists(keyPath + L"\\FxProperties", multiMfxGuidValueName)
+					&& !RegistryHelper::valueExists(keyPath + L"\\FxProperties", multiEfxGuidValueName))
+					currentInstallState.installMode = INSTALL_LFX_GFX;
+				// bluetooth devices may be combined in Windows 11, EFX will not work then
+				else if (RegistryHelper::valueExists(keyPath + L"\\Properties", combinedDeviceValueName))
+					currentInstallState.installMode = INSTALL_SFX_MFX;
+				else
+					currentInstallState.installMode = INSTALL_SFX_EFX;
 			}
 		}
 	}
@@ -501,6 +542,15 @@ void DeviceAPOInfo::install()
 	RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, postMixChildGuidValueName, postMixValue);
 
 	RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, allowSilentBufferValueName, selectedInstallState.allowSilentBufferModification ? L"true" : L"false");
+	if (selectedInstallState.autoAdjust)
+	{
+		if (RegistryHelper::valueExists(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName))
+			RegistryHelper::deleteValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName);
+	}
+	else
+	{
+		RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, disableAutoAdjustValueName, L"true");
+	}
 	RegistryHelper::writeValue(childApoPath L"\\" + deviceGuid, versionValueName, installVersion);
 
 	if (selectedInstallState.installMode == INSTALL_LFX_GFX)
@@ -590,13 +640,13 @@ void DeviceAPOInfo::uninstall()
 		}
 	}
 
-	if (RegistryHelper::valueExists(childApoPath, deviceGuid))
+	if (RegistryHelper::keyExists(childApoPath) && RegistryHelper::valueExists(childApoPath, deviceGuid))
 		RegistryHelper::deleteValue(childApoPath, deviceGuid);
 
 	if (RegistryHelper::keyExists(childApoPath L"\\" + deviceGuid))
 		RegistryHelper::deleteKey(childApoPath L"\\" + deviceGuid);
 
-	if (RegistryHelper::keyEmpty(childApoPath))
+	if (RegistryHelper::keyExists(childApoPath) && RegistryHelper::keyEmpty(childApoPath))
 		RegistryHelper::deleteKey(childApoPath);
 }
 
@@ -662,6 +712,16 @@ bool DeviceAPOInfo::isDefaultDevice() const
 	return defaultDevice;
 }
 
+bool DeviceAPOInfo::isDisabled() const
+{
+	return disabled;
+}
+
+bool DeviceAPOInfo::isUnplugged() const
+{
+	return unplugged;
+}
+
 const DeviceAPOInfo::InstallState& DeviceAPOInfo::getCurrentInstallState()
 {
 	return currentInstallState;
@@ -680,4 +740,50 @@ wstring DeviceAPOInfo::getPreMixChildGuid()
 wstring DeviceAPOInfo::getPostMixChildGuid()
 {
 	return postMixChildGuid;
+}
+
+void DeviceAPOInfo::testAPOInstallation()
+{
+	IMMDeviceEnumerator* enumerator = NULL;
+	IMMDevice* device = NULL;
+	IAudioClient* audioClient = NULL;
+	WAVEFORMATEX* format = NULL;
+
+	HRESULT hr = CoCreateInstance(__uuidof(MMDeviceEnumerator), NULL, CLSCTX_ALL, __uuidof(IMMDeviceEnumerator), (void**)&enumerator);
+	if (FAILED(hr))
+		fail(L"CoCreateInstance for IMMDeviceEnumerator", hr);
+	SCOPE_EXIT{enumerator->Release(); };
+
+	hr = enumerator->GetDevice(((input ? L"{0.0.1.00000000}." : L"{0.0.0.00000000}.") + deviceGuid).c_str(), &device);
+	if (FAILED(hr))
+		fail(L"GetDevice", hr);
+	SCOPE_EXIT{device->Release(); };
+
+	DWORD state;
+	hr = device->GetState(&state);
+	if (FAILED(hr))
+		fail(L"GetState", hr);
+	if (state & DEVICE_STATE_DISABLED || state & DEVICE_STATE_UNPLUGGED)
+		return;
+
+	hr = device->Activate(__uuidof(IAudioClient), CLSCTX_ALL, NULL, (void**)&audioClient);
+	if (FAILED(hr))
+		fail(L"Activate", hr);
+	SCOPE_EXIT{audioClient->Release(); };
+
+	hr = audioClient->GetMixFormat(&format);
+	if (FAILED(hr))
+		fail(L"GetMixFormat", hr);
+	SCOPE_EXIT{CoTaskMemFree(format); };
+
+	hr = audioClient->Initialize(AUDCLNT_SHAREMODE_SHARED, 0, 1000000 /*100 ms*/, 0, format, NULL);
+	if (FAILED(hr))
+		fail(L"Initialize", hr);
+}
+
+void DeviceAPOInfo::fail(const wstring& functionName, HRESULT hr)
+{
+	_com_error err(hr);
+	const wchar_t* msg = err.ErrorMessage();
+	throw DeviceException(functionName + L" failed for device \"" + deviceName + L"\" (" + msg + L")");
 }

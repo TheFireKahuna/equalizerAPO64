@@ -57,7 +57,7 @@ std::vector<IFilter*> IfFilterFactory::startOfFile(const std::wstring& configPat
 	return vector<IFilter*>();
 }
 
-vector<IFilter*> IfFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> IfFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	wstring expression = StringHelper::trim(parameters);
 

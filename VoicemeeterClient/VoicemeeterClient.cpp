@@ -1,24 +1,24 @@
 /*
-    This file is part of Equalizer APO, a system-wide equalizer.
-    Copyright (C) 2017  Jonas Thedering
+	This file is part of Equalizer APO, a system-wide equalizer.
+	Copyright (C) 2022  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "stdafx.h"
-#include <string>
+
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <shellapi.h>
@@ -29,15 +29,21 @@
 #define voicemeeterKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
 #define voicemeeterWowKeyPath L"HKEY_LOCAL_MACHINE\\SOFTWARE\\Wow6432Node\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\VB:Voicemeeter {17359A74-1236-5467}"
 #define uninstallStringValueName L"UninstallString"
+#ifdef _WIN64
+#define voicemeeterRemoteFileName L"VoicemeeterRemote64.dll"
+#else
+#define voicemeeterRemoteFileName L"VoicemeeterRemote.dll"
+#endif
+#define IDM_RESTART 200
 
 using namespace std;
 
-long __stdcall callback(void* lpUser, long nCommand, void* lpData, long nnn);
+static long __stdcall callback(void* lpUser, long nCommand, void* lpData, long nnn);
 
 int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 	_In_opt_ HINSTANCE hPrevInstance,
-	_In_ LPTSTR lpCmdLine,
-	_In_ int nCmdShow)
+	_In_ LPWSTR lpCmdLine,
+	_In_ int nShowCmd)
 {
 	vector<wstring> outputs;
 	if (lpCmdLine[0] != 0)
@@ -49,30 +55,17 @@ int APIENTRY wWinMain(_In_ HINSTANCE hInstance,
 		LocalFree(argv);
 	}
 
-	VoicemeeterClient* client = new VoicemeeterClient(outputs);
-
-	MSG msg;
-	msg.wParam = 0;
-
-	bool loop = client->restart;
-	while (loop)
+	try
 	{
-		client->start();
-		client->restart = false;
-
-		while (GetMessage(&msg, NULL, 0, 0))
-		{
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-
-		loop = client->restart;
-
-		client->stop();
+		VoicemeeterClient client(outputs);
+		client.run();
+		return 0;
 	}
-	delete client;
-
-	return (int)msg.wParam;
+	catch (InitError e)
+	{
+		MessageBoxW(NULL, e.getMessage().c_str(), L"Equalizer APO Voicemeeter Client Initialization Error", MB_APPLMODAL | MB_OK | MB_ICONERROR);
+		return -1;
+	}
 }
 
 VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
@@ -87,108 +80,72 @@ VoicemeeterClient::VoicemeeterClient(const vector<wstring>& outputs)
 		voicemeeterDirectory = RegistryHelper::readValue(voicemeeterWowKeyPath, uninstallStringValueName);
 
 	size_t index = voicemeeterDirectory.find_last_of(L'\\');
-	HMODULE voicemeeterModule = NULL;
-
 	if (index != wstring::npos)
-	{
-		wstring setupFilename = voicemeeterDirectory.substr(index + 1);
-		voicemeeterType = 1;
-		if (setupFilename == L"VoicemeeterProSetup.exe")
-			voicemeeterType = 2;// banana
-		else if (setupFilename == L"Voicemeeter8Setup.exe")
-			voicemeeterType = 3;// potato
-
 		voicemeeterDirectory = voicemeeterDirectory.substr(0, index);
+	else
+		throw InitError(L"Voicemeeter is not installed");
 
-#ifdef _WIN64
-		voicemeeterModule = LoadLibraryW((voicemeeterDirectory + L"\\VoicemeeterRemote64.dll").c_str());
-#else
-		voicemeeterModule = LoadLibraryW((voicemeeterDirectory + L"\\VoicemeeterRemote.dll").c_str());
-#endif
-	}
+	HMODULE module = NULL;
+	module = LoadLibraryW((voicemeeterDirectory + L"\\" voicemeeterRemoteFileName).c_str());
+	if (module == NULL)
+		throw InitError(L"Failed to load " voicemeeterRemoteFileName);
 
 	memset(&vmr, 0, sizeof(T_VBVMR_INTERFACE));
-#define LOAD_PROC(proc) vmr.proc = (T_ ## proc)GetProcAddress(voicemeeterModule, # proc)
-	if (voicemeeterModule != NULL)
-	{
-		LOAD_PROC(VBVMR_Login);
-		LOAD_PROC(VBVMR_Logout);
-		LOAD_PROC(VBVMR_AudioCallbackRegister);
-		LOAD_PROC(VBVMR_AudioCallbackStart);
-		LOAD_PROC(VBVMR_AudioCallbackStop);
-		LOAD_PROC(VBVMR_AudioCallbackUnregister);
-		LOAD_PROC(VBVMR_GetVoicemeeterType);
 
-		restart = true;
-	}
+#define LOAD_PROC(proc) vmr.proc = (T_ ## proc)GetProcAddress(module, # proc);if (vmr.proc == NULL) throw InitError(L"Did not find function \"" # proc L"\" in " voicemeeterRemoteFileName)
+	LOAD_PROC(VBVMR_Login);
+	LOAD_PROC(VBVMR_Logout);
+	LOAD_PROC(VBVMR_GetVoicemeeterType);
+	LOAD_PROC(VBVMR_IsParametersDirty);
+	LOAD_PROC(VBVMR_AudioCallbackRegister);
+	LOAD_PROC(VBVMR_AudioCallbackStart);
+	LOAD_PROC(VBVMR_AudioCallbackStop);
+	LOAD_PROC(VBVMR_AudioCallbackUnregister);
+
+	initSoftware();
 }
 
 VoicemeeterClient::~VoicemeeterClient()
 {
-	if (loggedIn)
+	if (wTimer != 0)
 	{
-		vmr.VBVMR_Logout();
-		loggedIn = false;
+		KillTimer(NULL, wTimer);
+		wTimer = 0;
 	}
+	endSoftware();
 }
 
-void VoicemeeterClient::start()
+void VoicemeeterClient::run()
 {
-	if (!loggedIn)
-		loggedIn = (vmr.VBVMR_Login() == 0);
+	wTimer = SetTimer(NULL, 0, 500, NULL);
+	PostThreadMessage(mainThreadId, WM_COMMAND, IDM_RESTART, 0);
 
-	if (loggedIn)
+	MSG msg;
+	while (GetMessage(&msg, NULL, 0, 0))
 	{
-		long type;
-		if (vmr.VBVMR_GetVoicemeeterType(&type) == 0)
-			voicemeeterType = type;
-	}
-
-	unsigned outputCount;
-	if (voicemeeterType == 3)
-		outputCount = 5;
-	else if (voicemeeterType == 2)
-		outputCount = 3;
-	else
-		outputCount = 1;
-
-	for (unsigned i = 0; i < outputCount; i++)
-	{
-		wstringstream sstream;
-		sstream << "Output A" << (i + 1);
-		wstring output = sstream.str();
-		if (find(outputs.begin(), outputs.end(), output) != outputs.end())
+		switch (msg.message)
 		{
-			FilterEngine* engine = new FilterEngine();
-			engine->setDeviceInfo(false, true, L"Voicemeeter", output, L"", L"Voicemeeter " + output);
-			engines.push_back(engine);
+		case WM_COMMAND:
+			handleCommand(msg.wParam, msg.lParam);
+			break;
+		case WM_TIMER:
+			if (msg.wParam == wTimer)
+			{
+				// check if Voicemeeter type has changed
+				if (vmr.VBVMR_IsParametersDirty() >= 0)
+				{
+					if (!connected)
+						detectVoicemeeterType();
+				}
+				else
+				{
+					// Voicemeeter has been shut down
+					connected = false;
+				}
+			}
+			break;
 		}
-		else
-		{
-			engines.push_back(NULL);
-		}
-
-		idleSampleCounts.push_back(0);
 	}
-
-	if (vmr.VBVMR_AudioCallbackRegister(VBVMR_AUDIOCALLBACK_OUT, callback, this, (char*)"Equalizer APO") != 0)
-	{
-		PostThreadMessage(mainThreadId, WM_QUIT, 0, 0);
-		return;
-	}
-	vmr.VBVMR_AudioCallbackStart();
-}
-
-void VoicemeeterClient::stop()
-{
-	vmr.VBVMR_AudioCallbackStop();
-	vmr.VBVMR_AudioCallbackUnregister();
-
-	idleSampleCounts.clear();
-	for (FilterEngine* engine : engines)
-		if (engine != NULL)
-			delete engine;
-	engines.clear();
 }
 
 void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
@@ -196,68 +153,167 @@ void VoicemeeterClient::handle(long nCommand, void* lpData, long nnn)
 	switch (nCommand)
 	{
 	case VBVMR_CBCOMMAND_STARTING:
-		{
-			VBVMR_LPT_AUDIOINFO audioInfo = (VBVMR_LPT_AUDIOINFO)lpData;
-			for (FilterEngine* engine : engines)
-				if (engine != NULL)
-					engine->initialize((float)audioInfo->samplerate, 8, 8, 8, 0, audioInfo->nbSamplePerFrame);
-			VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
-		}
-		break;
+	{
+		VBVMR_LPT_AUDIOINFO audioInfo = (VBVMR_LPT_AUDIOINFO)lpData;
+		sampleRate = (float)audioInfo->samplerate;
+		maxFrameCount = audioInfo->nbSamplePerFrame;
+		for (FilterEngine* engine : engines)
+			if (engine != NULL)
+				engine->initialize(sampleRate, 8, 8, 8, 0, maxFrameCount);
+		VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
+	}
+	break;
 	case VBVMR_CBCOMMAND_ENDING:
-		{
-			restart = true;
-			PostThreadMessage(mainThreadId, WM_QUIT, 0, 0);
-		}
 		break;
 	case VBVMR_CBCOMMAND_CHANGE:
-		{
-			VBVMR_LPT_AUDIOINFO audioInfo = (VBVMR_LPT_AUDIOINFO)lpData;
-			for (FilterEngine* engine : engines)
-				if (engine != NULL)
-					engine->initialize((float)audioInfo->samplerate, 8, 8, 8, 0, audioInfo->nbSamplePerFrame);
-			VoicemeeterAPOInfo::saveVoicemeeterSampleRate((unsigned)audioInfo->samplerate);
-		}
+		PostThreadMessage(mainThreadId, WM_COMMAND, IDM_RESTART, 0);
 		break;
 	case VBVMR_CBCOMMAND_BUFFER_OUT:
+	{
+		VBVMR_LPT_AUDIOBUFFER audioBuffer = (VBVMR_LPT_AUDIOBUFFER)lpData;
+		int nbi = audioBuffer->audiobuffer_nbi;
+		int nbo = audioBuffer->audiobuffer_nbo;
+		unsigned n = min(nbi, nbo) / 8;
+
+		for (unsigned i = 0; i < n; i++)
 		{
-			VBVMR_LPT_AUDIOBUFFER audioBuffer = (VBVMR_LPT_AUDIOBUFFER)lpData;
-			int nbi = audioBuffer->audiobuffer_nbi;
-			int nbo = audioBuffer->audiobuffer_nbo;
-			unsigned n = min(nbi, nbo) / 8;
+			FilterEngine* engine = NULL;
+			if (i < engines.size())
+				engine = engines[i];
 
-			for (unsigned i = 0; i < n; i++)
+			bool idle = true;
+			bool inputSilent = true;
+			if (engine != NULL)
 			{
-				FilterEngine* engine = NULL;
-				if (i < engines.size())
-					engine = engines[i];
+				inputSilent = isBufferSilent(audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
+				idle = inputSilent && idleSampleCounts[i] > 10 * engine->getSampleRate();
+			}
 
-				bool idle = true;
-				bool inputSilent = true;
+			// avoid processing when idle (Voicemeeter does still call this when no audio is played)
+			if (!idle)
+			{
+				engine->process(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
+
+				bool outputSilent = isBufferSilent(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_nbs);
+				if (inputSilent && outputSilent)
+					idleSampleCounts[i] += audioBuffer->audiobuffer_nbs;
+				else
+					idleSampleCounts[i] = 0;
+			}
+			else
+			{
+				for (int j = 0; j < 8; j++)
+					memcpy(audioBuffer->audiobuffer_w[8 * i + j], audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs * sizeof(float));
+			}
+		}
+	}
+	break;
+	}
+}
+
+void VoicemeeterClient::initSoftware()
+{
+	long rep = vmr.VBVMR_Login();
+	if (rep < 0)
+		throw InitError(L"Failed To Login");
+	if (vmr.VBVMR_IsParametersDirty() == 0)
+		detectVoicemeeterType();
+	else
+		connected = false;
+	unsigned tries = 30;
+	bool loop = true;
+	while (loop)
+	{
+		loop = false;
+		char clientName[64] = "Equalizer APO";
+		rep = vmr.VBVMR_AudioCallbackRegister(VBVMR_AUDIOCALLBACK_OUT, callback, this, clientName);
+		if (rep == 1)
+		{
+			wchar_t message[512];
+			wsprintf(message, L"Voicemeeter Output Insert already in use by:\n%S", clientName);
+			throw InitError(message);
+		}
+		else if (rep != 0)
+		{
+			if (tries > 1)
+			{
+				// sometimes fails temporarily after restarting VoicemeeterClient
+				Sleep(100);
+				tries--;
+				loop = true;
+			}
+			else
+			{
+				throw InitError(L"Failed to register audio callback");
+			}
+		}
+	}
+}
+
+void VoicemeeterClient::detectVoicemeeterType()
+{
+	long vmType;
+	long rep = vmr.VBVMR_GetVoicemeeterType(&vmType);
+	if (rep == 0)
+	{
+		connected = true;
+
+		unsigned outputCount;
+		if (vmType == 3)
+			outputCount = 5;
+		else if (vmType == 2)
+			outputCount = 3;
+		else
+			outputCount = 1;
+
+		if (outputCount != engines.size())
+		{
+			idleSampleCounts.clear();
+			for (FilterEngine* engine : engines)
 				if (engine != NULL)
-				{
-					inputSilent = isBufferSilent(audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
-					idle = inputSilent && idleSampleCounts[i] > 10 * engine->getSampleRate();
-				}
+					delete engine;
+			engines.clear();
 
-				// avoid processing when idle (Voicemeeter does still call this when no audio is played)
-				if (!idle)
+			for (unsigned i = 0; i < outputCount; i++)
+			{
+				wstringstream sstream;
+				sstream << "Output A" << (i + 1);
+				wstring output = sstream.str();
+				if (find(outputs.begin(), outputs.end(), output) != outputs.end())
 				{
-					engine->process(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_r + 8 * i, audioBuffer->audiobuffer_nbs);
-
-					bool outputSilent = isBufferSilent(audioBuffer->audiobuffer_w + 8 * i, audioBuffer->audiobuffer_nbs);
-					if (inputSilent && outputSilent)
-						idleSampleCounts[i] += audioBuffer->audiobuffer_nbs;
-					else
-						idleSampleCounts[i] = 0;
+					FilterEngine* engine = new FilterEngine();
+					engine->setDeviceInfo(false, true, L"Voicemeeter", output, L"", L"Voicemeeter " + output);
+					if (sampleRate != 0.0f && maxFrameCount != 0)
+						engine->initialize(sampleRate, 8, 8, 8, 0, maxFrameCount);
+					engines.push_back(engine);
 				}
 				else
 				{
-					for (int j = 0; j < 8; j++)
-						memcpy(audioBuffer->audiobuffer_w[8 * i + j], audioBuffer->audiobuffer_r[8 * i + j], audioBuffer->audiobuffer_nbs * sizeof(float));
+					engines.push_back(NULL);
 				}
+
+				idleSampleCounts.push_back(0);
 			}
 		}
+	}
+}
+
+void VoicemeeterClient::endSoftware()
+{
+	if (vmr.VBVMR_Logout != NULL)
+		vmr.VBVMR_Logout();
+	if (vmr.VBVMR_AudioCallbackUnregister != NULL)
+		vmr.VBVMR_AudioCallbackUnregister();
+}
+
+void VoicemeeterClient::handleCommand(WPARAM wparam, LPARAM lparam)
+{
+	switch (LOWORD(wparam))
+	{
+	case IDM_RESTART:
+		Sleep(50);
+		if (vmr.VBVMR_AudioCallbackStart != NULL)
+			vmr.VBVMR_AudioCallbackStart();
 		break;
 	}
 }
@@ -282,7 +338,7 @@ bool VoicemeeterClient::isBufferSilent(float** sampleData, long sampleCount)
 	return silent;
 }
 
-long __stdcall callback(void* lpUser, long nCommand, void* lpData, long nnn)
+static long __stdcall callback(void* lpUser, long nCommand, void* lpData, long nnn)
 {
 	VoicemeeterClient* client = (VoicemeeterClient*)lpUser;
 	client->handle(nCommand, lpData, nnn);

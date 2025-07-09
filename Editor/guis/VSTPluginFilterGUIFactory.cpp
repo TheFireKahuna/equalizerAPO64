@@ -40,7 +40,9 @@ IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString
 	if (command == "VSTPlugin")
 	{
 		VSTPluginFilterFactory factory;
-		std::vector<IFilter*> filters = factory.createFilter(L"", command.toStdWString(), parameters.toStdWString());
+		std::wstring commandWStr = command.toStdWString();
+		std::wstring paramWStr = parameters.toStdWString();
+		std::vector<IFilter*> filters = factory.createFilter(L"", commandWStr, paramWStr);
 		if (!filters.empty())
 		{
 			VSTPluginFilter* filter = (VSTPluginFilter*)filters[0];
@@ -48,7 +50,7 @@ IFilterGUI* VSTPluginFilterGUIFactory::createFilterGUI(QString& command, QString
 		}
 		else
 		{
-			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"", unordered_map<wstring, double>());
+			result = new VSTPluginFilterGUI(VSTPluginLibrary::getInstance(L""), L"", unordered_map<wstring, float>());
 		}
 
 		for (IFilter* f : filters)

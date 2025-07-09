@@ -39,11 +39,11 @@ vector<wstring> PreampFilter::initialize(float sampleRate, unsigned maxFrameCoun
 }
 
 #pragma AVRT_CODE_BEGIN
-void PreampFilter::process(double** output, double** input, unsigned frameCount)
+void PreampFilter::process(float** output, float** input, unsigned frameCount)
 {
 	for (size_t i = 0; i < channelCount; i++)
 	{
-		double* sampleChannel = input[i];
+		float* sampleChannel = input[i];
 
 		for (unsigned j = 0; j < frameCount; j++)
 			sampleChannel[j] *= gain;

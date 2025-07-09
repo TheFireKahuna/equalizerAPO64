@@ -1,20 +1,20 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2017  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2017  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "stdafx.h"
@@ -26,6 +26,7 @@
 #include <TlHelp32.h>
 #include <Winternl.h>
 #include "helpers/RegistryHelper.h"
+#include "helpers/StringHelper.h"
 #include "VoicemeeterAPOInfo.h"
 
 using namespace std;
@@ -38,7 +39,7 @@ static const wchar_t* clientFilename = L"VoicemeeterClient.exe";
 static const wchar_t* voicemeeterClientKeyPath = USER_REGPATH L"\\Voicemeeter Client";
 static const wchar_t* sampleRateValueName = L"sampleRate";
 
-typedef NTSTATUS (NTAPI* pfnNtQueryInformationProcess)(
+typedef NTSTATUS(NTAPI* pfnNtQueryInformationProcess)(
 	IN HANDLE ProcessHandle,
 	IN PROCESSINFOCLASS ProcessInformationClass,
 	OUT PVOID ProcessInformation,
@@ -46,7 +47,7 @@ typedef NTSTATUS (NTAPI* pfnNtQueryInformationProcess)(
 	OUT PULONG ReturnLength OPTIONAL
 	);
 
-void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo> >& list)
+void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo>>& list)
 {
 	wstring voicemeeterDirectory;
 	if (RegistryHelper::keyExists(voicemeeterKeyPath))
@@ -58,11 +59,11 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo> >& list
 	{
 		size_t index = voicemeeterDirectory.find_last_of(L'\\');
 
-		wstring setupFilename = voicemeeterDirectory.substr(index + 1);
+		wstring setupFilename = StringHelper::toLowerCase(voicemeeterDirectory.substr(index + 1));
 		long voicemeeterType = 1;
-		if (setupFilename == L"VoicemeeterProSetup.exe")
+		if (setupFilename == L"voicemeeterprosetup.exe")
 			voicemeeterType = 2;// banana
-		else if (setupFilename == L"Voicemeeter8Setup.exe")
+		else if (setupFilename == L"voicemeeter8setup.exe")
 			voicemeeterType = 3;// potato
 
 		unsigned outputCount;
@@ -84,7 +85,7 @@ void VoicemeeterAPOInfo::prependInfos(vector<shared_ptr<AbstractAPOInfo> >& list
 			}
 
 			return false;
-		}), list.end());
+			}), list.end());
 
 		bool anyInstalled = false;
 		for (unsigned i = 0; i < outputCount; i++)
@@ -217,6 +218,16 @@ bool VoicemeeterAPOInfo::isEnhancementsDisabled() const
 bool VoicemeeterAPOInfo::isDefaultDevice() const
 {
 	return defaultDevice;
+}
+
+bool VoicemeeterAPOInfo::isDisabled() const
+{
+	return false;
+}
+
+bool VoicemeeterAPOInfo::isUnplugged() const
+{
+	return false;
 }
 
 bool VoicemeeterAPOInfo::isVoicemeeterInstalled() const
@@ -410,7 +421,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	HMODULE module = LoadLibraryW(L"ntdll.dll");
 	if (module == NULL)
 		throw exception("Could not load ntdll.dll");
-	SCOPE_EXIT {FreeLibrary(module);};
+	SCOPE_EXIT{FreeLibrary(module); };
 
 	pfnNtQueryInformationProcess NtQueryInformationProcess = (pfnNtQueryInformationProcess)GetProcAddress(module, "NtQueryInformationProcess");
 	if (NtQueryInformationProcess == NULL)
@@ -419,7 +430,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 	HANDLE snapshotHandle = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
 	if (snapshotHandle == INVALID_HANDLE_VALUE)
 		throw exception("Could not take a snapshot of all processes");
-	SCOPE_EXIT {CloseHandle(snapshotHandle);};
+	SCOPE_EXIT{CloseHandle(snapshotHandle); };
 
 	bool matchingProcessExists = false;
 
@@ -433,7 +444,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 			HANDLE processHandle = OpenProcess(PROCESS_QUERY_INFORMATION | PROCESS_VM_READ | PROCESS_TERMINATE, FALSE, entry.th32ProcessID);
 			if (processHandle == INVALID_HANDLE_VALUE)
 				throw exception("Could not open process");
-			SCOPE_EXIT {CloseHandle(processHandle);};
+			SCOPE_EXIT{CloseHandle(processHandle); };
 
 			PROCESS_BASIC_INFORMATION basicInformation;
 			NTSTATUS status = NtQueryInformationProcess(processHandle, ProcessBasicInformation, &basicInformation, sizeof(basicInformation), NULL);
@@ -449,7 +460,7 @@ void VoicemeeterAPOInfo::ensureVoicemeeterClientRunning()
 				throw exception("Could not read process parameters from process memory");
 
 			wchar_t* cmdLineBuf = new wchar_t[processParams.CommandLine.Length / sizeof(wchar_t)];
-			SCOPE_EXIT {delete cmdLineBuf;};
+			SCOPE_EXIT{delete cmdLineBuf; };
 			if (!ReadProcessMemory(processHandle, processParams.CommandLine.Buffer, cmdLineBuf, processParams.CommandLine.Length, NULL))
 				throw exception("Could not read command line from process memory");
 			wstring cmdLine(cmdLineBuf, processParams.CommandLine.Length / sizeof(wchar_t));
@@ -491,7 +502,7 @@ void VoicemeeterAPOInfo::closeProcess(unsigned long processId)
 	HANDLE snapshotHandle = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 	if (snapshotHandle == INVALID_HANDLE_VALUE)
 		throw exception("Could not take a snapshot of all processes");
-	SCOPE_EXIT {CloseHandle(snapshotHandle);};
+	SCOPE_EXIT{CloseHandle(snapshotHandle); };
 
 	THREADENTRY32 entry;
 	entry.dwSize = sizeof(THREADENTRY32);

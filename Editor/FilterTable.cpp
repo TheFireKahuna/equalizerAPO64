@@ -50,7 +50,7 @@
 #include "guis/ConvolutionFilterGUIFactory.h"
 #include "guis/VSTPluginFilterGUIFactory.h"
 #include "guis/LoudnessCorrectionFilterGUIFactory.h"
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
@@ -66,7 +66,7 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 
 	QIcon icon(QStringLiteral(":/icons/arrow_right.ico"));
 	insertArrow = new QLabel(this);
-	insertArrow->setPixmap(icon.pixmap(DPIHelper::scale(QSize(24, 15))));
+	insertArrow->setPixmap(icon.pixmap(GUIHelper::scale(QSize(24, 15))));
 	insertArrow->setVisible(false);
 
 	factories.append(new ExpressionFilterGUIFactory);
@@ -94,7 +94,7 @@ FilterTable::~FilterTable()
 	factories.clear();
 }
 
-void FilterTable::initialize(QScrollArea* scrollArea, const QList<shared_ptr<AbstractAPOInfo> >& outputDevices, const QList<shared_ptr<AbstractAPOInfo> >& inputDevices)
+void FilterTable::initialize(QScrollArea* scrollArea, const QList<shared_ptr<AbstractAPOInfo>>& outputDevices, const QList<shared_ptr<AbstractAPOInfo>>& inputDevices)
 {
 	this->scrollArea = scrollArea;
 	this->outputDevices = outputDevices;
@@ -144,7 +144,7 @@ void FilterTable::updateGuis()
 	timer.start();
 
 	gridLayout = new QGridLayout(this);
-	gridLayout->setMargin(0);
+	gridLayout->setContentsMargins(0, 0, 0, 0);
 	gridLayout->setSpacing(0);
 	gridLayout->setColumnStretch(0, 0);
 	gridLayout->setColumnStretch(1, 1);
@@ -207,10 +207,10 @@ void FilterTable::updateGuis()
 	propagateChannels();
 
 	QToolBar* toolBar = new QToolBar;
-	toolBar->setIconSize(DPIHelper::scale(QSize(16, 16)));
+	toolBar->setIconSize(GUIHelper::scale(QSize(16, 16)));
 
 	QWidget* spacer = new QWidget;
-	spacer->setFixedWidth(DPIHelper::scale(25));
+	spacer->setFixedWidth(GUIHelper::scale(25));
 	toolBar->addWidget(spacer);
 
 	QAction* addAction = new QAction(QIcon(":/icons/list-add-green.ico"), tr("Add filter"), toolBar);
@@ -926,7 +926,7 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 void FilterTable::wheelEvent(QWheelEvent* event)
 {
 	scrollingNow = true;
-	scrollStartPoint = event->globalPos();
+	scrollStartPoint = event->globalPosition();
 
 	QWidget::wheelEvent(event);
 }
@@ -939,7 +939,7 @@ bool FilterTable::eventFilter(QObject* obj, QEvent* event)
 		if (type == QEvent::Wheel)
 		{
 			QWheelEvent* wheelEvent = (QWheelEvent*)event;
-			scrollStartPoint = wheelEvent->globalPos();
+			scrollStartPoint = wheelEvent->globalPosition();
 
 			QWidget* widget = qobject_cast<QWidget*>(obj);
 			if (widget != NULL)
@@ -955,7 +955,7 @@ bool FilterTable::eventFilter(QObject* obj, QEvent* event)
 		{
 			QMouseEvent* mouseEvent = (QMouseEvent*)event;
 
-			if ((mouseEvent->globalPos() - scrollStartPoint).manhattanLength() > DPIHelper::scale(30))
+			if ((mouseEvent->globalPos() - scrollStartPoint).manhattanLength() > GUIHelper::scale(30))
 				scrollingNow = false;
 		}
 	}
@@ -1059,12 +1059,12 @@ const QSet<FilterTable::Item*>& FilterTable::getSelectedItems() const
 	return selected;
 }
 
-const QList<shared_ptr<AbstractAPOInfo> >& FilterTable::getOutputDevices() const
+const QList<shared_ptr<AbstractAPOInfo>>& FilterTable::getOutputDevices() const
 {
 	return outputDevices;
 }
 
-const QList<shared_ptr<AbstractAPOInfo> >& FilterTable::getInputDevices() const
+const QList<shared_ptr<AbstractAPOInfo>>& FilterTable::getInputDevices() const
 {
 	return inputDevices;
 }

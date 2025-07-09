@@ -33,14 +33,14 @@ FilterConfiguration::FilterConfiguration(FilterEngine* engine, const vector<Filt
 	outputChannelCount = engine->getOutputChannelCount();
 	unsigned maxFrameCount = engine->getMaxFrameCount();
 
-	allSamples = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
+	allSamples = (float**)MemoryHelper::alloc(allChannelCount * sizeof(float*));
 	for (size_t i = 0; i < allChannelCount; i++)
-		allSamples[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
-	allSamples2 = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
+		allSamples[i] = (float*)MemoryHelper::alloc(maxFrameCount * sizeof(float));
+	allSamples2 = (float**)MemoryHelper::alloc(allChannelCount * sizeof(float*));
 	for (size_t i = 0; i < allChannelCount; i++)
-		allSamples2[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
-	currentSamples = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
-	currentSamples2 = (double**)MemoryHelper::alloc(allChannelCount * sizeof(double*));
+		allSamples2[i] = (float*)MemoryHelper::alloc(maxFrameCount * sizeof(float));
+	currentSamples = (float**)MemoryHelper::alloc(allChannelCount * sizeof(float*));
+	currentSamples2 = (float**)MemoryHelper::alloc(allChannelCount * sizeof(float*));
 
 	filterCount = (unsigned)filterInfos.size();
 	this->filterInfos = (FilterInfo**)MemoryHelper::alloc(filterCount * sizeof(FilterInfo*));
@@ -75,14 +75,14 @@ FilterConfiguration::~FilterConfiguration()
 }
 
 #pragma AVRT_CODE_BEGIN
-void FilterConfiguration::read(double* input, unsigned frameCount)
+void FilterConfiguration::read(float* input, unsigned frameCount)
 {
 #define DEINTERLEAVE_MACRO(ccount)\
 	{\
 		for (size_t c = 0; c < ccount; c++)\
 		{\
-			double* sampleChannel = allSamples[c];\
-			double* i2 = input + c;\
+			float* sampleChannel = allSamples[c];\
+			float* i2 = input + c;\
 			for (size_t i = 0; i < frameCount; i++)\
 			{\
 				sampleChannel[i] = i2[i * ccount];\
@@ -109,20 +109,20 @@ void FilterConfiguration::read(double* input, unsigned frameCount)
 	}
 }
 
-void FilterConfiguration::read(double** input, unsigned frameCount)
+void FilterConfiguration::read(float** input, unsigned frameCount)
 {
 	for (unsigned c = 0; c < realChannelCount; c++)
-		memcpy(allSamples[c], input[c], frameCount * sizeof(double));
+		memcpy(allSamples[c], input[c], frameCount * sizeof(float));
 }
 
 void FilterConfiguration::process(unsigned frameCount)
 {
 	for (unsigned c = realChannelCount; c < allChannelCount; c++)
-		memset(allSamples[c], 0, frameCount * sizeof(double));
+		memset(allSamples[c], 0, frameCount * sizeof(float));
 
 	// for real mono input and >= stereo output, upmix to stereo as the Windows audio system would do automatically if no APO was present
 	if (realChannelCount == 1 && outputChannelCount >= 2)
-		memcpy(allSamples[1], allSamples[0], frameCount * sizeof(double));
+		memcpy(allSamples[1], allSamples[0], frameCount * sizeof(float));
 
 	for (size_t i = 0; i < filterCount; i++)
 	{
@@ -153,12 +153,12 @@ void FilterConfiguration::process(unsigned frameCount)
 
 unsigned FilterConfiguration::doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength)
 {
-	double** currentSamples = allSamples;
-	double** nextSamples = nextConfig->allSamples;
+	float** currentSamples = allSamples;
+	float** nextSamples = nextConfig->allSamples;
 
 	for (unsigned f = 0; f < frameCount; f++)
 	{
-		double factor = 0.5f * (1.0f - cos(transitionCounter * (double)M_PI / transitionLength));
+		float factor = 0.5f * (1.0f - cos(transitionCounter * (float)M_PI / transitionLength));
 		if (transitionCounter >= transitionLength)
 			factor = 1.0f;
 
@@ -171,13 +171,13 @@ unsigned FilterConfiguration::doTransition(FilterConfiguration* nextConfig, unsi
 	return transitionCounter;
 }
 
-void FilterConfiguration::write(double* output, unsigned frameCount)
+void FilterConfiguration::write(float* output, unsigned frameCount)
 {
 #define INTERLEAVE_MACRO(ccount)\
 	for (size_t c = 0; c < ccount; c++)\
 	{\
-		double* sampleChannel = allSamples[c];\
-		double* o2 = output + c;\
+		float* sampleChannel = allSamples[c];\
+		float* o2 = output + c;\
 		for (unsigned i = 0; i < frameCount; i++)\
 		{\
 			o2[i * ccount] = sampleChannel[i];\
@@ -203,10 +203,10 @@ void FilterConfiguration::write(double* output, unsigned frameCount)
 	}
 }
 
-void FilterConfiguration::write(double** output, unsigned frameCount)
+void FilterConfiguration::write(float** output, unsigned frameCount)
 {
 	for (unsigned i = 0; i < outputChannelCount; i++)
-		memcpy(output[i], allSamples[i], frameCount * sizeof(double));
+		memcpy(output[i], allSamples[i], frameCount * sizeof(float));
 }
 #pragma AVRT_CODE_END
 

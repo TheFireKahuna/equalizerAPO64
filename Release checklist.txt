@@ -2,8 +2,9 @@
 2. Create setups using build.bat
 3. Commit trunk with message "Version x"
 4. Export trunk to an external folder, create EqualizerAPO-src-x.zip from the folder contents
-5. Upload EqualizerAPO32-x.exe, EqualizerAPO64-x.exe and EqualizerAPO-src-x.zip to new folder x
-6. Update readme.txt using subversion log
-7. Set EqualizerAPO64-x.exe as new default download
-8. Update URL for tool "Downloads" to https://sourceforge.net/projects/equalizerapo/files/x/
-9. Create tag of trunk in tags/x with message "Tag release x"
+5. Upload EqualizerAPO-src-x.zip, EqualizerAPO-ARM64-x.exe, EqualizerAPO-x86-x.exe and EqualizerAPO-x64-x.exe (in this order) to new folder x
+6. Add version database entry using subversion log
+7. Update readme.txt using subversion log
+8. Set EqualizerAPO-x64-x.exe as new default download
+9. Update URL for tool "Downloads" to https://sourceforge.net/projects/equalizerapo/files/x/
+10. Create tag of trunk in tags/x with message "Tag release x"

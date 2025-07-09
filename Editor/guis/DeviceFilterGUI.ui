@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>400</width>
-    <height>71</height>
+    <height>75</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -44,7 +44,7 @@
       </size>
      </property>
      <property name="sizeAdjustPolicy">
-      <enum>QAbstractScrollArea::AdjustToContents</enum>
+      <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
      </property>
      <property name="rootIsDecorated">
       <bool>false</bool>
@@ -84,9 +84,6 @@
        </property>
        <property name="text">
         <string>Selected devices:</string>
-       </property>
-       <property name="wordWrap">
-        <bool>true</bool>
        </property>
       </widget>
      </item>

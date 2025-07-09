@@ -27,7 +27,7 @@ AnalysisPlotScene::AnalysisPlotScene(QObject* parent)
 {
 }
 
-void AnalysisPlotScene::setFreqData(fftw_complex* freqData, int frameCount, unsigned sampleRate)
+void AnalysisPlotScene::setFreqData(fftwf_complex* freqData, int frameCount, unsigned sampleRate)
 {
 	nodes.clear();
 	for (int i = 0; i < frameCount / 2; i++)
@@ -44,7 +44,7 @@ void AnalysisPlotScene::setFreqData(fftw_complex* freqData, int frameCount, unsi
 	update();
 }
 
-vector<FilterNode> AnalysisPlotScene::getNodes() const
+const vector<FilterNode>& AnalysisPlotScene::getNodes() const
 {
 	return nodes;
 }

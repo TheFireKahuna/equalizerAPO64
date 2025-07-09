@@ -29,12 +29,12 @@
 class BiQuadFilterFactory : public IFilterFactory
 {
 public:
-    BiQuadFilterFactory();
-    std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
+	BiQuadFilterFactory();
+	std::vector<IFilter*> createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters) override;
 
 private:
-    double getFreq(const std::wstring& freqString);
+	double getFreq(const std::wstring& freqString);
 
-    std::unordered_map<std::wstring, BiQuad::Type> filterNameToTypeMap;
-    std::unordered_map<BiQuad::Type, std::wstring> filterTypeToDescriptionMap;
+	std::unordered_map<std::wstring, BiQuad::Type> filterNameToTypeMap;
+	std::unordered_map<BiQuad::Type, std::wstring> filterTypeToDescriptionMap;
 };

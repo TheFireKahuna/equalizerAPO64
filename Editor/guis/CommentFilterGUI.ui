@@ -32,7 +32,7 @@
    <item>
     <spacer name="horizontalSpacer">
      <property name="orientation">
-      <enum>Qt::Horizontal</enum>
+      <enum>Qt::Orientation::Horizontal</enum>
      </property>
      <property name="sizeHint" stdset="0">
       <size>
@@ -49,8 +49,8 @@
    </property>
    <property name="icon">
     <iconset resource="../Editor.qrc">
-     <normaloff>:/icons/power_off.ico</normaloff>
-     <normalon>:/icons/power_on.ico</normalon>:/icons/power_off.ico</iconset>
+     <normaloff>:/icons/power_off.svg</normaloff>
+     <normalon>:/icons/power_on.svg</normalon>:/icons/power_off.svg</iconset>
    </property>
    <property name="text">
     <string>Power on</string>

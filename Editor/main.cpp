@@ -1,20 +1,20 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <QTranslator>
@@ -22,9 +22,11 @@
 #include <QDir>
 #include <QCommandLineParser>
 #include <QSettings>
+#include <QStyleHints>
 #include "CustomStyle.h"
 #include "MainWindow.h"
 #include "helpers/RegistryHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 
 using namespace std;
 
@@ -37,27 +39,31 @@ int main(int argc, char* argv[])
 #endif
 
 	QCoreApplication::addLibraryPath("qt");
+	qputenv("QT_ENABLE_HIGHDPI_SCALING", "0");
 
 	bool restart;
 	do
 	{
 		QApplication application(argc, argv);
+		if(GUIHelper::isDarkMode())
+			application.setStyle("fusion");
 		application.setStyle(new CustomStyle(application.style()));
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+
 		QVariant languageValue = settings.value("language");
 		if (languageValue.isValid())
-			QLocale::setDefault(languageValue.toString());
+			QLocale::setDefault(QLocale(languageValue.toString()));
 		else
 			QLocale::setDefault(QLocale::system());
 
 		QTranslator qtTranslator;
-		qtTranslator.load(QLocale(), ":/translations/qtbase", "_");
-		application.installTranslator(&qtTranslator);
+		if (qtTranslator.load(QLocale(), ":/translations/qtbase", "_"))
+			application.installTranslator(&qtTranslator);
 
 		QTranslator editorTranslator;
-		editorTranslator.load(QLocale(), ":/translations/Editor", "_");
-		application.installTranslator(&editorTranslator);
+		if (editorTranslator.load(QLocale(), ":/translations/Editor", "_"))
+			application.installTranslator(&editorTranslator);
 
 		QString configPath = QDir::currentPath();
 		if (RegistryHelper::keyExists(APP_REGPATH) && RegistryHelper::valueExists(APP_REGPATH, L"ConfigPath"))
@@ -82,7 +88,7 @@ int main(int argc, char* argv[])
 		if (args.isEmpty() && w.isEmpty())
 			args = QStringList("config.txt");
 
-		for (QString arg : args)
+		for (const QString& arg : args)
 			w.load(configDir.absoluteFilePath(arg));
 
 		w.doChecks();

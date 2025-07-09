@@ -71,12 +71,12 @@ vector<wstring> IIRFilter::initialize(float sampleRate, unsigned maxFrameCount, 
 }
 
 #pragma AVRT_CODE_BEGIN
-void IIRFilter::process(double** output, double** input, unsigned frameCount)
+void IIRFilter::process(float** output, float** input, unsigned frameCount)
 {
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		double* inputChannel = input[i];
-		double* outputChannel = output[i];
+		float* inputChannel = input[i];
+		float* outputChannel = output[i];
 
 		unsigned channelOffset = i * order;
 		double* xo = x + channelOffset;
@@ -105,7 +105,7 @@ void IIRFilter::process(double** output, double** input, unsigned frameCount)
 			xo[0] = sample;
 			yo[0] = sum;
 
-			outputChannel[j] = (double)sum;
+			outputChannel[j] = (float)sum;
 		}
 	}
 

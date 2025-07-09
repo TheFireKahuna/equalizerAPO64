@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "FrequencyPlotView.h"
 #include "FrequencyPlotScene.h"
 
@@ -38,8 +38,8 @@ vector<double> FrequencyPlotScene::bandsVar;
 FrequencyPlotScene::FrequencyPlotScene(QObject* parent)
 	: QGraphicsScene(parent)
 {
-	zoomX = DPIHelper::scaleZoom(1.0);
-	zoomY = DPIHelper::scaleZoom(1.0);
+	zoomX = GUIHelper::scaleZoom(1.0);
+	zoomY = GUIHelper::scaleZoom(1.0);
 
 	updateSceneRect();
 }

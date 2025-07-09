@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include "Editor/helpers/GUIHelper.h"
 #include "GraphicEQFilterGUIScene.h"
 #include "GraphicEQFilterGUIView.h"
 
@@ -54,6 +55,7 @@ void GraphicEQFilterGUIView::drawBackground(QPainter* painter, const QRectF& rec
 			path.lineTo(x, y);
 		}
 	}
-	painter->setPen(Qt::black);
+    bool dark = GUIHelper::isDarkMode();
+    painter->setPen(dark ? Qt::white : Qt::black);
 	painter->drawPath(path);
 }

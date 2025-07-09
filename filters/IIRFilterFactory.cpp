@@ -39,7 +39,7 @@ IIRFilterFactory::IIRFilterFactory()
 {
 }
 
-vector<IFilter*> IIRFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> IIRFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	IIRFilter* filter = NULL;
 

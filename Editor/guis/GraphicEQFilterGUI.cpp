@@ -1,20 +1,20 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <vector>
@@ -23,7 +23,7 @@
 #include <QTextStream>
 
 #include "helpers/GainIterator.h"
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizeCorner.h"
 #include "Editor/FilterTable.h"
 #include "GraphicEQFilterGUIView.h"
@@ -41,10 +41,16 @@ GraphicEQFilterGUI::GraphicEQFilterGUI(GraphicEQFilter* filter, QString configPa
 	: ui(new Ui::GraphicEQFilterGUI), configPath(configPath)
 {
 	ui->setupUi(this);
-	ui->tableWidget->horizontalHeader()->setMinimumSectionSize(DPIHelper::scale(10));
-	ui->tableWidget->horizontalHeader()->setDefaultSectionSize(DPIHelper::scale(10));
-	ui->tableWidget->verticalHeader()->setMinimumSectionSize(DPIHelper::scale(23));
-	ui->tableWidget->verticalHeader()->setDefaultSectionSize(DPIHelper::scale(23));
+	if(GUIHelper::isDarkMode())
+	{
+		ui->actionInvertResponse->setIcon(QIcon(":/icons/dark-mode/invert_response.svg"));
+		ui->actionNormalizeResponse->setIcon(QIcon(":/icons/dark-mode/normalize_response.svg"));
+		ui->actionResetResponse->setIcon(QIcon(":/icons/dark-mode/reset_response.svg"));
+	}
+	ui->tableWidget->horizontalHeader()->setMinimumSectionSize(GUIHelper::scale(10));
+	ui->tableWidget->horizontalHeader()->setDefaultSectionSize(GUIHelper::scale(10));
+	ui->tableWidget->verticalHeader()->setMinimumSectionSize(GUIHelper::scale(23));
+	ui->tableWidget->verticalHeader()->setDefaultSectionSize(GUIHelper::scale(23));
 
 	scene = new GraphicEQFilterGUIScene(ui->graphicsView);
 	ui->graphicsView->setScene(scene);
@@ -114,16 +120,16 @@ void GraphicEQFilterGUI::store(QString& command, QString& parameters)
 
 void GraphicEQFilterGUI::loadPreferences(const QVariantMap& prefs)
 {
-	ui->tableWidget->setFixedWidth(DPIHelper::scale(prefs.value("tableWidth", DEFAULT_TABLE_WIDTH).toDouble()));
-	ui->graphicsView->setFixedHeight(DPIHelper::scale(prefs.value("viewHeight", DEFAULT_VIEW_HEIGHT).toDouble()));
-	double zoomX = DPIHelper::scaleZoom(prefs.value("zoomX", 1.0).toDouble());
-	double zoomY = DPIHelper::scaleZoom(prefs.value("zoomY", 1.0).toDouble());
+	ui->tableWidget->setFixedWidth(GUIHelper::scale(prefs.value("tableWidth", DEFAULT_TABLE_WIDTH).toDouble()));
+	ui->graphicsView->setFixedHeight(GUIHelper::scale(prefs.value("viewHeight", DEFAULT_VIEW_HEIGHT).toDouble()));
+	double zoomX = GUIHelper::scaleZoom(prefs.value("zoomX", 1.0).toDouble());
+	double zoomY = GUIHelper::scaleZoom(prefs.value("zoomY", 1.0).toDouble());
 	scene->setZoom(zoomX, zoomY);
 	bool ok;
-	int scrollX = DPIHelper::scale(prefs.value("scrollX").toDouble(&ok));
+	int scrollX = GUIHelper::scale(prefs.value("scrollX").toDouble(&ok));
 	if (!ok)
 		scrollX = round(scene->hzToX(20));
-	int scrollY = DPIHelper::scale(prefs.value("scrollY").toDouble(&ok));
+	int scrollY = GUIHelper::scale(prefs.value("scrollY").toDouble(&ok));
 	if (!ok)
 		scrollY = round(scene->dbToY(22));
 	ui->graphicsView->setScrollOffsets(scrollX, scrollY);
@@ -131,22 +137,22 @@ void GraphicEQFilterGUI::loadPreferences(const QVariantMap& prefs)
 
 void GraphicEQFilterGUI::storePreferences(QVariantMap& prefs)
 {
-	if (DPIHelper::invScale(ui->tableWidget->width()) != DEFAULT_TABLE_WIDTH)
-		prefs.insert("tableWidth", DPIHelper::invScale(ui->tableWidget->width()));
-	if (DPIHelper::invScale(ui->graphicsView->height()) != DEFAULT_VIEW_HEIGHT)
-		prefs.insert("viewHeight", DPIHelper::invScale(ui->graphicsView->height()));
-	if (DPIHelper::invScaleZoom(scene->getZoomX()) != 1.0)
-		prefs.insert("zoomX", DPIHelper::invScaleZoom(scene->getZoomX()));
-	if (DPIHelper::invScaleZoom(scene->getZoomY()) != 1.0)
-		prefs.insert("zoomY", DPIHelper::invScaleZoom(scene->getZoomY()));
+	if (GUIHelper::invScale(ui->tableWidget->width()) != DEFAULT_TABLE_WIDTH)
+		prefs.insert("tableWidth", GUIHelper::invScale(ui->tableWidget->width()));
+	if (GUIHelper::invScale(ui->graphicsView->height()) != DEFAULT_VIEW_HEIGHT)
+		prefs.insert("viewHeight", GUIHelper::invScale(ui->graphicsView->height()));
+	if (GUIHelper::invScaleZoom(scene->getZoomX()) != 1.0)
+		prefs.insert("zoomX", GUIHelper::invScaleZoom(scene->getZoomX()));
+	if (GUIHelper::invScaleZoom(scene->getZoomY()) != 1.0)
+		prefs.insert("zoomY", GUIHelper::invScaleZoom(scene->getZoomY()));
 	QScrollBar* hScrollBar = ui->graphicsView->horizontalScrollBar();
 	int value = hScrollBar->value();
 	if (value != round(scene->hzToX(20)))
-		prefs.insert("scrollX", DPIHelper::invScale(value));
+		prefs.insert("scrollX", GUIHelper::invScale(value));
 	QScrollBar* vScrollBar = ui->graphicsView->verticalScrollBar();
 	value = vScrollBar->value();
 	if (value != round(scene->dbToY(22)))
-		prefs.insert("scrollY", DPIHelper::invScale(value));
+		prefs.insert("scrollY", GUIHelper::invScale(value));
 }
 
 void GraphicEQFilterGUI::insertRow(int index, double hz, double db)

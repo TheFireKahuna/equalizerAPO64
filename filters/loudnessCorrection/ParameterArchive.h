@@ -26,7 +26,7 @@
 
 template<typename type> struct to_WString_type_traits
 {
-	static inline std::wstring cast_ToWString(type& input) {return std::wstring();}
+	static inline std::wstring cast_ToWString(const type& input) {return std::wstring();}
 };
 
 template<> struct to_WString_type_traits<float>
@@ -99,7 +99,7 @@ template<> struct constructor_traits<std::wstring>
 	static inline std::wstring initFrom(std::wstring input) {return input;}
 };
 
-template<> struct constructor_traits<std::vector<char> >
+template<> struct constructor_traits<std::vector<char>>
 {
 	static inline std::wstring initFrom(std::vector<char> input)
 	{
@@ -129,31 +129,7 @@ public:
 		return outputParameter;
 	}
 
-	/*void add(const bool parameter, const std::wstring name)
-	{
-		std::wstring nameStr = name;
-		if (!nameStr.empty())
-		{
-			_serializedParamters += nameStr;
-			_serializedParamters += L" ";
-		}
-		_serializedParamters += to_WString_type_traits<bool>::cast_ToWString(parameter);
-		_serializedParamters += L" ";
-	};*/
-
-	template<typename T> void add(const T& parameter, const std::wstring& name)
-	{
-		std::wstring nameStr = name;
-		if (!nameStr.empty())
-		{
-			_serializedParamters += nameStr;
-			_serializedParamters += L" ";
-		}
-		_serializedParamters += to_WString_type_traits<T>::cast_ToWString(parameter);
-		_serializedParamters += L" ";
-	};
-
-	/*template<typename T, typename U> void add(const T& parameter, const U& name)
+	template<typename T, typename U> void add(const T& parameter, const U& name)
 	{
 		std::wstring nameStr = to_WString_type_traits<U>::cast_ToWString(name);
 		if (!nameStr.empty())
@@ -163,7 +139,7 @@ public:
 		}
 		_serializedParamters += to_WString_type_traits<T>::cast_ToWString(parameter);
 		_serializedParamters += L" ";
-	};*/
+	};
 
 	template<typename T> int get(T& parameter, const std::wregex& searchArgument)
 	{

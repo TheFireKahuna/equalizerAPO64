@@ -32,7 +32,7 @@ public:
 	bool getInPlace() override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
 	void prepareForProcessing(float sampleRate, unsigned maxFrameCount);
-	void process(double** output, double** input, unsigned frameCount) override;
+	void process(float** output, float** input, unsigned frameCount) override;
 
 	std::shared_ptr<VSTPluginLibrary> getLibrary() const;
 	std::wstring getChunkData() const;
@@ -50,9 +50,9 @@ private:
 	size_t effectCount = 0;
 	VSTPluginInstance** effects = NULL;
 	size_t emptyChannelCount = 0;
-	double** emptyChannels = NULL;
-	double** inputArray = NULL;
-	double** outputArray = NULL;
+	float** emptyChannels = NULL;
+	float** inputArray = NULL;
+	float** outputArray = NULL;
 	bool skipProcessing = false;
 	bool reportCrash = true;
 };

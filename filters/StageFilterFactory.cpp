@@ -51,7 +51,7 @@ std::vector<IFilter*> StageFilterFactory::startOfFile(const std::wstring& config
 	return vector<IFilter*>();
 }
 
-vector<IFilter*> StageFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command == L"Stage")
 	{

@@ -26,7 +26,7 @@
 
 using namespace std;
 
-vector<IFilter*> PreampFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	PreampFilter* filter = NULL;
 

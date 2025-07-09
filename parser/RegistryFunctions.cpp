@@ -83,7 +83,9 @@ void ReadRegDWORDFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int 
 
 	try
 	{
-		*ret = (int) RegistryHelper::readDWORDValue(key, valuename);
+		unsigned long value = RegistryHelper::readDWORDValue(key, valuename);
+
+		*ret = (int)value;
 
 		engine->watchRegistryKey(key);
 	}

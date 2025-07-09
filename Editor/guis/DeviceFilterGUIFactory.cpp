@@ -53,7 +53,7 @@ IFilterGUI* DeviceFilterGUIFactory::createFilterGUI(QString& command, QString& p
 	return result;
 }
 
-const QList<shared_ptr<AbstractAPOInfo> >& DeviceFilterGUIFactory::getDevices() const
+const QList<shared_ptr<AbstractAPOInfo>>& DeviceFilterGUIFactory::getDevices() const
 {
 	return devices;
 }

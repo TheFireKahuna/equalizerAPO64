@@ -1,0 +1,77 @@
+Welcome to the Wiki of Equalizer APO. This is the documentation for users of Equalizer APO. Developers might also be interested in reading the [developer documentation](https://sourceforge.net/p/equalizerapo/wiki/Developer%20documentation/). To begin using Equalizer APO, you should read the <a href="#install_tutorial">tutorials</a>. After that, you can look at more detailed information in the [configuration reference](https://sourceforge.net/p/equalizerapo/wiki/Configuration%20reference/).
+
+**Table of contents:**
+
+[TOC]
+
+<a name="install_tutorial"></a>
+# Installation tutorial
+
+1. Download the Equalizer APO setup for your version of Windows (32 or 64 bit). If you are unsure if you need the 32 or the 64 bit version, you can open Start Menu -> Control Panel -> System and look up the system type.
+2. Execute the setup program and follow the instructions. Remember your installation path if you don't use the default of C:\\Program Files\\EqualizerAPO . From here on, for better readability it is assumed that you use the default path.
+3. During the installation process the program Configurator.exe will be run. Make sure that you select the correct audio device to install the APO to. If you are unsure you can open Start Menu -> Control Panel -> Sound and look for the default output device. If you need to install the APO to other audio devices later, you can run the program again from C:\\Program Files\\EqualizerAPO\\Configurator.exe .
+4. After the installation finished, you should allow the reboot of your system. This is needed because the newly installed APO will not be used immediately but only after the audio service is restarted.
+5. When the system has rebooted, the APO should be active. This will only be noticable by a small reduction in volume and a mild low frequency boost, because this is what the example configuration file specifies. To change the APO's behaviour to something more useful, you can now read the <a href="#config_tutorial">Configuration</a> chapter.
+
+<a name="config_tutorial"></a>
+# Configuration tutorial
+
+1. Open Windows Explorer and navigate to C:\\Program Files\\EqualizerAPO\\config . You should find the files config.txt and example.txt. The file config.txt is the main configuration file that will automatically be loaded by Equalizer APO.
+2. Open the file config.txt in a text editor and you will see that it first defines a preamplification value and then includes example.txt. To check if the APO is really working you can start some audio or video application and adjust the preamp value while music is running. You should notice that the volume changes immediately each time after you save the file.
+3. To begin creating your individual filter configuration you should now install and run [Room EQ Wizard](http://hometheatershack.com/roomeq).
+
+Screenshot of Room EQ Wizard (click to enlarge):
+
+<a href="/p/equalizerapo/wiki/Images/attachment/RoomEQWizard.png"><img src="/p/equalizerapo/wiki/Images/attachment/RoomEQWizard-thumb.png"/></a>
+
+A detailed explanation of the usage of Room EQ Wizard is out of the scope of this document, but here is the basic process:
+
+1. Click the "Measure" button in the toolbar (Mark A in the above screenshot) to bring up the measurement dialog. Here you should first do "Check Levels" and adjust your output volume appropriately, then "Start Measuring". After the measurement, the dialog will close automatically and a frequency response graph is shown.
+2. Click the "EQ" button (Mark B) in the toolbar. Here you can select an equalizer type (Mark C). Use either "Generic" or, if you prefer bandwidth instead of Q, the "FBQ2496" equalizer type. Beware that no other equalizer types are currently supported.
+3. Click the "EQ Filters" button (Mark D) in the EQ window. Now you can add filters by setting "Control" to Manual, "Type" to PK/PEQ and then adjusting "Frequency", "Gain" and "Q"/"Bw Oct" to your needs. The graph in the EQ window will directly show the filter's frequency response. Since version 0.8, you can also use any of the other filter types available if they suit your needs, but generally the peaking filters should be the most appropriate for room correction.
+4. To save the filter settings, you should first use the "Save this filter set" button (Mark E) in the EQ Filters window. This will save the settings in a format that Room EQ Wizard can read back later when you need to make further adjustments.
+5. Now save the filter settings in a format that Equalizer APO can read. To do this, go to the main window of Room EQ Wizard. Open the "File" menu (Mark F) and select "Export" -> "Filter Settings as text". Save under a new filename into C:\\Program Files\\EqualizerAPO\\config .
+6. Open C:\\Program Files\\EqualizerAPO\\config\\config.txt in a text editor and change the "Include" line to refer to your newly created configuration file. The change should be effective immediately.
+
+Congratulations, you have now created your first configuration for Equalizer APO. To learn more about the usage of RoomEQWizard, you can look into its [help file](http://www.hometheatershack.com/roomeq/wizardhelpv5/help_en-GB/html/index.html). The process can even be automated to some extent, as is explained in this [forum thread](/p/equalizerapo/discussion/general/thread/3ba39cad/).
+
+# Configuration file format
+This information has been moved to the [configuration reference](https://sourceforge.net/p/equalizerapo/wiki/Configuration%20reference/).
+
+<a name="troubleshooting"></a>
+# Troubleshooting
+
+This section describes approaches to solve possible problems impeding the successful operation of Equalizer APO.
+
+## Configurator
+By default, Equalizer APO will try to keep the functionality of other APOs that have been shipped with the sound card driver ("original APOs"). In some cases, this causes instabilities in the audio processing. The Configurator offers troubleshooting options to adjust how the original APOs are used.
+
+If you experience instabilities during playback or recording when using Equalizer APO, you can try to disable the usage of the original APOs in the Configurator:
+1. Select your audio device by clicking on its connection name.
+2. Enable the troubleshooting options.
+3. Uncheck both "Use original APO" checkboxes.
+<a href="/p/equalizerapo/wiki/Images/attachment/UseOriginalAPO.png"><img src="/p/equalizerapo/wiki/Images/attachment/UseOriginalAPO.png/thumb" style="vertical-align:middle"> (click to enlarge)</a>
+Note that you will lose all features that the sound card driver realizes through its APOs. You can also try to uncheck only one of the check boxes to preserve some functionality.
+
+Some sound card drivers disable options when they detect that another APO has been registered. You can uncheck one of the "Install APO" checkboxes to only install Equalizer APO in the pre-mix or post-mix stage. For the other stage, the original APO will be registered then, which may help to recover some options of the sound card driver.
+
+## Control Panel
+If you installed Equalizer APO and no changes to the configuration file lead to any changes in the signal, APOs might have been disabled for the device in the Control Panel.
+To check this, open Start Menu -> Control Panel -> Sound and double click on your audio device to open the properties dialog.
+
+If the dialog has an "Enhancements" tab, go to that tab. You should see a view similar to the left screenshot below. Make sure the "Disable all enhancements" check box (red box) is unchecked, even if you don't use any of the enhancements in the list.
+
+If the dialog does not have an "Enhancements" tab, go to the "Advanced" tab. You should see a view similar to the right screenshot below. Make sure the "Enable audio enhancements" check box (red box) is checked.
+
+<a href="/p/equalizerapo/wiki/Images/attachment/EnhancementsTab.png"><img src="/p/equalizerapo/wiki/Images/attachment/EnhancementsTab.png/thumb"></a><a href="/p/equalizerapo/wiki/Images/attachment/NoEnhancementsTab.png"><img src="/p/equalizerapo/wiki/Images/attachment/NoEnhancementsTab.png/thumb"></a>
+
+## Log files
+When Equalizer APO encounters a critical problem while running, it writes a line into the log file C:\\Windows\\ServiceProfiles\\LocalService\\AppData\\Local\\Temp\\EqualizerAPO.log . So, in case of problems this file might contain useful information. Under normal circumstances, this file does not even exist, as it will only be created when an error occurs.
+
+To get more information, you can enable trace messages, which means that Equalizer APO will write lines marked with "(TRACE)" to the file even when running normally. To do this, open regedit.exe, go to HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO and set the value EnableTrace to true. Then, when playing back or recording audio via a device that Equalizer APO is installed to, information about initialization and the configuration files will be output to the log file. This might help e.g. to see if the configuration files are interpreted as intended. After you have finished, you should set EnableTrace back to false, so that the log file does not grow unnecessarily.
+
+## Hardware-accelerated OpenAL
+Normally, applications utilizing OpenAL for their audio output do not present a problem as they will often use DirectSound as their backend, which supports APOs. Some sound card manufacturers however provide OpenAL libraries with hardware-acceleration that access the hardware directly, circumventing APOs. There is no way to enable APO support for hardware-accelerated OpenAL, so the only solution for this is to either switch to another output library, if the application supports that, or to make OpenAL fall back to software.
+
+To force OpenAL to fall back to software, the OpenAL32.dll may be replaced with a different one, for example from http://kcat.strangesoft.net/openal.html
+A way to globally disable OpenAL hardware-acceleration however is to move or rename the vendor-specific OpenAL library in C:\\Windows\\System32 or C:\\Windows\\SysWOW64, which is often called like *_oal.dll, for example ct_oal.dll . Warning: This is a modification to the sound driver, which is of course not officially supported and can lead to unexpected results.

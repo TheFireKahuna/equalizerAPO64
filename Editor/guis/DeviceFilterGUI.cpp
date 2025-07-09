@@ -64,7 +64,7 @@ void DeviceFilterGUI::load(const QString& parameters)
 	}
 	else
 	{
-		const QList<shared_ptr<AbstractAPOInfo> >& devices = factory->getDevices();
+		const QList<shared_ptr<AbstractAPOInfo>>& devices = factory->getDevices();
 		bool anyInstalled = false;
 		for (const shared_ptr<AbstractAPOInfo>& apoInfo : devices)
 		{

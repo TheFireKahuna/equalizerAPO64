@@ -17,13 +17,22 @@
         <file>icons/list-add-green.ico</file>
         <file>icons/list-remove-red.ico</file>
         <file>icons/arrow_right.ico</file>
-        <file>icons/power_off.ico</file>
-        <file>icons/power_on.ico</file>
-        <file>icons/invert_response.ico</file>
-        <file>icons/normalize_response.ico</file>
-        <file>icons/reset_response.ico</file>
         <file>icons/resize_corner.ico</file>
         <file>sounds/pinkNoise.flac</file>
         <file>icons/edit-select-all.ico</file>
+        <file>icons/power_off.svg</file>
+        <file>icons/power_on.svg</file>
+        <file>icons/dark-mode/invert_response.svg</file>
+        <file>icons/dark-mode/normalize_response.svg</file>
+        <file>icons/dark-mode/reset_response.svg</file>
+        <file>icons/invert_response.svg</file>
+        <file>icons/normalize_response.svg</file>
+        <file>icons/reset_response.svg</file>
+        <file>icons/dark-mode/toolbar-ext-h.svg</file>
+        <file>icons/dark-mode/toolbar-ext-v.svg</file>
+        <file>translations/Editor_zh_CN.qm</file>
+        <file>translations/qtbase_zh_CN.qm</file>
+        <file>translations/Editor_fr.qm</file>
+        <file>translations/qtbase_fr.qm</file>
     </qresource>
 </RCC>

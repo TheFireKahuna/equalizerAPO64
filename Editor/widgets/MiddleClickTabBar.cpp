@@ -28,7 +28,7 @@ MiddleClickTabBar::MiddleClickTabBar(QWidget* parent)
 
 void MiddleClickTabBar::mouseReleaseEvent(QMouseEvent* event)
 {
-	if (event->button() == Qt::MidButton)
+	if (event->button() == Qt::MiddleButton)
 	{
 		int tabIndex = tabAt(event->pos());
 		if (tabIndex != -1)

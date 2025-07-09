@@ -33,19 +33,19 @@ typedef struct str_HConvSingle
 	int mixpos;			// current frame index
 	int framelength;		// number of samples per audio frame
 	int *steptask;			// processing tasks per step
-	double *dft_time;		// DFT buffer (time domain)
-	fftw_complex *dft_freq;	// DFT buffer (frequency domain)
-	double *in_freq_real;		// input buffer (frequency domain)
-	double *in_freq_imag;		// input buffer (frequency domain)
+	float *dft_time;		// DFT buffer (time domain)
+	fftwf_complex *dft_freq;	// DFT buffer (frequency domain)
+	float *in_freq_real;		// input buffer (frequency domain)
+	float *in_freq_imag;		// input buffer (frequency domain)
 	int num_filterbuf;		// number of filter segments
-	double **filterbuf_freq_real;	// filter segments (frequency domain)
-	double **filterbuf_freq_imag;	// filter segments (frequency domain)
+	float **filterbuf_freq_real;	// filter segments (frequency domain)
+	float **filterbuf_freq_imag;	// filter segments (frequency domain)
 	int num_mixbuf;			// number of mixing segments		
-	double **mixbuf_freq_real;	// mixing segments (frequency domain)
-	double **mixbuf_freq_imag;	// mixing segments (frequency domain)
-	double *history_time;		// history buffer (time domain)
-	fftw_plan fft;			// FFT transformation plan
-	fftw_plan ifft;		// IFFT transformation plan
+	float **mixbuf_freq_real;	// mixing segments (frequency domain)
+	float **mixbuf_freq_imag;	// mixing segments (frequency domain)
+	float *history_time;		// history buffer (time domain)
+	fftwf_plan fft;			// FFT transformation plan
+	fftwf_plan ifft;		// IFFT transformation plan
 } HConvSingle;
 
 
@@ -55,8 +55,8 @@ typedef struct str_HConvDual
 	int maxstep;		// number of processing steps per long audio frame
 	int flen_long;		// number of samples per long audio frame
 	int flen_short;		// number of samples per short audio frame
-	double *in_long;		// input buffer (long frame)
-	double *out_long;	// output buffer (long frame)
+	float *in_long;		// input buffer (long frame)
+	float *out_long;	// output buffer (long frame)
 	HConvSingle *f_long;	// convolution filter (long segments)
 	HConvSingle *f_short;	// convolution filter (short segments)
 } HConvDual;
@@ -68,8 +68,8 @@ typedef struct str_HConvTripple
 	int maxstep;		// number of processing steps per long audio frame
 	int flen_medium;	// number of samples per long audio frame
 	int flen_short;		// number of samples per short audio frame
-	double *in_medium;	// input buffer (long frame)
-	double *out_medium;	// output buffer (long frame)
+	float *in_medium;	// input buffer (long frame)
+	float *out_medium;	// output buffer (long frame)
 	HConvDual *f_medium;	// convolution filter (long segments)
 	HConvSingle *f_short;	// convolution filter (short segments)
 } HConvTripple;
@@ -77,25 +77,25 @@ typedef struct str_HConvTripple
 
 /* single filter functions */
 double getProcTime(int flen, int num, double dur);
-void hcPutSingle(HConvSingle *filter, double *x);
+void hcPutSingle(HConvSingle *filter, float *x);
 void hcProcessSingle(HConvSingle *filter);
-void hcGetSingle(HConvSingle *filter, double *y);
-void hcGetAddSingle(HConvSingle *filter, double *y);
-void hcInitSingle(HConvSingle *filter, double *h, int hlen, int flen, int steps);
+void hcGetSingle(HConvSingle *filter, float *y);
+void hcGetAddSingle(HConvSingle *filter, float *y);
+void hcInitSingle(HConvSingle *filter, float *h, int hlen, int flen, int steps);
 void hcCloseSingle(HConvSingle *filter);
 
 /* dual filter functions */
 void hcBenchmarkDual(int sflen, int lflen);
-void hcProcessDual(HConvDual *filter, double *in, double *out);
-void hcProcessAddDual(HConvDual *filter, double *in, double *out);
-void hcInitDual(HConvDual *filter, double *h, int hlen, int sflen, int lflen);
+void hcProcessDual(HConvDual *filter, float *in, float *out);
+void hcProcessAddDual(HConvDual *filter, float *in, float *out);
+void hcInitDual(HConvDual *filter, float *h, int hlen, int sflen, int lflen);
 void hcCloseDual(HConvDual *filter);
 
 /* tripple filter functions */
 void hcBenchmarkTripple(int sflen, int mflen, int lflen);
-void hcProcessTripple(HConvTripple *filter, double *in, double *out);
-void hcProcessAddTripple(HConvTripple *filter, double *in, double *out);
-void hcInitTripple(HConvTripple *filter, double *h, int hlen, int sflen, int mflen, int lflen);
+void hcProcessTripple(HConvTripple *filter, float *in, float *out);
+void hcProcessAddTripple(HConvTripple *filter, float *in, float *out);
+void hcInitTripple(HConvTripple *filter, float *h, int hlen, int sflen, int mflen, int lflen);
 void hcCloseTripple(HConvTripple *filter);
 
 

@@ -1,0 +1,68 @@
+This is the developer documentation for Equalizer APO. It is meant for developers who want to review or experiment with the Equalizer APO source code and for those who want to write their own APO. If you only want to use the software, please refer to the [user documentation](https://sourceforge.net/p/equalizerapo/wiki/).
+
+<div style="border: 2px solid red; padding: 3px">
+
+<b>Disclaimer:</b><br>
+
+The information in this documentation has been written to the best of my knowledge.<br>
+It is neither complete nor guaranteed to be free of errors.
+
+</div>
+
+<br>
+
+**Table of contents:**
+
+[TOC]
+
+# Equalizer APO compilation
+## Compilation prerequisites
+The following software has been successfully used to compile Equalizer APO.
+
+1. [Visual Studio Community 2019](https://visualstudio.microsoft.com/de/vs/older-downloads/). Unfortunately, downloads of non-current versions of Visual Studio are only possible with an MSDN or (free) Dev Essentials membership.
+
+2. [libsndfile](http://www.mega-nerd.com/libsndfile/). There are installers for the 64 and 32 bit version, so no need to compile from source. Has to be installed to C:\Program Files\libsndfile and C:\Program Files (x86)\libsndfile, respectively.
+
+3. [FFTW](http://www.fftw.org/install/windows.html). The prebuilt 64/32 bit archives have to be extracted to C:\Program Files\fftw3 and C:\Program Files (x86)\fftw3, respectively. As mentioned on the linked page, the import libraries have to be created using the lib program of Visual Studio.
+
+4. [muParserX 3.0.1](https://beltoforion.de/en/muparserx/). Unfortunately, there are no prebuilt files, so compilation from source is needed. Please note that the version has to be 3.0.1 as an important feature was removed in 3.0.2 (semicolon). As version 3.0.1 is no longer available, it is now [attached](Developer%20documentation/attachment/muparserx_v3_0_1_vs_2019.zip) to this page including prebuilt static library files for MSVC2013. The zip file has to be extracted to C:\\Program Files.
+
+5. [TCLAP](http://tclap.sourceforge.net/). As this is a template library, only the source is needed, which will be compiled into the application. The downloaded tar.gz file has to be extracted to C:\\Program Files. This library only used in the Benchmark application.
+
+6. [Qt 5](http://www.qt.io/download-open-source/). The 32 and 64 bit versions for MSVC2019 should be installed to C:\\Qt. Qt Creator is used instead of Visual Studio as IDE. The prebuilt versions can be used for development although Equalizer APO ships with custom-built variants with reduced dependencies. Currently only needed to build the Configuration Editor.
+
+7. [NSIS](http://nsis.sourceforge.net/). Needed to create the installer. Additionaly, the plugins [NSISpcre](http://nsis.sourceforge.net/NSISpcre_plug-in), [AccessControl](http://nsis.sourceforge.net/AccessControl_plug-in) and [nsArray](https://nsis.sourceforge.io/Arrays_in_NSIS#nsArray_plug-in) are needed.
+
+## Source code organization
+The Equalizer APO project consists of five parts:
+
+* EqualizerAPO. This is the main project, which generates the Audio Processing Object DLL, EqualizerAPO.dll. It contains the boilerplate code for COM and implements the APO interfaces, calling the class ParametricEQ, which contains the actual filtering algorithm and is also used by the Benchmark project.
+
+* Configurator. This is the GUI utility which is called during the setup process to allow the user to select the audio devices for which the APO should be registered.
+
+* Benchmark. A console program to test the audio processing implementation without actually installing it for an audio device. It can be handy when experimenting with new filter types or tuning existing ones, especially to evaluate the performance.
+
+* Editor. The Qt Creator project that builds the Configuration Editor.
+
+* Setup. Not a Visual Studio project, but a set of NSIS scripts and additional files that are used to create the installers.
+
+The file build.bat in the top-level directory uses msbuild to build all three Visual Studio projects for both 32 and 64 bit, Qt's build tools to build the Configuration Editor for 32 and 64 bit and then calls NSIS to create both installers.
+
+# APO development
+An APO (Audio Processing Object) is a user-space program module that is loaded by the Windows Audio Service to process the audio sample data before it is sent to the audio device driver. APOs are normally distributed and installed together with the audio driver and have to be signed to make sure that they don't circumvent any audio-related DRM measures. There are two kinds of APOs, GFX (global effect, applied after mixing the audio streams together) and LFX (local effect, applied before mixing). Only one GFX and one LFX APO can be registered for an output device and only one LFX APO can be registered for an input device. An APO is implemented as a COM object which is assigned a GUID under which it is registered in the system registry. More detailed information and code samples can be found in the documents [Custom Audio Effects in Windows Vista](http://msdn.microsoft.com/en-us/windows/hardware/gg463025.aspx) and [Reusing Windows Vista Audio System Effects](http://msdn.microsoft.com/en-us/library/windows/hardware/gg463044.aspx).
+
+To add a custom APO to an audio device, two obstacles mentioned above have to be overcome: The audio engine has to be configured to allow unsigned APOs and the existing APO assigned to the audio device has to be attached to the custom APO, so that it can still process the audio data.
+
+The following changes have to be done to the registry to make the Windows Audio Service load the DLL file that implements the APO:
+<a name="DisableProtectedAudioDG"></a>
+
+1. Under the registry key HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Audio the DWORD value DisableProtectedAudioDG has to be set to 1. This disables the signature check for APOs, so that unsigned APOs will be loaded. This also means that applications requiring a secure audio path may change their behaviour or refuse to output audio altogether.
+
+2. The APO COM class has to be registered under HKEY_LOCAL_MACHINE\SOFTWARE\Classes\CLSID\ ***GUID***, where ***GUID*** is the GUID value identifying the APO. A class name has to be set as the default value of the GUID key. Inside the GUID key, the key InprocServer32 has to be created, whose default value has to be set to the path to the DLL file. Also, a value ThreadingModel has to be set to an appropriate value (see [here](http://msdn.microsoft.com/en-us/library/windows/desktop/ms682390%28v=vs.85%29.aspx)).
+
+3. Also the key HKEY_LOCAL_MACHINE\SOFTWARE\Classes\AudioEngine\AudioProcessingObjects\ ***GUID*** has to be created, which is normally handled by the function RegisterAPO (declared in audioenginebaseapo.h in the Windows DDK). The corresponding function UnregisterAPO can be used to remove the key.
+
+4. The APO has to be registered for a specific device under HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\MMDevices\Audio\Render\ ***endpoint GUID*** \FxProperties. The Render path contains output devices while the Capture path contains input devices. In the FxProperties key, the value {d04e05a6-594b-4fb6-a80d-01af5eed7d1d},1 defines the GUID of an LFX APO while {d04e05a6-594b-4fb6-a80d-01af5eed7d1d},2 defines the GUID for a GFX APO. Normally, these values already exist and refer to the audio driver's APOs. To register the custom APO, one of the values has to be replaced, so the existing values have to be saved somewhere else (Equalizer APO saves them in HKEY_LOCAL_MACHINE\SOFTWARE\EqualizerAPO\Child APOs). They are needed to restore the original values when uninstalling the custom APO and, as the custom APO is meant to be used in addition to the existing APOs, it has to load and call the original APO so that it can continue to perform its function. Since Windows 8.1, the values {d04e05a6-594b-4fb6-a80d-01af5eed7d1d},5 and {d04e05a6-594b-4fb6-a80d-01af5eed7d1d},6 are also used for LFX and GFX, respectively. When an APO is registered via the new values (ending in 5 or 6), any APO registered via an old value (ending in 1 or 2) is ignored. Also since Windows 8.1, there are the values {d3993a3f-99c2-4402-b5ec-a92a0367664b},5 and {d3993a3f-99c2-4402-b5ec-a92a0367664b},6, which seem to be specifying a set of processing modes (they are of type MULTI_SZ, so can contain multiple lines). Both of these normally need to be set to {C18E2F7E-933D-4965-B7D1-1EEF228D2AF3}, which is the default processing mode.
+
+#Example project
+A minimal example project for Visual Studio 2013 is [attached](Developer%20documentation/attachment/MinimalAPO.zip) to this page. It contains only the absolute necessary and has no dependencies that are not already included with Visual Studio 2013.

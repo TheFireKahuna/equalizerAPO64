@@ -2,23 +2,23 @@
 <!-- Created with Inkscape (http://www.inkscape.org/) -->
 
 <svg
-   xmlns:dc="http://purl.org/dc/elements/1.1/"
-   xmlns:cc="http://creativecommons.org/ns#"
-   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-   xmlns:svg="http://www.w3.org/2000/svg"
-   xmlns="http://www.w3.org/2000/svg"
-   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
-   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="16"
    height="16"
    id="svg6173"
    version="1.1"
-   inkscape:version="0.91 r13725"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25, custom)"
    viewBox="0 0 16 16"
    sodipodi:docname="reset_response.svg"
    inkscape:export-filename="C:\Eigene Dateien\Entwickl\EqualizerAPO\trunk\Editor\icons\reset_response_32.png"
    inkscape:export-xdpi="180"
-   inkscape:export-ydpi="180">
+   inkscape:export-ydpi="180"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
   <defs
      id="defs6175">
     <marker
@@ -128,17 +128,20 @@
      inkscape:pageopacity="0.0"
      inkscape:pageshadow="2"
      inkscape:zoom="22.197802"
-     inkscape:cx="-9.3215349"
-     inkscape:cy="8"
+     inkscape:cx="-9.3252476"
+     inkscape:cy="8.0413367"
      inkscape:current-layer="layer1"
      showgrid="true"
      inkscape:grid-bbox="true"
      inkscape:document-units="px"
      inkscape:window-width="2560"
-     inkscape:window-height="1365"
+     inkscape:window-height="1361"
      inkscape:window-x="-9"
      inkscape:window-y="-9"
-     inkscape:window-maximized="1" />
+     inkscape:window-maximized="1"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1" />
   <metadata
      id="metadata6178">
     <rdf:RDF>
@@ -167,11 +170,26 @@
        id="path6721-5-6-7"
        inkscape:connector-curvature="0"
        sodipodi:nodetypes="ccccc" />
-    <path
-       style="fill:none;fill-rule:evenodd;stroke:#ff0000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:1;marker-end:url(#TriangleOutM)"
-       d="m 6.5321787,1.5841583 0,3.9193066"
-       id="path6815"
-       inkscape:connector-curvature="0"
-       sodipodi:nodetypes="cc" />
+    <g
+       id="path6815">
+      <path
+         style="color:#000000;fill:#ff0000;fill-rule:evenodd;-inkscape-stroke:none"
+         d="m 6.03125,1.5839844 v 3.9199218 h 1 V 1.5839844 Z"
+         id="path5" />
+      <g
+         id="g2">
+        <g
+           id="path2">
+          <path
+             style="color:#000000;fill:#ff0000;fill-rule:evenodd;-inkscape-stroke:none"
+             d="m 6.5321787,7.8114649 -2,-3.46 h 4 z"
+             id="path3" />
+          <path
+             style="color:#000000;fill:#ff0000;fill-rule:evenodd;-inkscape-stroke:none"
+             d="M 4.0703125,4.0839844 6.53125,8.34375 8.9941406,4.0839844 Z M 4.9941406,4.6171875 H 8.0703125 L 6.53125,7.2773437 Z"
+             id="path4" />
+        </g>
+      </g>
+    </g>
   </g>
 </svg>

@@ -59,40 +59,40 @@
         <translation>Allpassfilter</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="197"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="199"/>
         <source>Center frequency</source>
         <translation>Mittenfrequenz</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="199"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="201"/>
         <source>Corner frequency</source>
         <translation>Eckfrequenz</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="216"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="218"/>
         <source>Fixed Q</source>
         <translation>Festes Q</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="218"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="258"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="220"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="260"/>
         <source>Fixed S</source>
         <translation>Festes S</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="222"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="260"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="224"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="262"/>
         <source>Q factor</source>
         <translation>Q-Faktor</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="224"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
         <source>Bandwidth</source>
         <translation>Bandbreite</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="220"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="259"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="222"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="261"/>
         <source>Slope</source>
         <translation>Steilheit</translation>
     </message>
@@ -793,24 +793,24 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Frequenzgang zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="304"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="310"/>
         <source>Import frequency response</source>
         <translation>Frequenzgang importieren</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="307"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="380"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="313"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="386"/>
         <source>Frequency response (*.csv)</source>
         <translation>Frequenzgang (*.csv)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="308"/>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="381"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="314"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="387"/>
         <source>All files (*.*)</source>
         <translation>Alle Dateien (*.*)</translation>
     </message>
     <message>
-        <location filename="../guis/GraphicEQFilterGUI.cpp" line="376"/>
+        <location filename="../guis/GraphicEQFilterGUI.cpp" line="382"/>
         <source>Export frequency response</source>
         <translation>Frequenzgang exportieren</translation>
     </message>
@@ -1060,13 +1060,13 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="106"/>
-        <location filename="../MainWindow.ui" line="682"/>
+        <location filename="../MainWindow.ui" line="628"/>
         <source>Toolbar</source>
         <translation>Werkzeugleiste</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="120"/>
-        <location filename="../MainWindow.ui" line="690"/>
+        <location filename="../MainWindow.ui" line="636"/>
         <source>Analysis panel</source>
         <translation>Analysepanel</translation>
     </message>
@@ -1110,17 +1110,17 @@ Alexander Walch</translation>
         <translation>Init.-Zeit:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="412"/>
+        <location filename="../MainWindow.ui" line="385"/>
         <source>Latency: </source>
         <translation>Latenz:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="419"/>
+        <location filename="../MainWindow.ui" line="392"/>
         <source>Peak gain:</source>
         <translation>Maximum:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="570"/>
+        <location filename="../MainWindow.ui" line="516"/>
         <source>New</source>
         <translation>Neu</translation>
     </message>
@@ -1129,8 +1129,8 @@ Alexander Walch</translation>
         <translation type="vanished">Ctrl+N</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="582"/>
-        <location filename="../MainWindow.ui" line="585"/>
+        <location filename="../MainWindow.ui" line="528"/>
+        <location filename="../MainWindow.ui" line="531"/>
         <source>Open</source>
         <translation>Öffnen</translation>
     </message>
@@ -1139,8 +1139,8 @@ Alexander Walch</translation>
         <translation type="vanished">Ctrl+O</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="597"/>
-        <location filename="../MainWindow.ui" line="600"/>
+        <location filename="../MainWindow.ui" line="543"/>
+        <location filename="../MainWindow.ui" line="546"/>
         <source>Save</source>
         <translation>Speichern</translation>
     </message>
@@ -1149,13 +1149,13 @@ Alexander Walch</translation>
         <translation type="vanished">Ctrl+S</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="612"/>
-        <location filename="../MainWindow.ui" line="615"/>
+        <location filename="../MainWindow.ui" line="558"/>
+        <location filename="../MainWindow.ui" line="561"/>
         <source>Save as...</source>
         <translation>Speichern unter...</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="623"/>
+        <location filename="../MainWindow.ui" line="569"/>
         <source>Exit</source>
         <translation>Beenden</translation>
     </message>
@@ -1164,7 +1164,7 @@ Alexander Walch</translation>
         <translation type="vanished">Alt+F4</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="635"/>
+        <location filename="../MainWindow.ui" line="581"/>
         <source>Cut</source>
         <translation>Ausschneiden</translation>
     </message>
@@ -1173,7 +1173,7 @@ Alexander Walch</translation>
         <translation type="vanished">Ctrl+X</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="647"/>
+        <location filename="../MainWindow.ui" line="593"/>
         <source>Copy</source>
         <translation>Kopieren</translation>
     </message>
@@ -1182,7 +1182,7 @@ Alexander Walch</translation>
         <translation type="vanished">Ctrl+C</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="659"/>
+        <location filename="../MainWindow.ui" line="605"/>
         <source>Paste</source>
         <translation>Einfügen</translation>
     </message>
@@ -1191,22 +1191,22 @@ Alexander Walch</translation>
         <translation type="vanished">Ctrl+V</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="671"/>
+        <location filename="../MainWindow.ui" line="617"/>
         <source>Delete</source>
         <translation>Löschen</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="695"/>
+        <location filename="../MainWindow.ui" line="641"/>
         <source>Reset all global preferences</source>
         <translation>Alle globalen Einstellungen zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="700"/>
+        <location filename="../MainWindow.ui" line="646"/>
         <source>Reset all file-specific preferences</source>
         <translation>Alle dateispezifischen Einstellungen zurücksetzen</translation>
     </message>
     <message>
-        <location filename="../MainWindow.ui" line="709"/>
+        <location filename="../MainWindow.ui" line="655"/>
         <source>Select all</source>
         <translation>Alles auswählen</translation>
     </message>
@@ -1268,10 +1268,9 @@ Alexander Walch</translation>
         <translation type="vanished">Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, ist nicht korrekt gesetzt. Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="179"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Configurator application to fix the problem?</source>
-        <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, ist nicht korrekt gesetzt.
+        <translation type="vanished">Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, ist nicht korrekt gesetzt.
 Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
@@ -1280,10 +1279,9 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
         <translation>APO nicht für das Gerät installiert</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="188"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Configurator application to fix the problem?</source>
-        <translation>Equalizer APO wurde nicht für das gewählte Gerät installiert.
+        <translation type="vanished">Equalizer APO wurde nicht für das gewählte Gerät installiert.
 Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
@@ -1292,11 +1290,10 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
         <translation>Signalverbesserungen deaktiviert</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="219"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Configurator application to fix the problem?</source>
-        <translation>Signalverbesserungen sind nicht aktiviert für das Gerät
+        <translation type="vanished">Signalverbesserungen sind nicht aktiviert für das Gerät
 %0 %1.
 Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
@@ -1396,6 +1393,28 @@ Möchten Sie die Configurator-Anwendung starten, um das Problem zu beheben?</tra
         <location filename="../MainWindow.cpp" line="156"/>
         <source>Automatic (%0)</source>
         <translation>Automatisch (%0)</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="179"/>
+        <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
+Do you want to run the Device Selector application to fix the problem?</source>
+        <translation>Ein Registrywert, der für den Betrieb von Equalizer APO erforderlich ist, ist nicht korrekt gesetzt. Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="188"/>
+        <source>Equalizer APO has not been installed to the selected device.
+Do you want to run the Device Selector application to fix the problem?</source>
+        <translation>Equalizer APO wurde nicht für das gewählte Gerät installiert.
+Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</translation>
+    </message>
+    <message>
+        <location filename="../MainWindow.cpp" line="219"/>
+        <source>Audio enhancements are not enabled for the device
+%0 %1.
+Do you want to run the Device Selector application to fix the problem?</source>
+        <translation>Signalverbesserungen sind nicht aktiviert für das Gerät
+%0 %1.
+Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</translation>
     </message>
     <message>
         <location filename="../MainWindow.cpp" line="558"/>
@@ -1676,7 +1695,7 @@ Change the file permissions or copy the file to the plugins directory.</source>
 Ändern Sie die Dateiberechtigungen oder kopieren Sie die Datei in das plugins-Verzeichnis.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="473"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="469"/>
         <source>The plugin seemingly accesses these files not readable by the audio service:
 %0
 Change the file permissions or copy the files to the config directory.</source>

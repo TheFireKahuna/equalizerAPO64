@@ -28,7 +28,7 @@
 
 using namespace std;
 
-vector<IFilter*> DelayFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> DelayFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	DelayFilter* filter = NULL;
 

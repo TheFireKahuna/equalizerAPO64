@@ -26,7 +26,7 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 
 using namespace std;
 
-vector<IFilter*> CopyFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> CopyFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	CopyFilter* filter = NULL;
 

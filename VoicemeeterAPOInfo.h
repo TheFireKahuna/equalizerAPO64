@@ -1,20 +1,20 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2017  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2017  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #pragma once
@@ -27,7 +27,7 @@
 class VoicemeeterAPOInfo : public AbstractAPOInfo
 {
 public:
-	static void prependInfos(std::vector<std::shared_ptr<AbstractAPOInfo> >& list);
+	static void prependInfos(std::vector<std::shared_ptr<AbstractAPOInfo>>& list);
 
 	VoicemeeterAPOInfo(const std::wstring& connectionName, bool voicemeeterInstalled);
 
@@ -45,6 +45,8 @@ public:
 	bool isExperimental() const override;
 	bool isEnhancementsDisabled() const override;
 	bool isDefaultDevice() const override;
+	bool isDisabled() const override;
+	bool isUnplugged() const override;
 	bool isVoicemeeterInstalled() const;
 	void install() override;
 	void uninstall() override;

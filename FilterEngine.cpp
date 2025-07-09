@@ -63,15 +63,6 @@ using namespace mup;
 FilterEngine::FilterEngine()
 	: parser(0)
 {
-	inputBuf2D = NULL;
-	outputBuf2D = NULL;
-	doubleBufLen2D = 0;
-	inputBuf2DChannelCount = 0;
-	outputBuf2DChannelCount = 0;
-	inputBuf1D = NULL;
-	outputBuf1D = NULL;
-	inputBuf1DLen = 0;
-	outputBuf1DLen = 0;
 	preMix = false;
 	capture = false;
 	postMixInstalled = true;
@@ -124,74 +115,9 @@ FilterEngine::~FilterEngine()
 	for (vector<IFilterFactory*>::iterator it = factories.begin(); it != factories.end(); it++)
 		delete *it;
 
-	deleteBuffers2D();
-	deleteBuffers1D();
-
 	delete parser;
 	CloseHandle(loadSemaphore);
 	DeleteCriticalSection(&loadSection);
-}
-
-void FilterEngine::deleteBuffers2D() {
-	if (inputBuf2D != NULL) {
-		for (unsigned i = 0; i < inputBuf2DChannelCount; i++) {
-			delete inputBuf2D[i];
-		}
-		for (unsigned i = 0; i < outputBuf2DChannelCount; i++) {
-			delete outputBuf2D[i];
-		}
-		delete[] inputBuf2D;
-		inputBuf2D = NULL;
-		delete[] outputBuf2D;
-		outputBuf2D = NULL;
-		doubleBufLen2D = 0; 
-		inputBuf2DChannelCount = 0;
-		outputBuf2DChannelCount = 0;
-	}
-}
-
-void FilterEngine::deleteBuffers1D() {
-	if (inputBuf1D != NULL) {
-		delete[] inputBuf1D;
-		inputBuf1D = NULL;
-		inputBuf1DLen = 0;
-		outputBuf1DLen = 0;
-	}
-}
-
-void FilterEngine::allocateBuffers2D(unsigned frameCount) {
-	if (doubleBufLen2D < frameCount 
-		|| inputBuf2DChannelCount != inputChannelCount 
-		|| outputBuf2DChannelCount != outputChannelCount) {
-
-		deleteBuffers2D();
-		doubleBufLen2D = frameCount;
-		inputBuf2DChannelCount = inputChannelCount;
-		outputBuf2DChannelCount = outputChannelCount;
-		inputBuf2D = new double*[inputBuf2DChannelCount];
-		outputBuf2D = new double*[outputBuf2DChannelCount];
-		for (unsigned i = 0; i < inputBuf2DChannelCount; i++) {
-			inputBuf2D[i] = new double[doubleBufLen2D];
-		}
-		for (unsigned i = 0; i < outputBuf2DChannelCount; i++) {
-			outputBuf2D[i] = new double[doubleBufLen2D];
-		}
-	}
-}
-
-void FilterEngine::allocateBuffers1D(unsigned inputFrameCount, unsigned outputFrameCount) {
-	if (inputBuf1DLen < inputFrameCount || inputBuf1D == NULL) {
-		if (inputBuf1D != NULL)
-			delete[] inputBuf1D;
-		inputBuf1D = new double[inputFrameCount];
-		inputBuf1DLen = inputFrameCount;
-	}
-	if (outputBuf1DLen < outputFrameCount || outputBuf1D == NULL) {
-		if (outputBuf1D != NULL)
-			delete[] outputBuf1D;
-		outputBuf1D = new double[outputFrameCount];
-		outputBuf1DLen = outputFrameCount;
-	}
 }
 
 void FilterEngine::setPreMix(bool preMix)
@@ -222,8 +148,6 @@ void FilterEngine::initialize(float sampleRate, unsigned inputChannelCount, unsi
 	this->maxFrameCount = maxFrameCount;
 	this->transitionCounter = 0;
 	this->transitionLength = (unsigned)(sampleRate / 100);
-	deleteBuffers2D();
-	deleteBuffers1D();
 
 	unsigned deviceChannelCount;
 	if (capture)
@@ -460,27 +384,18 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 			return;
 		}
 	}
-	
-	unsigned inputFrameCount = inputChannelCount * frameCount,
-		outputFrameCount = outputChannelCount * frameCount;
-	allocateBuffers1D(inputFrameCount, outputFrameCount);
-	for (unsigned i = 0; i < inputFrameCount; i++)
-		inputBuf1D[i] = input[i];	
 
-	currentConfig->read(inputBuf1D, frameCount);
+	currentConfig->read(input, frameCount);
 	currentConfig->process(frameCount);
 
 	if (nextConfig != NULL)
 	{
-		nextConfig->read(inputBuf1D, frameCount);
+		nextConfig->read(input, frameCount);
 		nextConfig->process(frameCount);
 		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
 	}
 
-	currentConfig->write(outputBuf1D, frameCount);
-	for (unsigned i = 0; i < outputFrameCount; i++) {
-		output[i] = float(outputBuf1D[i]);
-	}
+	currentConfig->write(output, frameCount);
 
 	if (nextConfig != NULL && transitionCounter >= transitionLength)
 	{
@@ -509,29 +424,17 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 		}
 	}
 
-	allocateBuffers2D(frameCount);
-	for (unsigned i = 0; i < inputBuf2DChannelCount; i++) {
-		for (unsigned j = 0; j < doubleBufLen2D; j++) {
-			inputBuf2D[i][j] = input[i][j];
-		}
-	}
-
-	currentConfig->read(inputBuf2D, frameCount);
+	currentConfig->read(input, frameCount);
 	currentConfig->process(frameCount);
 
 	if (nextConfig != NULL)
 	{
-		nextConfig->read(inputBuf2D, frameCount);
+		nextConfig->read(input, frameCount);
 		nextConfig->process(frameCount);
 		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
 	}
 
-	currentConfig->write(outputBuf2D, frameCount);
-	for (unsigned i = 0; i < outputBuf2DChannelCount; i++) {
-		for (unsigned j = 0; j < doubleBufLen2D; j++) {
-			output[i][j] = float(outputBuf2D[i][j]);
-		}
-	}
+	currentConfig->write(output, frameCount);
 
 	if (nextConfig != NULL && transitionCounter >= transitionLength)
 	{

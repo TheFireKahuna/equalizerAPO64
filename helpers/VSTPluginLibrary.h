@@ -43,7 +43,7 @@ protected:
 
 private:
 	VSTPluginLibrary(const std::wstring& libPath);
-	static std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary> > instanceMap;
+	static std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> instanceMap;
 	static std::wstring defaultPluginPath;
 	std::wstring libPath;
 };

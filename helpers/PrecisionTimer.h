@@ -25,7 +25,7 @@
 class PrecisionTimer
 {
 	LARGE_INTEGER freq;
-	LARGE_INTEGER startCount;
+	LARGE_INTEGER startCount{};
 
 public:
 	PrecisionTimer()

@@ -35,7 +35,7 @@ LoudnessCorrectionFilterFactory::LoudnessCorrectionFilterFactory()
 {
 }
 
-vector<IFilter*> LoudnessCorrectionFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> LoudnessCorrectionFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	vector<IFilter*> allFilter(0);
 

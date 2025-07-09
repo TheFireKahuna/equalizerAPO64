@@ -1,0 +1,16 @@
+<RCC>
+    <qresource prefix="/">
+        <file>translations/qtbase_de.qm</file>
+        <file>translations/DeviceSelector_de.qm</file>
+        <file>icons/circle.svg</file>
+        <file>icons/circle-check.svg</file>
+        <file>icons/circle-error.svg</file>
+        <file>icons/circle-warning.svg</file>
+        <file>translations/DeviceSelector_en.qm</file>
+        <file>icons/preferences-system.ico</file>
+        <file>translations/DeviceSelector_zh_CN.qm</file>
+        <file>translations/qtbase_zh_CN.qm</file>
+        <file>translations/DeviceSelector_fr.qm</file>
+        <file>translations/qtbase_fr.qm</file>
+    </qresource>
+</RCC>

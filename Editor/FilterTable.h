@@ -57,7 +57,7 @@ public:
 
 	explicit FilterTable(MainWindow* mainWindow, QWidget* parent = 0);
 	~FilterTable();
-	void initialize(QScrollArea* scrollArea, const QList<std::shared_ptr<AbstractAPOInfo> >& outputDevices, const QList<std::shared_ptr<AbstractAPOInfo> >& inputDevices);
+	void initialize(QScrollArea* scrollArea, const QList<std::shared_ptr<AbstractAPOInfo>>& outputDevices, const QList<std::shared_ptr<AbstractAPOInfo>>& inputDevices);
 	void updateDeviceAndChannelMask(std::shared_ptr<AbstractAPOInfo> selectedDevice, int selectedChannelMask);
 	void updateGuis();
 	void propagateChannels();
@@ -72,8 +72,8 @@ public:
 	void deleteSelectedLines();
 	void selectAll();
 
-	const QList<std::shared_ptr<AbstractAPOInfo> >& getOutputDevices() const;
-	const QList<std::shared_ptr<AbstractAPOInfo> >& getInputDevices() const;
+	const QList<std::shared_ptr<AbstractAPOInfo>>& getOutputDevices() const;
+	const QList<std::shared_ptr<AbstractAPOInfo>>& getInputDevices() const;
 	std::shared_ptr<AbstractAPOInfo> getSelectedDevice() const;
 	int getSelectedChannelMask() const;
 
@@ -135,9 +135,9 @@ private:
 	Item* selectionStart = NULL;
 	QList<IFilterGUIFactory*> factories;
 	bool scrollingNow = false;
-	QPoint scrollStartPoint;
-	QList<std::shared_ptr<AbstractAPOInfo> > outputDevices;
-	QList<std::shared_ptr<AbstractAPOInfo> > inputDevices;
+	QPointF scrollStartPoint;
+	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
+	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> selectedDevice;
 	int selectedChannelMask;
 	QString configPath;

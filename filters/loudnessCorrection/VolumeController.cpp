@@ -41,17 +41,15 @@ VolumeController::VolumeController()
 	_endpointVolume->GetVolumeRange(&_minVol, &_maxVol, &inkrement);
 }
 
-HRESULT VolumeController::getVolume(double& currentVolume)
+HRESULT VolumeController::getVolume(float& currentVolume)
 {
-	float vol;
-	HRESULT res = _endpointVolume->GetMasterVolumeLevel(&vol);
-	currentVolume = vol;
+	HRESULT res = _endpointVolume->GetMasterVolumeLevel(&currentVolume);
 	return res;
 }
 
-HRESULT VolumeController::setVolume(double volume)
+HRESULT VolumeController::setVolume(float volume)
 {
-	volume = min(volume, _maxVol);
-	volume = max(volume, _minVol);
-	return _endpointVolume->SetMasterVolumeLevel(float(volume), NULL);
+	volume = fmin(volume, _maxVol);
+	volume = fmax(volume, _minVol);
+	return _endpointVolume->SetMasterVolumeLevel(volume, NULL);
 }

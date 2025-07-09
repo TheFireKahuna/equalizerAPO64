@@ -78,11 +78,11 @@ private:
 	virtual ~LoudnessCorrectionFilter();
 	virtual bool getInPlace() {return true;}
 	virtual std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames);
-	virtual void process(double** output, double** input, unsigned frameCount);
+	virtual void process(float** output, float** input, unsigned frameCount);
 
 private:
-	void getLShelfParamter(const double& volume, double& frequence, double& q, double& gain, double& preAmp);
-	void getHShelfParamter(const double& volume, double& frequence, double& q, double& gain);
+	void getLShelfParamter(const float& volume, double& frequence, double& q, double& gain, double& preAmp);
+	void getHShelfParamter(const float& volume, double& frequence, double& q, double& gain);
 	void upDateBiquadCoefficients(const double& freq, const double& bandwidthOrQOrS, const double& dbGain, bool highshelf);
 	bool upDateNeutral();
 

@@ -87,7 +87,6 @@ const int effFlagsHasEditor = 1;
 const int effFlagsCanReplacing = 1 << 4; // very likely
 const int effFlagsProgramChunks = 1 << 5; // from Ardour
 const int effFlagsIsSynth = 1 << 8; // currently unused
-const int effFlagsCanDoubleReplacing = 1 << 12; // very likely
 
 const int effOpen = 0;
 const int effClose = 1; // currently unused
@@ -264,7 +263,7 @@ public:
    // dispatcher 04-07
    intptr_t (* dispatcher)( AEffect * , int , int , intptr_t, void * , float );
    // process, quite sure 08-0b
-   void (* process)( AEffect * , float* * , float* * , int );
+   void (* process)( AEffect * , float * * , float * * , int );
    // setParameter 0c-0f
    void (* setParameter)( AEffect * , int , float );
    // getParameter 10-13
@@ -296,8 +295,7 @@ public:
    int32_t uniqueID;
    int32_t version;
    // processReplacing 50-53
-   void (*processReplacing)(AEffect*, float**, float**, int);
-   void (*processDoubleReplacing)(AEffect*, double**, double**, int);
+   void (* processReplacing)( AEffect * , float * * , float * * , int );
 
 } ;
 

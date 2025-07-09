@@ -1,24 +1,25 @@
 ﻿/*
-	This file is part of Equalizer APO, a system-wide equalizer.
-	Copyright (C) 2017  Jonas Thedering
+    This file is part of Equalizer APO, a system-wide equalizer.
+    Copyright (C) 2017  Jonas Thedering
 
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License along
-	with this program; if not, write to the Free Software Foundation, Inc.,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "stdafx.h"
 #include <wincrypt.h>
+#include <inttypes.h>
 #include "StringHelper.h"
 #include "version.h"
 #include "VSTPluginLibrary.h"
@@ -32,7 +33,7 @@ static intptr_t callback(AEffect* effect, int32_t opcode, int32_t index, intptr_
 {
 	VSTPluginInstance* instance = effect != NULL ? (VSTPluginInstance*)effect->user : NULL;
 #ifdef _DEBUG
-	printf("vst: %p opcode: %d index: %d value: %d ptr: %p opt: %f user: %p\n",
+	printf("vst: %p opcode: %d index: %d value: %" PRIdPTR " ptr: %p opt: %f user: %p\n",
 		effect, opcode, index, value, ptr, opt, effect != NULL ? effect->user : NULL);
 	fflush(stdout);
 #endif
@@ -46,11 +47,11 @@ static intptr_t callback(AEffect* effect, int32_t opcode, int32_t index, intptr_
 		return equalizerApoVSTID;
 
 	case audioMasterGetProductString:
-		strcpy_s((char*)ptr, 64, "Equalizer APO");
+		strcpy_s((char*) ptr, 64, "Equalizer APO");
 		return 1;
 
 	case audioMasterGetVendorVersion:
-		return (intptr_t)(MAJOR << 24 | MINOR << 16 | REVISION << 8 | 0);
+		return (intptr_t) (MAJOR << 24 | MINOR << 16 | REVISION << 8 | 0);
 
 	case audioMasterPinConnected:
 		if (instance != NULL)
@@ -59,10 +60,10 @@ static intptr_t callback(AEffect* effect, int32_t opcode, int32_t index, intptr_
 			return 0;
 
 	case audioMasterNeedIdle:
-		return effect->dispatcher(effect, effIdle, 0, 0, NULL, 0.0f);
+		return effect != NULL ? effect->dispatcher(effect, effIdle, 0, 0, NULL, 0.0f) : 0;
 
 	case audioMasterUpdateDisplay:
-		return effect->dispatcher(effect, effEditIdle, 0, 0, NULL, 0.0f);
+		return effect != NULL ? effect->dispatcher(effect, effEditIdle, 0, 0, NULL, 0.0f) : 0;
 
 	case audioMasterGetTime:
 		return 0;
@@ -91,17 +92,17 @@ static intptr_t callback(AEffect* effect, int32_t opcode, int32_t index, intptr_
 		return 1;
 
 	case audioMasterCanDo:
-	{
-		char* s = (char*)ptr;
+		{
+			char* s = (char*)ptr;
 #ifdef _DEBUG
-		printf("VST canDo: %s\n", s);
-		fflush(stdout);
+			printf("VST canDo: %s\n", s);
+			fflush(stdout);
 #endif
-		if (strcmp(s, "startStopProcess") == 0 ||
-			strcmp(s, "sizeWindow") == 0)
-			return 1;
-	}
-	return 0;
+			if (strcmp(s, "startStopProcess") == 0 ||
+				strcmp(s, "sizeWindow") == 0)
+				return 1;
+		}
+		return 0;
 
 	case audioMasterAutomate:
 		if (instance != NULL)
@@ -183,14 +184,6 @@ bool VSTPluginInstance::canReplacing() const
 	return (effect->flags & effFlagsCanReplacing) != 0;
 }
 
-bool VSTPluginInstance::canDoubleReplacing() const
-{
-	if (effect == NULL)
-		return true;
-
-	return (effect->flags & effFlagsCanDoubleReplacing) != 0;
-}
-
 int VSTPluginInstance::uniqueID() const
 {
 	if (effect == NULL)
@@ -207,6 +200,7 @@ std::wstring VSTPluginInstance::getName() const
 	char buf[256];
 	memset(buf, 0, sizeof(buf));
 	effect->dispatcher(effect, effGetEffectName, 0, 0, buf, 0.0f);
+	buf[255] = '\0'; // just to be sure
 
 	return StringHelper::toWString(buf, CP_UTF8);
 }
@@ -279,6 +273,7 @@ void VSTPluginInstance::writeToEffect(const std::wstring& chunkData, const std::
 		{
 			char buf[256];
 			effect->dispatcher(effect, effGetParamName, i, 0, buf, 0.0f);
+			buf[255] = '\0'; // just to be sure
 			wstring name = StringHelper::toWString(buf, CP_UTF8);
 			auto it = paramMap.find(name);
 			if (it != paramMap.end())
@@ -299,7 +294,7 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 	{
 		BYTE* chunk = NULL;
 		int size = (int)effect->dispatcher(effect, effGetChunk, 1, 0, &chunk, 0.0f);
-		DWORD stringLength;
+		DWORD stringLength = 0;
 		CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, NULL, &stringLength);
 		wchar_t* string = new wchar_t[stringLength];
 		if (CryptBinaryToStringW(chunk, size, CRYPT_STRING_BASE64 | CRYPT_STRING_NOCRLF, string, &stringLength) == TRUE)
@@ -312,6 +307,7 @@ void VSTPluginInstance::readFromEffect(std::wstring& chunkData, std::unordered_m
 		{
 			char buf[256];
 			effect->dispatcher(effect, effGetParamName, i, 0, buf, 0.0f);
+			buf[255] = '\0'; // just to be sure
 			float value = effect->getParameter(effect, i);
 			paramMap[StringHelper::toWString(buf, CP_UTF8)] = value;
 		}
@@ -329,17 +325,18 @@ void VSTPluginInstance::startProcessing()
 
 void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray, int frameCount)
 {
-	// TODO: recover
-}
+	if (effect == NULL)
+		return;
 
-void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** outputArray, int frameCount)
-{
-	// TODO: recover
+	effect->processReplacing(effect, inputArray, outputArray, frameCount);
 }
 
 void VSTPluginInstance::process(float** inputArray, float** outputArray, int frameCount)
 {
-	// TODO: recover
+	if (effect == NULL)
+		return;
+
+	effect->process(effect, inputArray, outputArray, frameCount);
 }
 
 void VSTPluginInstance::stopProcessing()

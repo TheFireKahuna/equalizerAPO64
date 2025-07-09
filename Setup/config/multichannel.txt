@@ -1,0 +1,12 @@
+#Common preamp
+Preamp: -6 dB
+
+Channel: L
+#Additional preamp for left channel
+Preamp: -5 dB
+#Filters only for left channel
+Include: demo.txt
+
+Channel: 2 C
+#Filters for second(right) and center channel
+Include: example.txt

@@ -38,18 +38,18 @@ AnalysisThread::~AnalysisThread()
 	wait();
 
 	if (resultFreqData != NULL)
-		fftw_free(resultFreqData);
+		fftwf_free(resultFreqData);
 
 	if (buf != NULL)
 		delete buf;
 	if (buf2 != NULL)
 		delete buf2;
 	if (timeData != NULL)
-		fftw_free(timeData);
+		fftwf_free(timeData);
 	if (freqData != NULL)
-		fftw_free(freqData);
+		fftwf_free(freqData);
 	if (planForward != NULL)
-		fftw_destroy_plan(planForward);
+		fftwf_destroy_plan(planForward);
 }
 
 void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int channelMask, int channelIndex, QString configPath, int frameCount)
@@ -74,7 +74,7 @@ void AnalysisThread::endGetResult()
 	mutex.unlock();
 }
 
-fftw_complex* AnalysisThread::getFreqData() const
+fftwf_complex* AnalysisThread::getFreqData() const
 {
 	return resultFreqData;
 }
@@ -183,16 +183,16 @@ void AnalysisThread::run()
 		if (frameCount != lastFrameCount)
 		{
 			if (timeData != NULL)
-				fftw_free(timeData);
-			timeData = fftw_alloc_real(frameCount);
+				fftwf_free(timeData);
+			timeData = fftwf_alloc_real(frameCount);
 
 			if (freqData != NULL)
-				fftw_free(freqData);
-			freqData = fftw_alloc_complex(frameCount);
+				fftwf_free(freqData);
+			freqData = fftwf_alloc_complex(frameCount);
 
 			if (planForward != NULL)
-				fftw_destroy_plan(planForward);
-			planForward = fftw_plan_dft_r2c_1d(frameCount, timeData, freqData, FFTW_ESTIMATE);
+				fftwf_destroy_plan(planForward);
+			planForward = fftwf_plan_dft_r2c_1d(frameCount, timeData, freqData, FFTW_ESTIMATE);
 		}
 
 		lastFrameCount = frameCount;
@@ -255,13 +255,13 @@ void AnalysisThread::run()
 		{
 			latency += startFrame;
 
-			fftw_execute(planForward);
+			fftwf_execute(planForward);
 
 			peakGain = -DBL_MAX;
 
 			for (int i = 0; i < frameCount / 2; i++)
 			{
-				double sqrGain = (double)(freqData[i][0] * freqData[i][0] + freqData[i][1] * freqData[i][1]);
+				float sqrGain = freqData[i][0] * freqData[i][0] + freqData[i][1] * freqData[i][1];
 				if (sqrGain > peakGain)
 					peakGain = sqrGain;
 			}
@@ -272,17 +272,17 @@ void AnalysisThread::run()
 		{
 			latency = 0;
 			peakGain = -numeric_limits<double>::infinity();
-			memset(freqData, 0, frameCount * sizeof(fftw_complex));
+			memset(freqData, 0, frameCount * sizeof(fftwf_complex));
 		}
 
 		mutex.lock();
 		if (this->freqDataLength != frameCount)
 		{
 			if (resultFreqData != NULL)
-				fftw_free(resultFreqData);
-			resultFreqData = fftw_alloc_complex(frameCount);
+				fftwf_free(resultFreqData);
+			resultFreqData = fftwf_alloc_complex(frameCount);
 		}
-		memcpy(resultFreqData, freqData, frameCount * sizeof(fftw_complex));
+		memcpy(resultFreqData, freqData, frameCount * sizeof(fftwf_complex));
 		this->freqDataLength = frameCount;
 		this->freqDataSampleRate = sampleRate;
 		this->latency = latency;

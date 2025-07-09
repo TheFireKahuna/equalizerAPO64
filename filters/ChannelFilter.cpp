@@ -83,7 +83,7 @@ vector<wstring> ChannelFilter::initialize(float sampleRate, unsigned maxFrameCou
 }
 
 #pragma AVRT_CODE_BEGIN
-void ChannelFilter::process(double** output, double** input, unsigned frameCount)
+void ChannelFilter::process(float** output, float** input, unsigned frameCount)
 {
 	// nothing to do
 }

@@ -77,20 +77,17 @@ void LoudnessCorrectionFilterGUIFactory::checkVolume()
 	if (volumeController == NULL)
 	{
 		volumeController = new VolumeController();
-		double lVolD;
-		volumeController->getVolume(lVolD);
-		lastVolume = lVolD;
+		volumeController->getVolume(lastVolume);
 	}
 	else
 	{
-		double volume;
+		float volume;
 		HRESULT res = volumeController->getVolume(volume);
-		float volume2 = (float)volume;
 
-		if (SUCCEEDED(res) && volume2 != lastVolume)
+		if (SUCCEEDED(res) && volume != lastVolume)
 		{
 			filterTable->updateAnalysis();
-			lastVolume = volume2;
+			lastVolume = volume;
 		}
 	}
 }

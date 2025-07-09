@@ -65,7 +65,7 @@ BiQuadFilterFactory::BiQuadFilterFactory()
 	filterTypeToDescriptionMap[BiQuad::ALL_PASS] = L"all-pass";
 }
 
-vector<IFilter*> BiQuadFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	BiQuadFilter* filter = NULL;
 

@@ -21,7 +21,7 @@
 #include <Ks.h>
 #include <KsMedia.h>
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/GUIChannelHelper.h"
 #include "ChannelFilterGUIDialog.h"
 #include "ui_ChannelFilterGUIDialog.h"
@@ -36,7 +36,7 @@ ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, QStringList sele
 	ui(new Ui::ChannelFilterGUIDialog)
 {
 	ui->setupUi(this);
-	resize(DPIHelper::scale(QSize(355, 329)));
+	resize(GUIHelper::scale(QSize(355, 329)));
 
 	ui->centerCheckBox->setProperty(PROPERTY_POSITION, SPEAKER_FRONT_CENTER);
 	ui->leftCheckBox->setProperty(PROPERTY_POSITION, SPEAKER_FRONT_LEFT);
@@ -92,7 +92,7 @@ ChannelFilterGUIDialog::ChannelFilterGUIDialog(QWidget* parent, QStringList sele
 			else if (channelName == "LFE" && remainingSelectedChannels.removeOne("SUB"))
 				checked = true;
 
-			if (remainingSelectedChannels.removeOne(QString(channelIndex)))
+			if (remainingSelectedChannels.removeOne(QString("%1").arg(channelIndex)))
 				checked = true;
 			checkBox->setChecked(checked);
 		}

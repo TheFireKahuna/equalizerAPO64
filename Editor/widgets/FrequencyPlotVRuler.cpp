@@ -1,25 +1,25 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <QWheelEvent>
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "FrequencyPlotView.h"
 #include "FrequencyPlotScene.h"
 #include "FrequencyPlotVRuler.h"
@@ -38,7 +38,7 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 
 	QPointF topLeft = view->mapToScene(0, 0);
 	QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height());
-	double dbStep = abs(s->yToDb(0) - s->yToDb(DPIHelper::scale(30)));
+	double dbStep = abs(s->yToDb(0) - s->yToDb(GUIHelper::scale(30)));
 
 	double dbBase = pow(10, floor(log10(dbStep)));
 	if (dbStep >= 5 * dbBase)
@@ -51,7 +51,8 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 	double fromDb = floor(s->yToDb(topLeft.y()) / dbStep) * dbStep;
 	double toDb = ceil(s->yToDb(bottomRight.y()) / dbStep) * dbStep;
 
-	painter.setPen(QColor(50, 50, 50));
+	bool dark = GUIHelper::isDarkMode();
+	painter.setPen(dark ? QColor(200, 200, 200) : QColor(50, 50, 50));
 	for (double db = toDb; db <= fromDb; db += dbStep)
 	{
 		if (abs(db) < 1e-6)
@@ -74,7 +75,7 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 			QFontMetrics metrics = painter.fontMetrics();
 			QRectF rect = metrics.boundingRect(text);
 			float center = y - topLeft.y() - 1;
-			rect = QRectF(ceil(width() / 2) - ceil(rect.width() / 2) - 2.5, center - rect.height() / 2 + 1, rect.width() + 3, rect.height());
+			rect = QRectF(ceil(width() / 2) - ceil(rect.width() / 2) - 2.5, center - ceil(rect.height() / 2) + 1.5, rect.width() + 3, rect.height() - 1);
 			QPainterPath path;
 			path.addRect(rect);
 			QPainterPath rightTriangle;
@@ -83,10 +84,10 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 			rightTriangle.lineTo(QPoint(rect.right() + 4, center + 1));
 			path = path.united(rightTriangle);
 
-			painter.setPen(Qt::black);
-			painter.setBrush(Qt::white);
+			painter.setPen(dark ? QColor(200,200,200) : Qt::black);
+			painter.setBrush(dark ? Qt::black : Qt::white);
 			painter.drawPath(path);
-			painter.setPen(Qt::blue);
+			painter.setPen(dark ? QColor(147,161,229) : Qt::blue);
 			painter.drawText(0, center, width() - 2, 0, Qt::TextDontClip | Qt::AlignCenter, text);
 		}
 	}
@@ -95,11 +96,11 @@ void FrequencyPlotVRuler::paintEvent(QPaintEvent*)
 void FrequencyPlotVRuler::wheelEvent(QWheelEvent* event)
 {
 	FrequencyPlotView* view = qobject_cast<FrequencyPlotView*>(parentWidget());
-	view->zoom(0, event->angleDelta().y(), 0, event->y());
+	view->zoom(0, event->angleDelta().y(), 0, event->position().y());
 }
 
 void FrequencyPlotVRuler::mouseMoveEvent(QMouseEvent* event)
 {
 	FrequencyPlotView* view = qobject_cast<FrequencyPlotView*>(parentWidget());
-	view->setLastMousePos(QPoint(0, min(event->y(), view->viewport()->height() - 1)));
+	view->setLastMousePos(QPoint(0, fmin(event->pos().y(), view->viewport()->height() - 1)));
 }

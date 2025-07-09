@@ -1,0 +1,11 @@
+# Copy channels to virtual channels to filter them while keeping the originals
+Copy: L2=L R2=R
+# Select channels for filtering
+Channel: L2 R2
+# Limit frequency range for delay
+Filter: ON HP Fc 200 Hz
+Filter: ON LP Fc 2000 Hz
+# Apply delay
+Delay: 500 ms
+# Add the delayed signal back to the original channels
+Copy: L=0.5*L+0.5*L2 R=0.5*R+0.5*R2

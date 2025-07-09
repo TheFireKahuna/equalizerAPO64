@@ -43,23 +43,23 @@ public:
 	FilterConfiguration(FilterEngine* engine, const std::vector<FilterInfo*>& filterInfos, unsigned allChannelCount);
 	~FilterConfiguration();
 
-	void read(double* input, unsigned frameCount);
-	void read(double** input, unsigned frameCount);
+	void read(float* input, unsigned frameCount);
+	void read(float** input, unsigned frameCount);
 	void process(unsigned frameCount);
 	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength);
-	void write(double* output, unsigned frameCount);
-	void write(double** output, unsigned frameCount);
-	double** getOutputSamples() {return allSamples;}
+	void write(float* output, unsigned frameCount);
+	void write(float** output, unsigned frameCount);
+	float** getOutputSamples() {return allSamples;}
 	bool isEmpty();
 
 private:
 	unsigned realChannelCount;
 	unsigned outputChannelCount;
 	unsigned allChannelCount;
-	double** allSamples;
-	double** allSamples2;
-	double** currentSamples;
-	double** currentSamples2;
+	float** allSamples;
+	float** allSamples2;
+	float** currentSamples;
+	float** currentSamples2;
 	FilterInfo** filterInfos;
 	unsigned filterCount;
 };

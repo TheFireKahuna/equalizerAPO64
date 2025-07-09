@@ -48,7 +48,7 @@ vector<IFilter*> IncludeFilterFactory::startOfFile(const wstring& configPath)
 	return vector<IFilter*>();
 }
 
-vector<IFilter*> IncludeFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> IncludeFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command == L"Include")
 	{

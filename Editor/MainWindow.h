@@ -47,7 +47,7 @@ public:
 	explicit MainWindow(QDir configDir, QWidget* parent = 0);
 	~MainWindow();
 	void doChecks();
-	void runConfigurator();
+	void runDeviceSelector();
 	void load(QString path);
 	void save(FilterTable* filterTable, QString path);
 	bool isEmpty();
@@ -98,6 +98,7 @@ private:
 	void loadPreferences();
 	void savePreferences();
 	void updateRecentFiles();
+	template<class T> QList<T> toQList(const std::vector<T>& vector);
 
 	Ui::MainWindow* ui;
 
@@ -105,8 +106,8 @@ private:
 	QCheckBox* instantModeCheckBox;
 	QComboBox* deviceComboBox;
 	QComboBox* channelConfigurationComboBox;
-	QList<std::shared_ptr<AbstractAPOInfo> > outputDevices;
-	QList<std::shared_ptr<AbstractAPOInfo> > inputDevices;
+	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices;
+	QList<std::shared_ptr<AbstractAPOInfo>> inputDevices;
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
 	AnalysisPlotScene* analysisPlotScene;
 	AnalysisThread* analysisThread = NULL;

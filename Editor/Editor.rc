@@ -31,7 +31,7 @@ VS_VERSION_INFO VERSIONINFO
 				VALUE "FileVersion", S(MAJOR) "." S(MINOR) "." S(REVISION) ".0"
 				VALUE "LegalCopyright", "Copyright (C) 2017\0"
 				VALUE "OriginalFilename", "Editor.exe\0"
-				VALUE "ProductName", "Configuration Editor\0"
+				VALUE "ProductName", "Equalizer APO Configuration Editor\0"
 				VALUE "ProductVersion", S(MAJOR) "." S(MINOR) "." S(REVISION) ".0"
 			END
 		END

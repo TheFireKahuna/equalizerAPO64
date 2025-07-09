@@ -1,20 +1,20 @@
 /*
-	This file is part of Equalizer APO, a system-wide equalizer.
-	Copyright (C) 2017  Jonas Thedering
+    This file is part of Equalizer APO, a system-wide equalizer.
+    Copyright (C) 2017  Jonas Thedering
 
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License along
-	with this program; if not, write to the Free Software Foundation, Inc.,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "stdafx.h"
@@ -73,15 +73,15 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 	// 2 times for input and output
 	emptyChannelCount = 2 * (effectCount * effectChannelCount - channelCount);
-	emptyChannels = (double**)MemoryHelper::alloc(emptyChannelCount * sizeof(double*));
+	emptyChannels = (float**)MemoryHelper::alloc(emptyChannelCount * sizeof(float*));
 	for (unsigned i = 0; i < emptyChannelCount; i++)
 	{
-		emptyChannels[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
-		memset(emptyChannels[i], 0, maxFrameCount * sizeof(double));
+		emptyChannels[i] = (float*)MemoryHelper::alloc(maxFrameCount * sizeof(float));
+		memset(emptyChannels[i], 0, maxFrameCount * sizeof(float));
 	}
 
-	inputArray = (double**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(double*));
-	outputArray = (double**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(double*));
+	inputArray = (float**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(float*));
+	outputArray = (float**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(float*));
 
 	return channelNames;
 }
@@ -111,12 +111,12 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 }
 
 #pragma AVRT_CODE_BEGIN
-void VSTPluginFilter::process(double** output, double** input, unsigned frameCount)
+void VSTPluginFilter::process(float** output, float** input, unsigned frameCount)
 {
 	if (skipProcessing)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(double));
+			memcpy(output[i], input[i], frameCount * sizeof(float));
 		return;
 	}
 
@@ -143,27 +143,15 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					outputArray[j] = emptyChannels[emptyChannelIndex++];
 			}
 
-			if (effect->canDoubleReplacing())
+			if (effect->canReplacing())
 			{
-				effect->processDoubleReplacing(inputArray, outputArray, frameCount);
-			}
-			else if (effect->canReplacing())
-			{
-				float** inputF = (float**)input;
-				float** outputF = (float**)input;
-				effect->processReplacing(inputF, outputF, frameCount);
-				inputArray = (double**)outputF;
-				outputArray = (double**)outputF;
+				effect->processReplacing(inputArray, outputArray, frameCount);
 			}
 			else
 			{
-				float** inputF = (float**)input;
-				float** outputF = (float**)input;
 				for (int j = 0; j < effect->numOutputs(); j++)
-					memset(outputArray[j], 0, frameCount * sizeof(double));
-				effect->process(inputF, outputF, frameCount);
-				inputArray = (double**)outputF;
-				outputArray = (double**)outputF;
+					memset(outputArray[j], 0, frameCount * sizeof(float));
+				effect->process(inputArray, outputArray, frameCount);
 			}
 
 			if (effect->numOutputs() < effect->numInputs())
@@ -171,7 +159,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				for (int j = effect->numOutputs(); j < effect->numInputs(); j++)
 				{
 					if (channelOffset + j < channelCount)
-						memset(output[channelOffset + j], 0, frameCount * sizeof(double));
+						memset(output[channelOffset + j], 0, frameCount * sizeof(float));
 				}
 			}
 
@@ -187,7 +175,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		}
 
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(double));
+			memcpy(output[i], input[i], frameCount * sizeof(float));
 	}
 }
 #pragma AVRT_CODE_END

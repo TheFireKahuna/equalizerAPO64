@@ -60,5 +60,5 @@ private:
 	FilterTable::Item* item;
 	IFilterGUI* gui;
 	bool editingDone = false;
-	QTime lastEditTime;
+	QDateTime lastEditTime;
 };

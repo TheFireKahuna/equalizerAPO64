@@ -1,20 +1,20 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "stdafx.h"
@@ -46,8 +46,59 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 {
 	cleanup();
 
+	this->sampleRate = sampleRate;
+	this->maxFrameCount = maxFrameCount;
 	channelCount = (unsigned)channelNames.size();
+	beforeFirstProcess = true;
 
+	initializeFilters(maxFrameCount);
+
+	return channelNames;
+}
+
+#pragma AVRT_CODE_BEGIN
+void ConvolutionFilter::process(float** output, float** input, unsigned frameCount)
+{
+	if (filters == NULL)
+		return;
+
+	if (beforeFirstProcess && frameCount != maxFrameCount)
+	{
+		// should hopefully not happen, but happens with merged Bluetooth devices on Windows 11
+		cleanup();
+		initializeFilters(frameCount);
+	}
+
+	// only allow reinitialization before first process call
+	beforeFirstProcess = false;
+
+	for (unsigned i = 0; i < channelCount; i++)
+	{
+		float* inputChannel = input[i];
+		float* outputChannel = output[i];
+		HConvSingle* filter = &filters[i];
+
+		hcPutSingle(filter, inputChannel);
+		hcProcessSingle(filter);
+		hcGetSingle(filter, outputChannel);
+	}
+}
+#pragma AVRT_CODE_END
+
+void ConvolutionFilter::cleanup()
+{
+	if (filters != NULL)
+	{
+		for (unsigned i = 0; i < channelCount; i++)
+			hcCloseSingle(&filters[i]);
+
+		MemoryHelper::free(filters);
+		filters = NULL;
+	}
+}
+
+void ConvolutionFilter::initializeFilters(unsigned frameCount)
+{
 	SF_INFO info;
 
 	SNDFILE* inFile = sf_wchar_open(filename.c_str(), SFM_READ, &info);
@@ -63,23 +114,23 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 	{
 		TraceF(L"Convolving using impulse response file %s", filename.c_str());
 		unsigned fileChannelCount = info.channels;
-		unsigned frameCount = (unsigned)info.frames;
+		unsigned fileFrameCount = (unsigned)info.frames;
 
-		double* interleavedBuf = new double[frameCount * fileChannelCount];
+		float* interleavedBuf = new float[fileFrameCount * fileChannelCount];
 
 		sf_count_t numRead = 0;
-		while (numRead < frameCount)
-			numRead += sf_readf_double(inFile, interleavedBuf + numRead * fileChannelCount, frameCount - numRead);
+		while (numRead < fileFrameCount)
+			numRead += sf_readf_float(inFile, interleavedBuf + numRead * fileChannelCount, fileFrameCount - numRead);
 
 		sf_close(inFile);
 		inFile = NULL;
 
-		double** bufs = new double*[fileChannelCount];
+		float** bufs = new float* [fileChannelCount];
 		for (unsigned i = 0; i < fileChannelCount; i++)
 		{
-			double* buf = new double[frameCount];
-			double* p = interleavedBuf + i;
-			for (unsigned j = 0; j < frameCount; j++)
+			float* buf = new float[fileFrameCount];
+			float* p = interleavedBuf + i;
+			for (unsigned j = 0; j < fileFrameCount; j++)
 			{
 				buf[j] = p[j * fileChannelCount];
 			}
@@ -87,11 +138,11 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 			bufs[i] = buf;
 		}
 
-		fftw_make_planner_thread_safe();
+		fftwf_make_planner_thread_safe();
 		filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
 		for (unsigned i = 0; i < channelCount; i++)
 		{
-			hcInitSingle(&filters[i], bufs[i % fileChannelCount], frameCount, maxFrameCount, 1);
+			hcInitSingle(&filters[i], bufs[i % fileChannelCount], fileFrameCount, frameCount, 1);
 		}
 
 		for (unsigned i = 0; i < fileChannelCount; i++)
@@ -100,39 +151,5 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 		}
 		delete bufs;
 		delete interleavedBuf;
-	}
-
-	return channelNames;
-}
-
-#pragma AVRT_CODE_BEGIN
-void ConvolutionFilter::process(double** output, double** input, unsigned frameCount)
-{
-	if (filters == NULL)
-		return;
-
-	for (unsigned i = 0; i < channelCount; i++)
-	{
-		double* inputChannel = input[i];
-		double* outputChannel = output[i];
-		HConvSingle* filter = &filters[i];
-
-		hcPutSingle(filter, inputChannel);
-		hcProcessSingle(filter);
-		hcGetSingle(filter, outputChannel);		
-	}
-}
-#pragma AVRT_CODE_END
-
-void ConvolutionFilter::cleanup()
-{
-	if (filters != NULL)
-	{
-		for (unsigned i = 0; i < channelCount; i++) {
-			hcCloseSingle(&filters[i]);
-		}
-
-		MemoryHelper::free(filters);
-		filters = NULL;
 	}
 }

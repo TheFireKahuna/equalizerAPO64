@@ -1,20 +1,20 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <QToolBar>
@@ -22,7 +22,7 @@
 #include <QPainter>
 #include <QScrollBar>
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "FilterTableRow.h"
 #include "ui_FilterTableRow.h"
 
@@ -31,7 +31,7 @@ FilterTableRow::FilterTableRow(FilterTable* table, int number, FilterTable::Item
 	ui(new Ui::FilterTableRow)
 {
 	ui->setupUi(this);
-	ui->labelNumber->setMinimumWidth(DPIHelper::scale(25));
+	ui->labelNumber->setMinimumWidth(GUIHelper::scale(25));
 
 	this->table = table;
 	this->item = item;
@@ -99,26 +99,28 @@ void FilterTableRow::paintEvent(QPaintEvent*)
 	QRectF r = rect();
 	r = r.marginsAdded(QMarginsF(-1.5, -1.5, -1.5, -0.5));
 
+	bool dark = GUIHelper::isDarkMode();
+
 	QColor color;
 	if (table->getSelectedItems().contains(item))
 	{
 		if (table->getFocusedItem() == item)
-			color = QColor(44, 111, 222);
+			color = dark ? QColor(44, 111, 222) : QColor(64, 136, 255);
 		else
-			color = QColor(64, 136, 255);
+			color = dark ? QColor(34, 86, 171) : QColor(97, 143, 219);
 	}
 	else
 	{
 		if (table->getFocusedItem() == item)
-			color = QColor(160, 160, 160);
+			color = dark ? QColor(100, 100, 100) : QColor(160, 160, 160);
 		else
-			color = QColor(180, 180, 180);
+			color = dark ? QColor(80, 80, 80) : QColor(180, 180, 180);
 	}
 	painter.setPen(color);
 
 	QLinearGradient gradient(r.topLeft(), r.bottomLeft());
-	gradient.setColorAt(0, QColor(255, 255, 255));
-	gradient.setColorAt(1, QColor(230, 230, 230));
+	gradient.setColorAt(0, dark ? QColor(70,70,70) : QColor(255, 255, 255));
+	gradient.setColorAt(1, dark ? QColor(45,45,45) : QColor(230, 230, 230));
 	painter.setBrush(gradient);
 	painter.drawRoundedRect(r, 5, 5);
 
@@ -126,8 +128,8 @@ void FilterTableRow::paintEvent(QPaintEvent*)
 	r2.setRight(ui->labelNumber->geometry().right() - 0.5);
 
 	QLinearGradient gradient2(r2.topLeft(), r2.bottomLeft());
-	gradient2.setColorAt(0, color.darker(110));
-	gradient2.setColorAt(1, color.darker(150));
+	gradient2.setColorAt(0, dark ? color.darker(170) : color.darker(110));
+	gradient2.setColorAt(1, dark ? color.darker(220) : color.darker(150));
 	painter.setBrush(gradient2);
 	painter.drawRoundedRect(r2, 5, 5);
 }
@@ -170,7 +172,7 @@ void FilterTableRow::on_actionEditText_triggered(bool checked)
 {
 	if (checked)
 	{
-		if (!lastEditTime.isValid() || lastEditTime.elapsed() > 100)
+		if (!lastEditTime.isValid() || lastEditTime.msecsTo(QDateTime::currentDateTimeUtc()) > 100)
 		{
 			ui->lineEdit->setText(item->text);
 			ui->stackedWidget->setCurrentIndex(0);
@@ -199,7 +201,7 @@ void FilterTableRow::on_lineEdit_editingFinished()
 		else
 		{
 			ui->stackedWidget->setCurrentIndex(1);
-			lastEditTime.start();
+			lastEditTime = QDateTime::currentDateTimeUtc();
 			ui->actionEditText->setChecked(false);
 		}
 	}

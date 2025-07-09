@@ -37,7 +37,7 @@ ChannelFilterGUI::ChannelFilterGUI(const QString& parameters, int selectedChanne
 
 	selectedChannels.clear();
 
-	QStringList words = parameters.trimmed().split(' ', QString::SkipEmptyParts);
+	QStringList words = parameters.trimmed().split(' ', Qt::SkipEmptyParts);
 	for (QString word : words)
 		if (word.length() > 0)
 			selectedChannels.append(word.toUpper());

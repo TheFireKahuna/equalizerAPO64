@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "DelayFilterGUI.h"
 #include "ui_DelayFilterGUI.h"
 
@@ -30,7 +30,7 @@ DelayFilterGUI::DelayFilterGUI(double delay, bool isMs)
 {
 	ui->setupUi(this);
 
-	ui->delayDial->setFixedSize(DPIHelper::scale(QSize(100, 66)));
+	ui->delayDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->unitComboBox->setCurrentIndex(isMs ? 0 : 1);
 	ui->delaySpinBox->setValue(delay);
 }

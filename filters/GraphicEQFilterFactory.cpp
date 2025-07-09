@@ -30,7 +30,7 @@ using namespace std;
 
 static wregex regexNumber(L"[-+0-9.eE]+");
 
-vector<IFilter*> GraphicEQFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> GraphicEQFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	GraphicEQFilter* filter = NULL;
 

@@ -1,0 +1,11 @@
+<RCC>
+    <qresource prefix="/">
+        <file>translations/UpdateChecker_de.qm</file>
+        <file>icons/software-update-available.ico</file>
+        <file>translations/UpdateChecker_zh_CN.qm</file>
+        <file>translations/qtbase_de.qm</file>
+        <file>translations/qtbase_zh_CN.qm</file>
+        <file>translations/UpdateChecker_fr.qm</file>
+        <file>translations/qtbase_fr.qm</file>
+    </qresource>
+</RCC>

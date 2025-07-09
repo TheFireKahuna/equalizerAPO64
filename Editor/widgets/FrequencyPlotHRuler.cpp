@@ -1,26 +1,27 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <algorithm>
 #include <QPainter>
 #include <QMouseEvent>
 
+#include "Editor/helpers/GUIHelper.h"
 #include "FrequencyPlotView.h"
 #include "FrequencyPlotHRuler.h"
 
@@ -38,7 +39,8 @@ void FrequencyPlotHRuler::paintEvent(QPaintEvent*)
 	FrequencyPlotView* view = qobject_cast<FrequencyPlotView*>(parentWidget());
 	FrequencyPlotScene* s = view->scene();
 	QFontMetrics metrics = painter.fontMetrics();
-	painter.setPen(QColor(50, 50, 50));
+	bool dark = GUIHelper::isDarkMode();
+	painter.setPen(dark ? QColor(200, 200, 200) : QColor(50, 50, 50));
 
 	QPointF topLeft = view->mapToScene(0, 0);
 	QPointF bottomRight = view->mapToScene(view->viewport()->width(), view->viewport()->height());
@@ -63,7 +65,7 @@ void FrequencyPlotHRuler::paintEvent(QPaintEvent*)
 					text = QString("%0").arg(hz);
 				else
 					text = QString("%0k").arg(hz / 1000);
-				if (metrics.width(text) + 2 < s->hzToX(hz + hzBase) - x)
+				if (metrics.size(0, text).width() + 2 < s->hzToX(hz + hzBase) - x)
 					painter.drawText(x - topLeft.x() + offsetLeft + 1, 0, 0, height(), Qt::TextDontClip | Qt::AlignCenter, text);
 			}
 
@@ -104,7 +106,7 @@ void FrequencyPlotHRuler::paintEvent(QPaintEvent*)
 			QFontMetrics metrics = painter.fontMetrics();
 			QRectF rect = metrics.boundingRect(text);
 			float center = x - topLeft.x() + offsetLeft + 1;
-			rect = QRectF(center - ceil(rect.width() / 2) - 2 + 0.5, ceil(height() / 2) - ceil(rect.height() / 2) + 1.5, rect.width() + 3, rect.height());
+			rect = QRectF(center - ceil(rect.width() / 2) - 3 + 0.5, ceil(height() / 2) - ceil(rect.height() / 2) + 1.5, rect.width() + 5, rect.height() - 1);
 			QPainterPath path;
 			path.addRect(rect);
 			QPainterPath topTriangle;
@@ -113,10 +115,10 @@ void FrequencyPlotHRuler::paintEvent(QPaintEvent*)
 			topTriangle.lineTo(QPoint(center, rect.top() - 3));
 			path = path.united(topTriangle);
 
-			painter.setPen(Qt::black);
-			painter.setBrush(Qt::white);
+			painter.setPen(dark ? QColor(200,200,200) : Qt::black);
+			painter.setBrush(dark ? Qt::black : Qt::white);
 			painter.drawPath(path);
-			painter.setPen(Qt::blue);
+			painter.setPen(dark ? QColor(147,161,229) : Qt::blue);
 			painter.drawText(center, 0, 0, height(), Qt::TextDontClip | Qt::AlignCenter, text);
 		}
 	}
@@ -125,7 +127,7 @@ void FrequencyPlotHRuler::paintEvent(QPaintEvent*)
 void FrequencyPlotHRuler::wheelEvent(QWheelEvent* event)
 {
 	FrequencyPlotView* view = qobject_cast<FrequencyPlotView*>(parentWidget());
-	view->zoom(event->angleDelta().y(), 0, event->x() - view->viewportMargins().left(), 0);
+	view->zoom(event->angleDelta().y(), 0, event->position().x() - view->viewportMargins().left(), 0);
 }
 
 void FrequencyPlotHRuler::mouseMoveEvent(QMouseEvent* event)

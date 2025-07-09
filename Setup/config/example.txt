@@ -1,0 +1,30 @@
+Filter Settings file
+
+Room EQ V5,01
+Dated: 29.02.2012 20:04:50
+
+Notes:Simple bass boost
+
+Equaliser: Generic
+No measurement
+Filter  1: ON  PK       Fc    20,0 Hz  Gain   4,0 dB  Q  1,00
+Filter  2: ON  PK       Fc    45,0 Hz  Gain   2,0 dB  Q  1,00
+Filter  3: OFF None   
+Filter  4: OFF None   
+Filter  5: OFF None   
+Filter  6: OFF None   
+Filter  7: OFF None   
+Filter  8: OFF None   
+Filter  9: OFF None   
+Filter 10: OFF None   
+Filter 11: OFF None   
+Filter 12: OFF None   
+Filter 13: OFF None   
+Filter 14: OFF None   
+Filter 15: OFF None   
+Filter 16: OFF None   
+Filter 17: OFF None   
+Filter 18: OFF None   
+Filter 19: OFF None   
+Filter 20: OFF None   
+

@@ -17,7 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "CommentFilterGUI.h"
 #include "ui_CommentFilterGUI.h"
 
@@ -36,7 +36,7 @@ CommentFilterGUI::CommentFilterGUI(IFilterGUI* child, bool isComment)
 	ui->horizontalLayout->addWidget(child);
 
 	ui->actionPowerOn->setChecked(!isComment);
-	ui->toolBar->setIconSize(DPIHelper::scale(QSize(24, 24)));
+	ui->toolBar->setIconSize(GUIHelper::scale(QSize(24, 24)));
 	ui->toolBar->addAction(ui->actionPowerOn);
 	ui->toolBar->updateMaximumHeight();
 

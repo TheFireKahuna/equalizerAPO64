@@ -24,7 +24,7 @@
 
 using namespace std;
 
-std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary> > VSTPluginLibrary::instanceMap;
+std::unordered_map<std::wstring, std::weak_ptr<VSTPluginLibrary>> VSTPluginLibrary::instanceMap;
 std::wstring VSTPluginLibrary::defaultPluginPath;
 
 std::shared_ptr<VSTPluginLibrary> VSTPluginLibrary::getInstance(const wstring& libPath)

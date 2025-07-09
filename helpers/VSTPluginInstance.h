@@ -37,7 +37,6 @@ public:
 	int numInputs() const;
 	int numOutputs() const;
 	bool canReplacing() const;
-	bool canDoubleReplacing() const;
 	int uniqueID() const;
 	std::wstring getName() const;
 	int getUsedChannelCount() const;
@@ -54,7 +53,6 @@ public:
 
 	void startProcessing();
 	void processReplacing(float** inputArray, float** outputArray, int frameCount);
-	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount);
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();
 
@@ -70,11 +68,11 @@ public:
 
 private:
 	std::shared_ptr<VSTPluginLibrary> library;
-	AEffect* effect;
+	AEffect* effect = NULL;
 	std::function<void()> automateFunc;
 	std::function<void(int, int)> sizeWindowFunc;
 	float sampleRate = 0.0f;
-	int usedChannelCount;
+	int usedChannelCount = -1;
 	int processLevel = 0;
 	int language = 1;
 };

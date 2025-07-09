@@ -1,35 +1,30 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2012  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2012  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
-#if defined(_MSVC_TRADITIONAL) && _MSVC_TRADITIONAL
-// old behavior
-#else
-// new behavior
-#endif
 #include "stdafx.h"
-#include <string>
 #include <Unknwn.h>
 #define INITGUID
 #include <mmdeviceapi.h>
 
 #include "helpers/LogHelper.h"
 #include "helpers/RegistryHelper.h"
+#include "helpers/StringHelper.h"
 #include "DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
 
@@ -136,6 +131,20 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 	wstring deviceGuid = var.pwszVal;
 	TraceF(L"Endpoint GUID: %s", deviceGuid.c_str());
 
+	wstring deviceTestPipeName;
+	try
+	{
+		if (RegistryHelper::valueExists(APP_REGPATH, L"DeviceTestPipeName"))
+			deviceTestPipeName = RegistryHelper::readValue(APP_REGPATH, L"DeviceTestPipeName");
+	}
+	catch (RegistryException e)
+	{
+		LogF(L"%s", e.getMessage().c_str());
+	}
+
+	if (deviceTestPipeName != L"")
+		sendMessage(deviceTestPipeName, deviceGuid, apoGuid, "Initialize");
+
 	wstring childApoGuid;
 
 	try
@@ -203,6 +212,9 @@ HRESULT EqualizerAPO::Initialize(UINT32 cbDataSize, BYTE* pbyData)
 		}
 
 		TraceF(L"Successfully created and initialized child APO");
+
+		if (deviceTestPipeName != L"")
+			sendMessage(deviceTestPipeName, deviceGuid, apoGuid, "ChildAPO");
 	}
 
 	return S_OK;
@@ -323,13 +335,13 @@ HRESULT EqualizerAPO::LockForProcess(UINT32 u32NumInputConnections,
 	if (childCfg != NULL)
 	{
 		hr = childCfg->LockForProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections,
-				ppOutputConnections);
+			ppOutputConnections);
 		if (SUCCEEDED(hr))
 			TraceF(L"Success in LockForProcess of child apo");
 	}
 
 	hr = CBaseAudioProcessingObject::LockForProcess(u32NumInputConnections, ppInputConnections,
-			u32NumOutputConnections, ppOutputConnections);
+		u32NumOutputConnections, ppOutputConnections);
 	if (FAILED(hr))
 	{
 		LogF(L"Error in CBaseAudioProcessingObject::LockForProcess");
@@ -405,6 +417,32 @@ void EqualizerAPO::resetChild()
 	}
 }
 
+void EqualizerAPO::sendMessage(std::wstring& deviceTestPipeName, const std::wstring& deviceGuid, GUID apoGuid, const std::string& phase)
+{
+	string message = "{\"deviceGuid\":\"" + StringHelper::toString(deviceGuid, CP_UTF8) + "\", \"stage\":\"" + (apoGuid == EQUALIZERAPO_PRE_MIX_GUID ? "PreMix" : "PostMix") + "\", \"phase\":\"" + phase + "\"}";
+
+	HANDLE pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	if (pipe == INVALID_HANDLE_VALUE)
+	{
+		if (WaitNamedPipeW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), 1000))
+			pipe = CreateFileW((L"\\\\.\\pipe\\" + deviceTestPipeName).c_str(), GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+	}
+	if (pipe != INVALID_HANDLE_VALUE)
+	{
+		DWORD bytesWritten;
+		if (!WriteFile(pipe, message.c_str(), (int)message.length(), &bytesWritten, NULL))
+			LogF(L"Could not write to pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
+
+		FlushFileBuffers(pipe);
+		CloseHandle(pipe);
+	}
+	else
+	{
+		LogF(L"Could not connect to named pipe: %s", StringHelper::getSystemErrorString(GetLastError()).c_str());
+		deviceTestPipeName = L"";
+	}
+}
+
 #pragma AVRT_CODE_BEGIN
 void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	APO_CONNECTION_PROPERTY** ppInputConnections, UINT32 u32NumOutputConnections,
@@ -414,54 +452,54 @@ void EqualizerAPO::APOProcess(UINT32 u32NumInputConnections,
 	{
 	case BUFFER_VALID:
 	case BUFFER_SILENT:
+	{
+		float* inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
+		float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
+
+		if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
+			memset(inputFrames, 0, ppInputConnections[0]->u32ValidFrameCount * engine.getInputChannelCount() * sizeof(float));
+
+		if (childRT)
 		{
-			float* inputFrames = reinterpret_cast<float*>(ppInputConnections[0]->pBuffer);
-			float* outputFrames = reinterpret_cast<float*>(ppOutputConnections[0]->pBuffer);
+			childRT->APOProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections, ppOutputConnections);
 
-			if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
-				memset(inputFrames, 0, ppInputConnections[0]->u32ValidFrameCount * engine.getInputChannelCount() * sizeof(float));
-
-			if (childRT)
-			{
-				childRT->APOProcess(u32NumInputConnections, ppInputConnections, u32NumOutputConnections, ppOutputConnections);
-
-				engine.process(outputFrames, outputFrames, ppInputConnections[0]->u32ValidFrameCount);
-			}
-			else
-				engine.process(outputFrames, inputFrames, ppInputConnections[0]->u32ValidFrameCount);
-
-			ppOutputConnections[0]->u32ValidFrameCount = ppInputConnections[0]->u32ValidFrameCount;
-
-			if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
-			{
-				if (allowSilentBufferModification)
-				{
-					unsigned outputFrameCount = ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount();
-					boolean silent = true;
-					for (unsigned i = 0; i < outputFrameCount; i++)
-					{
-						if (abs(outputFrames[i]) > 1e-10)
-						{
-							silent = false;
-							break;
-						}
-					}
-					// BUFFER_SILENT seems to be important for some sound card drivers, so only use BUFFER_VALID if there really is audio
-					ppOutputConnections[0]->u32BufferFlags = silent ? BUFFER_SILENT : BUFFER_VALID;
-				}
-				else
-				{
-					memset(outputFrames, 0, ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount() * sizeof(float));
-					ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
-				}
-			}
-			else
-			{
-				ppOutputConnections[0]->u32BufferFlags = BUFFER_VALID;
-			}
-
-			break;
+			engine.process(outputFrames, outputFrames, ppInputConnections[0]->u32ValidFrameCount);
 		}
+		else
+			engine.process(outputFrames, inputFrames, ppInputConnections[0]->u32ValidFrameCount);
+
+		ppOutputConnections[0]->u32ValidFrameCount = ppInputConnections[0]->u32ValidFrameCount;
+
+		if (ppInputConnections[0]->u32BufferFlags == BUFFER_SILENT)
+		{
+			if (allowSilentBufferModification)
+			{
+				unsigned outputFrameCount = ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount();
+				boolean silent = true;
+				for (unsigned i = 0; i < outputFrameCount; i++)
+				{
+					if (abs(outputFrames[i]) > 1e-10)
+					{
+						silent = false;
+						break;
+					}
+				}
+				// BUFFER_SILENT seems to be important for some sound card drivers, so only use BUFFER_VALID if there really is audio
+				ppOutputConnections[0]->u32BufferFlags = silent ? BUFFER_SILENT : BUFFER_VALID;
+			}
+			else
+			{
+				memset(outputFrames, 0, ppOutputConnections[0]->u32ValidFrameCount * engine.getOutputChannelCount() * sizeof(float));
+				ppOutputConnections[0]->u32BufferFlags = BUFFER_SILENT;
+			}
+		}
+		else
+		{
+			ppOutputConnections[0]->u32BufferFlags = BUFFER_VALID;
+		}
+
+		break;
+	}
 	}
 }
 #pragma AVRT_CODE_END

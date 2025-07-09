@@ -91,10 +91,10 @@
       <bool>true</bool>
      </property>
      <property name="renderHints">
-      <set>QPainter::Antialiasing|QPainter::TextAntialiasing</set>
+      <set>QPainter::RenderHint::Antialiasing|QPainter::RenderHint::TextAntialiasing</set>
      </property>
      <property name="dragMode">
-      <enum>QGraphicsView::RubberBandDrag</enum>
+      <enum>QGraphicsView::DragMode::RubberBandDrag</enum>
      </property>
     </widget>
    </item>
@@ -155,10 +155,10 @@
         </palette>
        </property>
        <property name="sizeAdjustPolicy">
-        <enum>QAbstractScrollArea::AdjustToContents</enum>
+        <enum>QAbstractScrollArea::SizeAdjustPolicy::AdjustToContents</enum>
        </property>
        <property name="horizontalScrollMode">
-        <enum>QAbstractItemView::ScrollPerPixel</enum>
+        <enum>QAbstractItemView::ScrollMode::ScrollPerPixel</enum>
        </property>
        <property name="wordWrap">
         <bool>false</bool>
@@ -169,19 +169,19 @@
        <attribute name="horizontalHeaderVisible">
         <bool>false</bool>
        </attribute>
+       <attribute name="horizontalHeaderMinimumSectionSize">
+        <number>10</number>
+       </attribute>
        <attribute name="horizontalHeaderDefaultSectionSize">
         <number>10</number>
        </attribute>
        <attribute name="horizontalHeaderHighlightSections">
         <bool>false</bool>
        </attribute>
-       <attribute name="horizontalHeaderMinimumSectionSize">
-        <number>10</number>
+       <attribute name="verticalHeaderMinimumSectionSize">
+        <number>23</number>
        </attribute>
        <attribute name="verticalHeaderDefaultSectionSize">
-        <number>20</number>
-       </attribute>
-       <attribute name="verticalHeaderMinimumSectionSize">
         <number>23</number>
        </attribute>
        <column>
@@ -223,7 +223,7 @@
   <action name="actionInvertResponse">
    <property name="icon">
     <iconset resource="../Editor.qrc">
-     <normaloff>:/icons/invert_response.ico</normaloff>:/icons/invert_response.ico</iconset>
+     <normaloff>:/icons/invert_response.svg</normaloff>:/icons/invert_response.svg</iconset>
    </property>
    <property name="text">
     <string>Invert response</string>
@@ -232,7 +232,7 @@
   <action name="actionNormalizeResponse">
    <property name="icon">
     <iconset resource="../Editor.qrc">
-     <normaloff>:/icons/normalize_response.ico</normaloff>:/icons/normalize_response.ico</iconset>
+     <normaloff>:/icons/normalize_response.svg</normaloff>:/icons/normalize_response.svg</iconset>
    </property>
    <property name="text">
     <string>Normalize response</string>
@@ -241,7 +241,7 @@
   <action name="actionResetResponse">
    <property name="icon">
     <iconset resource="../Editor.qrc">
-     <normaloff>:/icons/reset_response.ico</normaloff>:/icons/reset_response.ico</iconset>
+     <normaloff>:/icons/reset_response.svg</normaloff>:/icons/reset_response.svg</iconset>
    </property>
    <property name="text">
     <string>Reset response</string>

@@ -59,6 +59,17 @@ wstring StringHelper::toWString(const string& s, unsigned codepage)
 	return result;
 }
 
+string StringHelper::toString(const wstring& s, unsigned codepage)
+{
+	int length = WideCharToMultiByte(codepage, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
+	char* charBuf = new char[length];
+	WideCharToMultiByte(codepage, 0, s.c_str(), -1, charBuf, length, NULL, NULL);
+	string result = charBuf;
+	delete charBuf;
+
+	return result;
+}
+
 wstring StringHelper::toLowerCase(const wstring& s)
 {
 	wchar_t* charBuf = new wchar_t[s.length() + 1];
@@ -153,11 +164,16 @@ wstring StringHelper::getSystemErrorString(long status)
 {
 	wchar_t* buf;
 
-	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM, NULL, status, 0, (LPTSTR)&buf, 0, NULL) != 0)
+	if (FormatMessageW(FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, status, 0, (LPTSTR)&buf, 0, NULL) != 0)
 	{
 		wstring result(buf);
 		LocalFree(buf);
 
+		// remove trailing newline
+		if (result.back() == L'\n')
+			result.erase(prev(result.end()));
+		if (result.back() == L'\r')
+			result.erase(prev(result.end()));
 		return result;
 	}
 	else

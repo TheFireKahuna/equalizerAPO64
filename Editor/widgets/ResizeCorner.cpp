@@ -19,14 +19,14 @@
 
 #include <QMouseEvent>
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "ResizeCorner.h"
 
 ResizeCorner::ResizeCorner(FilterTable* filterTable, QSize minimumSize, QSize maximumSize, std::function<QSize()> getFunc, std::function<void(QSize)> setFunc, QWidget* parent)
 	: QLabel(parent), minimumSize(minimumSize), maximumSize(maximumSize), getFunc(getFunc), setFunc(setFunc), filterTable(filterTable)
 {
 	QIcon icon(":/icons/resize_corner.ico");
-	QSize desiredSize = DPIHelper::scale(QSize(16, 16));
+	QSize desiredSize = GUIHelper::scale(QSize(16, 16));
 	QSize actualSize = icon.actualSize(desiredSize);
 	QPixmap pixmap = icon.pixmap(actualSize);
 	setPixmap(pixmap);

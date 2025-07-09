@@ -1,20 +1,20 @@
 /*
-    This file is part of EqualizerAPO, a system-wide equalizer.
-    Copyright (C) 2015  Jonas Thedering
+	This file is part of EqualizerAPO, a system-wide equalizer.
+	Copyright (C) 2015  Jonas Thedering
 
-    This program is free software; you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation; either version 2 of the License, or
-    (at your option) any later version.
+	This program is free software; you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation; either version 2 of the License, or
+	(at your option) any later version.
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
 
-    You should have received a copy of the GNU General Public License along
-    with this program; if not, write to the Free Software Foundation, Inc.,
-    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+	You should have received a copy of the GNU General Public License along
+	with this program; if not, write to the Free Software Foundation, Inc.,
+	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include <QGraphicsScene>
@@ -23,7 +23,7 @@
 #include <QPainter>
 #include <QLineEdit>
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizingLineEdit.h"
 #include "CopyFilterGUIChannelItem.h"
 #include "CopyFilterGUIScene.h"
@@ -52,7 +52,7 @@ QRectF CopyFilterGUIConnectionItem::boundingRect() const
 	QRectF rect = QGraphicsLineItem::boundingRect();
 
 	QPointF p2 = line().p2();
-	int as = DPIHelper::scale(maxArrowSize);
+	int as = GUIHelper::scale(maxArrowSize);
 	QRectF rect2 = QRectF(p2.x() - as, p2.y() - as, 2 * as, 2 * as);
 
 	return rect.united(rect2);
@@ -67,7 +67,7 @@ QPainterPath CopyFilterGUIConnectionItem::shape() const
 	double length = line().length();
 	if (length > 0)
 	{
-		double offset = min(length, DPIHelper::scale(maxArrowSize));
+		double offset = fmin(length, GUIHelper::scale(maxArrowSize));
 		QLineF unit = l.unitVector();
 		QLineF normal = l.normalVector().unitVector();
 		QPointF v(unit.dx(), unit.dy());
@@ -93,7 +93,7 @@ QPainterPath CopyFilterGUIConnectionItem::shape() const
 		if (factor != 1.0 || isDecibel)
 		{
 			QFont font;
-			font.setPixelSize(DPIHelper::scale(10));
+			font.setPixelSize(GUIHelper::scale(10));
 			QPointF center = (l.p1() + l.p2()) / 2;
 			QString text = QString("%1").arg(factor);
 			if (isDecibel)
@@ -131,7 +131,7 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 		painter->drawLine(line());
 
 		double length = line().length();
-		double offset = min(length, DPIHelper::scale(maxArrowSize));
+		double offset = fmin(length, GUIHelper::scale(maxArrowSize));
 		QLineF unit = l.unitVector();
 		QLineF normal = l.normalVector().unitVector();
 		QPointF v(unit.dx(), unit.dy());
@@ -150,7 +150,7 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 		if (factor != 1.0 || isDecibel)
 		{
 			QFont font = painter->font();
-			font.setPixelSize(DPIHelper::scale(10));
+			font.setPixelSize(GUIHelper::scale(10));
 			painter->setFont(font);
 			QPointF center = (l.p1() + l.p2()) / 2;
 			QString text = QString("%1").arg(factor);
@@ -164,6 +164,9 @@ void CopyFilterGUIConnectionItem::paint(QPainter* painter, const QStyleOptionGra
 			rect.moveCenter(center);
 			painter->setBrush(Qt::white);
 			painter->drawRoundedRect(rect.adjusted(-0.5, 0.5, 0.5, 0.5), 3, 3);
+			// make sure that text is visible in dark mode
+			if(painter->pen().color() == Qt::white)
+				painter->setPen(Qt::black);
 			painter->drawText(rect, Qt::AlignCenter, text);
 		}
 	}

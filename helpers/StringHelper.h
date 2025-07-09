@@ -29,6 +29,7 @@ public:
 	static std::wstring replaceCharacters(const std::wstring& s, const std::wstring& chars, const std::wstring& replacement);
 	static std::wstring replaceIllegalCharacters(const std::wstring& filename);
 	static std::wstring toWString(const std::string& s, unsigned codepage);
+	static std::string toString(const std::wstring& s, unsigned codepage);
 	static std::wstring toLowerCase(const std::wstring& s);
 	static std::wstring toUpperCase(const std::wstring& s);
 	static std::wstring trim(const std::wstring& s);

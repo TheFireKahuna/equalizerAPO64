@@ -1,20 +1,20 @@
 /*
-	This file is part of EqualizerAPO, a system-wide equalizer.
-	Copyright (C) 2014  Jonas Thedering
+    This file is part of EqualizerAPO, a system-wide equalizer.
+    Copyright (C) 2014  Jonas Thedering
 
-	This program is free software; you can redistribute it and/or modify
-	it under the terms of the GNU General Public License as published by
-	the Free Software Foundation; either version 2 of the License, or
-	(at your option) any later version.
+    This program is free software; you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation; either version 2 of the License, or
+    (at your option) any later version.
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-	GNU General Public License for more details.
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
-	You should have received a copy of the GNU General Public License along
-	with this program; if not, write to the Free Software Foundation, Inc.,
-	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+    You should have received a copy of the GNU General Public License along
+    with this program; if not, write to the Free Software Foundation, Inc.,
+    51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
 #include "stdafx.h"
@@ -50,7 +50,7 @@ vector<IFilter*> DeviceFilterFactory::startOfConfiguration()
 	return vector<IFilter*>();
 }
 
-vector<IFilter*> DeviceFilterFactory::createFilter(const std::wstring& configPath, std::wstring& command, std::wstring& parameters)
+vector<IFilter*> DeviceFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
 	if (command == L"Device")
 	{
@@ -79,7 +79,7 @@ bool DeviceFilterFactory::matchDevice(const std::wstring& deviceString, const st
 {
 	wstring value = StringHelper::trim(pattern) + L";";
 
-	vector<vector<wstring> > fullList;
+	vector<vector<wstring>> fullList;
 	vector<wstring> currentList;
 	wstring currentWord;
 

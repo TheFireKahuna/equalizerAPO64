@@ -33,7 +33,7 @@ class VSTPluginFilterGUI : public IFilterGUI
 	Q_OBJECT
 
 public:
-	explicit VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, double>& paramMap);
+	explicit VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap);
 	~VSTPluginFilterGUI();
 
 	void store(QString& command, QString& parameters) override;
@@ -60,7 +60,7 @@ private:
 	std::shared_ptr<VSTPluginLibrary> library;
 	VSTPluginInstance* effect = NULL;
 	std::wstring chunkData;
-	std::unordered_map<std::wstring, double> paramMap;
+	std::unordered_map<std::wstring, float> paramMap;
 	bool embedded = false;
 	bool autoApplyDialog = false;
 	QElapsedTimer lastReadTimer;

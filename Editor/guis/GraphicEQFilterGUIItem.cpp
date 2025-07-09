@@ -19,7 +19,7 @@
 
 #include <QPainter>
 
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "GraphicEQFilterGUIScene.h"
 #include "GraphicEQFilterGUIItem.h"
 
@@ -34,7 +34,7 @@ GraphicEQFilterGUIItem::GraphicEQFilterGUIItem(int index, double hz, double db)
 
 QRectF GraphicEQFilterGUIItem::boundingRect() const
 {
-	int s = DPIHelper::scale(size);
+	int s = GUIHelper::scale(size);
 	return QRectF(-s / 2, -s / 2, s, s);
 }
 
@@ -47,22 +47,23 @@ QPainterPath GraphicEQFilterGUIItem::shape() const
 
 void GraphicEQFilterGUIItem::paint(QPainter* painter, const QStyleOptionGraphicsItem* option, QWidget* widget)
 {
-	painter->setBrush(Qt::white);
+    bool dark = GUIHelper::isDarkMode();
+    painter->setBrush(dark ? Qt::black : Qt::white);
 	if (isSelected())
 		painter->setBrush(QColor(38, 147, 255));
 	painter->drawPath(shape());
 	if (index < 99)
 	{
 		if (isSelected())
-			painter->setPen(Qt::white);
+            painter->setPen(Qt::white);
 
 		QFont font;
-		font.setPixelSize(DPIHelper::scale(9));
+		font.setPixelSize(GUIHelper::scale(9));
 		font.setLetterSpacing(QFont::AbsoluteSpacing, -1);
 		QFontMetrics metrics(font);
 		painter->setFont(font);
 		QString text = QString::number(index + 1);
-		painter->drawText(-metrics.width(text) / 2, metrics.boundingRect('0').height() / 2, text);
+		painter->drawText(-metrics.size(0, text).width() / 2, metrics.boundingRect('0').height() / 2, text);
 	}
 }
 

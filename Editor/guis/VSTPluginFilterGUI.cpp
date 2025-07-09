@@ -27,7 +27,7 @@
 #include <windows.h>
 #include "helpers/aeffectx.h"
 #include "helpers/StringHelper.h"
-#include "Editor/helpers/DPIHelper.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/MainWindow.h"
 #include "VSTPluginFilterGUIDialog.h"
 #include "VSTPluginFilterGUI.h"
@@ -36,7 +36,7 @@
 using namespace std;
 using namespace std::placeholders;
 
-VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, double>& paramMap)
+VSTPluginFilterGUI::VSTPluginFilterGUI(std::shared_ptr<VSTPluginLibrary> library, const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap)
 	: ui(new Ui::VSTPluginFilterGUI), library(library), chunkData(chunkData), paramMap(paramMap)
 {
 	ui->setupUi(this);
@@ -345,7 +345,7 @@ void VSTPluginFilterGUI::on_idle()
 			if (!lastReadTimer.isValid() || lastReadTimer.elapsed() > 1000)
 			{
 				wstring newChunkData;
-				unordered_map<std::wstring, double> newParamMap;
+				unordered_map<std::wstring, float> newParamMap;
 				effect->readFromEffect(newChunkData, newParamMap);
 				if (newChunkData != chunkData || newParamMap != paramMap)
 				{
@@ -423,7 +423,7 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 
 		ui->warningTextEdit->setPlainText(text);
 		QSize textSize = ui->warningTextEdit->fontMetrics().size(0, text);
-		ui->warningTextEdit->setFixedSize(textSize + DPIHelper::scale(QSize(40, 15)));
+		ui->warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
 		ui->warningTextEdit->setVisible(true);
 		return;
 	}
@@ -433,31 +433,27 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 	{
 		QByteArray bytes = QByteArray::fromBase64(QString::fromStdWString(chunkData).toUtf8());
 		QString string = QString::fromUtf8(bytes.data(), bytes.length());
-		QRegExp regexp("[A-Za-z]:(?:\\\\[\\w \\(\\)-]+)+\\.[A-Za-z]{3}");
-		int offset = 0;
-		while (offset >= 0)
+		QRegularExpression regexp("[A-Za-z]:(?:\\\\[\\w \\(\\)-]+)+\\.[A-Za-z]{3}");
+		QRegularExpressionMatchIterator it = regexp.globalMatch(string);
+		while (it.hasNext())
 		{
-			offset = regexp.indexIn(string, offset);
-			if (offset >= 0)
+			QRegularExpressionMatch m = it.next();
+			QString path = m.captured();
+			QFile file(path);
+			if (file.exists())
 			{
-				QString path = regexp.cap();
-				QFile file(path);
-				if (file.exists())
+				ACCESS_MASK mask = GENERIC_READ;
+				try
 				{
-					ACCESS_MASK mask = GENERIC_READ;
-					try
-					{
-						mask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
-					}
-					catch (RegistryException e)
-					{
-						// ignore
-					}
-
-					if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
-						files.append(path);
+					mask = RegistryHelper::getFileAccessForUser(path.toStdWString(), SECURITY_LOCAL_SERVICE_RID);
 				}
-				offset += regexp.matchedLength();
+				catch (RegistryException e)
+				{
+					// ignore
+				}
+
+				if ((mask & GENERIC_READ) != GENERIC_READ && (mask & FILE_GENERIC_READ) != FILE_GENERIC_READ)
+					files.append(path);
 			}
 		}
 	}
@@ -475,7 +471,7 @@ void VSTPluginFilterGUI::updatePermissionWarning()
 				"Change the file permissions or copy the files to the config directory.").arg(files.join("\n"));
 		ui->warningTextEdit->setPlainText(text);
 		QSize textSize = ui->warningTextEdit->fontMetrics().size(0, text);
-		ui->warningTextEdit->setFixedSize(textSize + DPIHelper::scale(QSize(40, 15)));
+		ui->warningTextEdit->setFixedSize(textSize + GUIHelper::scale(QSize(40, 15)));
 		ui->warningTextEdit->setVisible(true);
 	}
 }
