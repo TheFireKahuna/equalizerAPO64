@@ -47,12 +47,12 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 	else
 		bufferLength = (unsigned)(delay + 0.5);
 
-	buffers = (float**)MemoryHelper::alloc(sizeof(float*) * channelCount);
+	buffers = (double**)MemoryHelper::alloc(sizeof(double*) * channelCount);
 
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		buffers[i] = (float*)MemoryHelper::alloc(sizeof(float) * bufferLength);
-		memset(buffers[i], 0, sizeof(float) * bufferLength);
+		buffers[i] = (double*)MemoryHelper::alloc(sizeof(double) * bufferLength);
+		memset(buffers[i], 0, sizeof(double) * bufferLength);
 	}
 
 	bufferOffset = 0;
@@ -61,34 +61,34 @@ vector<wstring> DelayFilter::initialize(float sampleRate, unsigned maxFrameCount
 }
 
 #pragma AVRT_CODE_BEGIN
-void DelayFilter::process(float** output, float** input, unsigned frameCount)
+void DelayFilter::process(double** output, double** input, unsigned frameCount)
 {
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		float* inputChannel = input[i];
-		float* outputChannel = output[i];
-		float* bufferChannel = buffers[i];
+		double* inputChannel = input[i];
+		double* outputChannel = output[i];
+		double* bufferChannel = buffers[i];
 
 		if (bufferLength <= frameCount)
 		{
-			memcpy(outputChannel, bufferChannel + bufferOffset, (bufferLength - bufferOffset) * sizeof(float));
-			memcpy(outputChannel + bufferLength - bufferOffset, bufferChannel, bufferOffset * sizeof(float));
-			memcpy(outputChannel + bufferLength, inputChannel, (frameCount - bufferLength) * sizeof(float));
-			memcpy(bufferChannel, inputChannel + frameCount - bufferLength, bufferLength * sizeof(float));
+			memcpy(outputChannel, bufferChannel + bufferOffset, (bufferLength - bufferOffset) * sizeof(double));
+			memcpy(outputChannel + bufferLength - bufferOffset, bufferChannel, bufferOffset * sizeof(double));
+			memcpy(outputChannel + bufferLength, inputChannel, (frameCount - bufferLength) * sizeof(double));
+			memcpy(bufferChannel, inputChannel + frameCount - bufferLength, bufferLength * sizeof(double));
 		}
 		else
 		{
 			if (bufferLength < bufferOffset + frameCount)
 			{
-				memcpy(outputChannel, bufferChannel + bufferOffset, (bufferLength - bufferOffset) * sizeof(float));
-				memcpy(outputChannel + bufferLength - bufferOffset, bufferChannel, (frameCount - (bufferLength - bufferOffset)) * sizeof(float));
-				memcpy(bufferChannel + bufferOffset, inputChannel, (bufferLength - bufferOffset) * sizeof(float));
-				memcpy(bufferChannel, inputChannel + bufferLength - bufferOffset, (frameCount - (bufferLength - bufferOffset)) * sizeof(float));
+				memcpy(outputChannel, bufferChannel + bufferOffset, (bufferLength - bufferOffset) * sizeof(double));
+				memcpy(outputChannel + bufferLength - bufferOffset, bufferChannel, (frameCount - (bufferLength - bufferOffset)) * sizeof(double));
+				memcpy(bufferChannel + bufferOffset, inputChannel, (bufferLength - bufferOffset) * sizeof(double));
+				memcpy(bufferChannel, inputChannel + bufferLength - bufferOffset, (frameCount - (bufferLength - bufferOffset)) * sizeof(double));
 			}
 			else
 			{
-				memcpy(outputChannel, bufferChannel + bufferOffset, frameCount * sizeof(float));
-				memcpy(bufferChannel + bufferOffset, inputChannel, frameCount * sizeof(float));
+				memcpy(outputChannel, bufferChannel + bufferOffset, frameCount * sizeof(double));
+				memcpy(bufferChannel + bufferOffset, inputChannel, frameCount * sizeof(double));
 			}
 		}
 	}

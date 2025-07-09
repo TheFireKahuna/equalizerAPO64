@@ -21,6 +21,7 @@
 
 #include <string>
 #include <vector>
+#include <memory> // For std::unique_ptr
 
 #include "IFilter.h"
 
@@ -43,24 +44,31 @@ public:
 	FilterConfiguration(FilterEngine* engine, const std::vector<FilterInfo*>& filterInfos, unsigned allChannelCount);
 	~FilterConfiguration();
 
-	void read(float* input, unsigned frameCount);
-	void read(float** input, unsigned frameCount);
+	void read(double* input, unsigned frameCount);
+	void read(double** input, unsigned frameCount);
 	void process(unsigned frameCount);
 	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength);
-	void write(float* output, unsigned frameCount);
-	void write(float** output, unsigned frameCount);
-	float** getOutputSamples() {return allSamples;}
-	bool isEmpty();
+	void write(double* output, unsigned frameCount);
+	void write(double** output, unsigned frameCount);
+	
+    // Return a raw pointer-to-pointer for compatibility with existing filter interfaces
+    double** getOutputSamples() { return allSamplesPtrs.data(); }
+	bool isEmpty() const;
 
 private:
+    std::vector<std::unique_ptr<double[]>> allSamples;
+    std::vector<std::unique_ptr<double[]>> allSamples2;
+    
+    // Non-owning pointers for fast access during process()
+    std::vector<double*> allSamplesPtrs;
+    std::vector<double*> allSamples2Ptrs;
+    std::vector<double*> currentSamples;
+    std::vector<double*> currentSamples2;
+
+    std::vector<FilterInfo*> filterInfos;
+
 	unsigned realChannelCount;
 	unsigned outputChannelCount;
 	unsigned allChannelCount;
-	float** allSamples;
-	float** allSamples2;
-	float** currentSamples;
-	float** currentSamples2;
-	FilterInfo** filterInfos;
-	unsigned filterCount;
 };
 #pragma AVRT_VTABLES_END

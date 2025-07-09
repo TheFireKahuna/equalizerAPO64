@@ -29,7 +29,7 @@ public:
 	virtual ~DelayFilter();
 	bool getInPlace() override {return false;}
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
-	void process(float** output, float** input, unsigned frameCount) override;
+	void process(double** output, double** input, unsigned frameCount) override;
 
 	double getDelay() const;
 	bool getIsMs() const;
@@ -41,7 +41,7 @@ private:
 	bool isMs;
 	unsigned bufferLength;
 	unsigned channelCount;
-	float** buffers;
+	double** buffers;
 	unsigned bufferOffset;
 };
 #pragma AVRT_VTABLES_END

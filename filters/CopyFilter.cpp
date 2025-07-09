@@ -78,9 +78,9 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 				is.channel = -1;
 
 			if (s.isDecibel)
-				is.factor = (float)pow(10.0, s.factor / 20.0);
+				is.factor = (double)pow(10.0, s.factor / 20.0);
 			else
-				is.factor = (float)s.factor;
+				is.factor = (double)s.factor;
 		}
 	}
 
@@ -109,7 +109,7 @@ vector<wstring> CopyFilter::initialize(float sampleRate, unsigned maxFrameCount,
 }
 
 #pragma AVRT_CODE_BEGIN
-void CopyFilter::process(float** output, float** input, unsigned frameCount)
+void CopyFilter::process(double** output, double** input, unsigned frameCount)
 {
 	for (unsigned i = 0; i < assignmentCount; i++)
 	{
@@ -125,7 +125,7 @@ void CopyFilter::process(float** output, float** input, unsigned frameCount)
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] = is.factor;
 			else if (is.factor == 1.0)
-				memcpy(output[ia.targetChannel], input[is.channel], frameCount * sizeof(float));
+				memcpy(output[ia.targetChannel], input[is.channel], frameCount * sizeof(double));
 			else
 				for (unsigned f = 0; f < frameCount; f++)
 					output[ia.targetChannel][f] = is.factor * input[is.channel][f];

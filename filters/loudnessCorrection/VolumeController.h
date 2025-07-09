@@ -27,8 +27,8 @@ class VolumeController
 {
 public:
 	VolumeController();
-	HRESULT getVolume(float& currentVolume);
-	HRESULT setVolume(float volume);
+	HRESULT getVolume(double& currentVolume);
+	HRESULT setVolume(double volume);
 private:
 	IAudioEndpointVolume* _endpointVolume;
 	float _minVol;

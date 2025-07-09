@@ -52,8 +52,8 @@ public:
 	void readFromEffect(std::wstring& chunkData, std::unordered_map<std::wstring, float>& paramMap) const;
 
 	void startProcessing();
-	void processReplacing(float** inputArray, float** outputArray, int frameCount);
-	void process(float** inputArray, float** outputArray, int frameCount);
+	void processReplacing(double** inputArray, double** outputArray, int frameCount);
+	void process(double** inputArray, double** outputArray, int frameCount);
 	void stopProcessing();
 
 	void startEditing(HWND hWnd, short* width, short* height);

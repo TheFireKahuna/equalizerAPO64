@@ -142,3 +142,12 @@ double BiQuad::gainAt(double freq, double srate)
 
 	return dbGain;
 }
+
+void BiQuad::getCoefficients(double(&out_coeffs)[4], double& out_a0) const
+{
+	out_a0 = this->a0;
+	for (int i = 0; i < 4; ++i)
+	{
+		out_coeffs[i] = this->a[i];
+	}
+}

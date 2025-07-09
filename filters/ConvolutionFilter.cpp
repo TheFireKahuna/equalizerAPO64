@@ -57,7 +57,7 @@ vector<wstring> ConvolutionFilter::initialize(float sampleRate, unsigned maxFram
 }
 
 #pragma AVRT_CODE_BEGIN
-void ConvolutionFilter::process(float** output, float** input, unsigned frameCount)
+void ConvolutionFilter::process(double** output, double** input, unsigned frameCount)
 {
 	if (filters == NULL)
 		return;
@@ -74,8 +74,8 @@ void ConvolutionFilter::process(float** output, float** input, unsigned frameCou
 
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		float* inputChannel = input[i];
-		float* outputChannel = output[i];
+		double* inputChannel = input[i];
+		double* outputChannel = output[i];
 		HConvSingle* filter = &filters[i];
 
 		hcPutSingle(filter, inputChannel);
@@ -116,20 +116,20 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 		unsigned fileChannelCount = info.channels;
 		unsigned fileFrameCount = (unsigned)info.frames;
 
-		float* interleavedBuf = new float[fileFrameCount * fileChannelCount];
+		double* interleavedBuf = new double[fileFrameCount * fileChannelCount];
 
 		sf_count_t numRead = 0;
 		while (numRead < fileFrameCount)
-			numRead += sf_readf_float(inFile, interleavedBuf + numRead * fileChannelCount, fileFrameCount - numRead);
+			numRead += sf_readf_double(inFile, interleavedBuf + numRead * fileChannelCount, fileFrameCount - numRead);
 
 		sf_close(inFile);
 		inFile = NULL;
 
-		float** bufs = new float* [fileChannelCount];
+		double** bufs = new double* [fileChannelCount];
 		for (unsigned i = 0; i < fileChannelCount; i++)
 		{
-			float* buf = new float[fileFrameCount];
-			float* p = interleavedBuf + i;
+			double* buf = new double[fileFrameCount];
+			double* p = interleavedBuf + i;
 			for (unsigned j = 0; j < fileFrameCount; j++)
 			{
 				buf[j] = p[j * fileChannelCount];
@@ -138,7 +138,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 			bufs[i] = buf;
 		}
 
-		fftwf_make_planner_thread_safe();
+		fftw_make_planner_thread_safe();
 		filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
 		for (unsigned i = 0; i < channelCount; i++)
 		{

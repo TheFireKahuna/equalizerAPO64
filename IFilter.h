@@ -38,7 +38,7 @@ public:
 	virtual bool getSelectChannels() {return false;}
 	// return value is the channelNames vector, which may contain additional or fewer channel names
 	virtual std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) = 0;
-	virtual void process(float** output, float** input, unsigned frameCount) = 0;
+	virtual void process(double** output, double** input, unsigned frameCount) = 0;
 
 protected:
 };

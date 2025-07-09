@@ -37,7 +37,7 @@ protected:
 	void initializeFilters(unsigned frameCount) override;
 
 private:
-	void mps(fftwf_complex* timeData, fftwf_complex* freqData, fftwf_plan planForward, fftwf_plan planReverse);
+	void mps(fftw_complex* timeData, fftw_complex* freqData, fftw_plan planForward, fftw_plan planReverse);
 
 	std::vector<FilterNode> nodes;
 	unsigned filterLength;

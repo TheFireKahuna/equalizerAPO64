@@ -20,20 +20,26 @@
 #pragma once
 
 #include "IFilter.h"
+#include <vector> // Required for std::vector
+#include <string> // Required for std::wstring
 
 #pragma AVRT_VTABLES_BEGIN
 class PreampFilter : public IFilter
 {
 public:
-	PreampFilter(double dbGain);
-	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
-	void process(float** output, float** input, unsigned frameCount) override;
+	explicit PreampFilter(double dbGain);
+	virtual ~PreampFilter() = default; 
 
-	double getDbGain() const {return dbGain;}
+	bool getInPlace() override { return true; }
+
+	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
+	void process(double** output, double** input, unsigned frameCount) override;
+
+	double getDbGain() const { return dbGain; }
 
 private:
-	float gain;
-	double dbGain;
+	const double dbGain;
+	double gain;
 	size_t channelCount;
 };
 #pragma AVRT_VTABLES_END

@@ -263,7 +263,7 @@ public:
    // dispatcher 04-07
    intptr_t (* dispatcher)( AEffect * , int , int , intptr_t, void * , float );
    // process, quite sure 08-0b
-   void (* process)( AEffect * , float * * , float * * , int );
+   void (* process)( AEffect * , double * * , double* * , int );
    // setParameter 0c-0f
    void (* setParameter)( AEffect * , int , float );
    // getParameter 10-13
@@ -295,7 +295,7 @@ public:
    int32_t uniqueID;
    int32_t version;
    // processReplacing 50-53
-   void (* processReplacing)( AEffect * , float * * , float * * , int );
+   void (* processReplacing)( AEffect * , double* * , double* * , int );
 
 } ;
 

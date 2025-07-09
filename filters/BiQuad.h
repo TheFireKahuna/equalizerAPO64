@@ -74,6 +74,7 @@ public:
 	}
 
 	double gainAt(double freq, double srate);
+	void getCoefficients(double(&out_coeffs)[4], double& out_a0) const;
 
 private:
 	__declspec(align(16)) double a[4];

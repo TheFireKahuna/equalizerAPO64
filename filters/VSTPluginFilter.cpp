@@ -73,15 +73,15 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 
 	// 2 times for input and output
 	emptyChannelCount = 2 * (effectCount * effectChannelCount - channelCount);
-	emptyChannels = (float**)MemoryHelper::alloc(emptyChannelCount * sizeof(float*));
+	emptyChannels = (double**)MemoryHelper::alloc(emptyChannelCount * sizeof(double*));
 	for (unsigned i = 0; i < emptyChannelCount; i++)
 	{
-		emptyChannels[i] = (float*)MemoryHelper::alloc(maxFrameCount * sizeof(float));
-		memset(emptyChannels[i], 0, maxFrameCount * sizeof(float));
+		emptyChannels[i] = (double*)MemoryHelper::alloc(maxFrameCount * sizeof(double));
+		memset(emptyChannels[i], 0, maxFrameCount * sizeof(double));
 	}
 
-	inputArray = (float**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(float*));
-	outputArray = (float**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(float*));
+	inputArray = (double**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(double*));
+	outputArray = (double**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(double*));
 
 	return channelNames;
 }
@@ -111,12 +111,12 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 }
 
 #pragma AVRT_CODE_BEGIN
-void VSTPluginFilter::process(float** output, float** input, unsigned frameCount)
+void VSTPluginFilter::process(double** output, double** input, unsigned frameCount)
 {
 	if (skipProcessing)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(float));
+			memcpy(output[i], input[i], frameCount * sizeof(double));
 		return;
 	}
 
@@ -150,7 +150,7 @@ void VSTPluginFilter::process(float** output, float** input, unsigned frameCount
 			else
 			{
 				for (int j = 0; j < effect->numOutputs(); j++)
-					memset(outputArray[j], 0, frameCount * sizeof(float));
+					memset(outputArray[j], 0, frameCount * sizeof(double));
 				effect->process(inputArray, outputArray, frameCount);
 			}
 
@@ -159,7 +159,7 @@ void VSTPluginFilter::process(float** output, float** input, unsigned frameCount
 				for (int j = effect->numOutputs(); j < effect->numInputs(); j++)
 				{
 					if (channelOffset + j < channelCount)
-						memset(output[channelOffset + j], 0, frameCount * sizeof(float));
+						memset(output[channelOffset + j], 0, frameCount * sizeof(double));
 				}
 			}
 
@@ -175,7 +175,7 @@ void VSTPluginFilter::process(float** output, float** input, unsigned frameCount
 		}
 
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(float));
+			memcpy(output[i], input[i], frameCount * sizeof(double));
 	}
 }
 #pragma AVRT_CODE_END
