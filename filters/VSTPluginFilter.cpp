@@ -83,6 +83,23 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 	inputArray = (double**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(double*));
 	outputArray = (double**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(double*));
 
+	// Allocate float buffers for conversion
+	if (firstEffect->numInputs() > 0) {
+		floatInputs = (float**)MemoryHelper::alloc(firstEffect->numInputs() * sizeof(float*));
+		_floatInputBuffer = (float*)MemoryHelper::alloc(firstEffect->numInputs() * maxFrameCount * sizeof(float));
+		for (int i = 0; i < firstEffect->numInputs(); ++i) {
+			floatInputs[i] = _floatInputBuffer + i * maxFrameCount;
+		}
+	}
+
+	if (firstEffect->numOutputs() > 0) {
+		floatOutputs = (float**)MemoryHelper::alloc(firstEffect->numOutputs() * sizeof(float*));
+		_floatOutputBuffer = (float*)MemoryHelper::alloc(firstEffect->numOutputs() * maxFrameCount * sizeof(float));
+		for (int i = 0; i < firstEffect->numOutputs(); ++i) {
+			floatOutputs[i] = _floatOutputBuffer + i * maxFrameCount;
+		}
+	}
+
 	return channelNames;
 }
 
@@ -111,12 +128,18 @@ void VSTPluginFilter::prepareForProcessing(float sampleRate, unsigned maxFrameCo
 }
 
 #pragma AVRT_CODE_BEGIN
+void convertFloatToDouble(double* dest, const float* src, size_t count);
+
+// Converts a block of doubles back to floats.
+void convertDoubleToFloat(float* dest, const double* src, size_t count);
+
 void VSTPluginFilter::process(double** output, double** input, unsigned frameCount)
 {
 	if (skipProcessing)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(double));
+			if (input[i] != output[i])
+				memcpy(output[i], input[i], frameCount * sizeof(double));
 		return;
 	}
 
@@ -127,6 +150,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		for (unsigned i = 0; i < effectCount; i++)
 		{
 			VSTPluginInstance* effect = effects[i];
+			// Setup double pointer arrays to point to the correct source/destination double buffers
 			for (int j = 0; j < effect->numInputs(); j++)
 			{
 				if (channelOffset + j < channelCount)
@@ -143,15 +167,29 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					outputArray[j] = emptyChannels[emptyChannelIndex++];
 			}
 
+			// Convert input from double** to float** using pre-allocated buffers
+			for (int j = 0; j < effect->numInputs(); j++)
+			{
+				convertDoubleToFloat(floatInputs[j], inputArray[j], frameCount);
+			}
+
 			if (effect->canReplacing())
 			{
-				effect->processReplacing(inputArray, outputArray, frameCount);
+				effect->processReplacing(floatInputs, floatOutputs, frameCount);
 			}
 			else
 			{
+				// For non-replacing, VST expects to add to the output. Clear float buffer first.
 				for (int j = 0; j < effect->numOutputs(); j++)
-					memset(outputArray[j], 0, frameCount * sizeof(double));
-				effect->process(inputArray, outputArray, frameCount);
+					memset(floatOutputs[j], 0, frameCount * sizeof(float));
+				effect->process(floatInputs, floatOutputs, frameCount);
+			}
+
+			// Convert output from float** back to double** into the final destination
+			for (int j = 0; j < effect->numOutputs(); j++)
+			{
+				if (channelOffset + j < channelCount) // Only convert for real output channels
+					convertFloatToDouble(outputArray[j], floatOutputs[j], frameCount);
 			}
 
 			if (effect->numOutputs() < effect->numInputs())
@@ -175,7 +213,8 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		}
 
 		for (unsigned i = 0; i < channelCount; i++)
-			memcpy(output[i], input[i], frameCount * sizeof(double));
+			if (input[i] != output[i])
+				memcpy(output[i], input[i], frameCount * sizeof(double));
 	}
 }
 #pragma AVRT_CODE_END
@@ -230,5 +269,22 @@ void VSTPluginFilter::cleanup()
 	{
 		MemoryHelper::free(outputArray);
 		outputArray = NULL;
+	}
+    
+    if (floatInputs != NULL) {
+		MemoryHelper::free(floatInputs);
+		floatInputs = NULL;
+	}
+	if (_floatInputBuffer != NULL) {
+		MemoryHelper::free(_floatInputBuffer);
+		_floatInputBuffer = NULL;
+	}
+	if (floatOutputs != NULL) {
+		MemoryHelper::free(floatOutputs);
+		floatOutputs = NULL;
+	}
+	if (_floatOutputBuffer != NULL) {
+		MemoryHelper::free(_floatOutputBuffer);
+		_floatOutputBuffer = NULL;
 	}
 }

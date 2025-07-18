@@ -323,7 +323,7 @@ void VSTPluginInstance::startProcessing()
 	effect->dispatcher(effect, effStartProcess, 0, 0, NULL, 0.0f);
 }
 
-void VSTPluginInstance::processReplacing(double** inputArray, double** outputArray, int frameCount)
+void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray, int frameCount)
 {
 	if (effect == NULL)
 		return;
@@ -331,7 +331,7 @@ void VSTPluginInstance::processReplacing(double** inputArray, double** outputArr
 	effect->processReplacing(effect, inputArray, outputArray, frameCount);
 }
 
-void VSTPluginInstance::process(double** inputArray, double** outputArray, int frameCount)
+void VSTPluginInstance::process(float** inputArray, float** outputArray, int frameCount)
 {
 	if (effect == NULL)
 		return;

@@ -53,6 +53,13 @@ private:
 	double** emptyChannels = NULL;
 	double** inputArray = NULL;
 	double** outputArray = NULL;
+
+	// Buffers for float conversion
+	float** floatInputs = NULL;
+	float* _floatInputBuffer = NULL;
+	float** floatOutputs = NULL;
+	float* _floatOutputBuffer = NULL;
+
 	bool skipProcessing = false;
 	bool reportCrash = true;
 };

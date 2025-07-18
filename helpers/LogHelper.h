@@ -22,10 +22,10 @@
 #include <string>
 #include <cstdio>
 
-#define TraceF(format, ...) LogHelper::log(__FILE__, __LINE__, this, true, format, __VA_ARGS__)
-#define TraceFStatic(format, ...) LogHelper::log(__FILE__, __LINE__, NULL, true, format, __VA_ARGS__)
-#define LogF(format, ...) LogHelper::log(__FILE__, __LINE__, this, false, format, __VA_ARGS__)
-#define LogFStatic(format, ...) LogHelper::log(__FILE__, __LINE__, NULL, false, format, __VA_ARGS__)
+#define TraceF(format, ...) LogHelper::log(__FILE__, __LINE__, this, true, format, ##__VA_ARGS__)
+#define TraceFStatic(format, ...) LogHelper::log(__FILE__, __LINE__, NULL, true, format, ##__VA_ARGS__)
+#define LogF(format, ...) LogHelper::log(__FILE__, __LINE__, this, false, format, ##__VA_ARGS__)
+#define LogFStatic(format, ...) LogHelper::log(__FILE__, __LINE__, NULL, false, format, ##__VA_ARGS__)
 
 class LogHelper
 {
