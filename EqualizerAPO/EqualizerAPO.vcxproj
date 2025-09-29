@@ -139,7 +139,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
     <Midl>
@@ -177,7 +177,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
     <Midl>
@@ -201,7 +201,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -217,7 +217,7 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet>AdvancedVectorExtensions</EnableEnhancedInstructionSet>
       <StringPooling>true</StringPooling>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
@@ -255,7 +255,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;audioeng.lib;version.lib;wmcodecdspuuid.lib;AudioBaseProcessingObject.lib;legacy_stdio_definitions.lib;audiomediatypecrt.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>

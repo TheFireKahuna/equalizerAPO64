@@ -1,4 +1,4 @@
-/***************************************************************************
+﻿/***************************************************************************
  *   Copyright (C) 2009 by Christian Borss                                 *
  *   christian.borss@rub.de                                                *
  *                                                                         *
@@ -39,7 +39,7 @@
 double hcTime(void)
 {
 #ifdef WIN32
-	DWORD t = GetTickCount();
+	ULONGLONG t = GetTickCount64();
 	return (double)t * 0.001;
 #else
 	struct timeval tv;
@@ -115,20 +115,21 @@ double getProcTime(int flen, int num, double dur)
 
 void hcPutSingle(HConvSingle* filter, double* x)
 {
-	const size_t flen = filter->framelength;
+	const size_t flen = (size_t)filter->framelength;
 	const size_t dft_len = 2 * flen;
 	const size_t freq_len = flen + 1;
 
-	// --- Phase 1: Input Preparation (Copy input signal and zero-pad) ---
-	// Process the entire dft_time buffer, copying the first half and zeroing the second.
+	// --- Phase 1: Input Preparation (copy x[0..flen-1], zero-pad [flen..2*flen-1]) ---
 	size_t n = 0;
 
 #if defined(__AVX512F__) && !defined(_M_ARM64)
 	{
-		const size_t simd_width = 8;
+		const size_t simd_width = 8; // doubles
 		const __m512d zero_vec = _mm512_setzero_pd();
+
 		for (; n + simd_width <= flen; n += simd_width) {
-			_mm512_storeu_pd(filter->dft_time + n, _mm512_loadu_pd(x + n));
+			__m512d v = _mm512_loadu_pd(x + n);
+			_mm512_storeu_pd(filter->dft_time + n, v);
 		}
 		for (; n + simd_width <= dft_len; n += simd_width) {
 			_mm512_storeu_pd(filter->dft_time + n, zero_vec);
@@ -140,8 +141,10 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	{
 		const size_t simd_width = 4;
 		const __m256d zero_vec = _mm256_setzero_pd();
+
 		for (; n + simd_width <= flen; n += simd_width) {
-			_mm256_storeu_pd(filter->dft_time + n, _mm256_loadu_pd(x + n));
+			__m256d v = _mm256_loadu_pd(x + n);
+			_mm256_storeu_pd(filter->dft_time + n, v);
 		}
 		for (; n + simd_width <= dft_len; n += simd_width) {
 			_mm256_storeu_pd(filter->dft_time + n, zero_vec);
@@ -153,8 +156,10 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	{
 		const size_t simd_width = 2;
 		const __m128d zero_vec = _mm_setzero_pd();
+
 		for (; n + simd_width <= flen; n += simd_width) {
-			_mm_storeu_pd(filter->dft_time + n, _mm_loadu_pd(x + n));
+			__m128d v = _mm_loadu_pd(x + n);
+			_mm_storeu_pd(filter->dft_time + n, v);
 		}
 		for (; n + simd_width <= dft_len; n += simd_width) {
 			_mm_storeu_pd(filter->dft_time + n, zero_vec);
@@ -162,45 +167,41 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	}
 #endif
 
-	// For any remaining elements, use the standard library functions.
 	if (n < flen) {
 		memcpy(filter->dft_time + n, x + n, (flen - n) * sizeof(double));
+		n = flen;
 	}
-	// The start of the zero-padding is max(n, flen).
-	n = (n > flen) ? n : flen;
 	if (n < dft_len) {
 		memset(filter->dft_time + n, 0, (dft_len - n) * sizeof(double));
 	}
 
-
-	// --- Phase 2: Perform the FFT ---
+	// --- Phase 2: FFT ---
 	fftw_execute(filter->fft);
 
-
-	// --- Phase 3: De-interleave FFTW's complex output into planar arrays ---
-	// The pattern is: load two vectors, unpack, permute, store.
+	// --- Phase 3: De-interleave FFTW complex output into planar real/imag ---
 	size_t j = 0;
 	fftw_complex* dft_freq = filter->dft_freq;
 
 #if defined(__AVX512F__) && !defined(_M_ARM64)
 	{
-		// Process 8 complex numbers (16 doubles) per loop.
+		// Process 8 complex numbers per iteration (16 doubles).
 		const size_t complex_width = 8;
+
+		// We want: re_inter = [r0 r4 r1 r5 r2 r6 r3 r7] -> [r0 r1 r2 r3 r4 r5 r6 r7]
+		//          im_inter = [i0 i4 i1 i5 i2 i6 i3 i7] -> [i0 i1 i2 i3 i4 i5 i6 i7]
+		const __m512i idx = _mm512_setr_epi64(0, 2, 4, 6, 1, 3, 5, 7);
+
 		for (; j + complex_width <= freq_len; j += complex_width) {
-			// Load 8 complex numbers from two adjacent memory locations.
-			__m512d cplx0 = _mm512_load_pd((double*)(dft_freq + j));     // Contains c0, c1, c2, c3
-			__m512d cplx1 = _mm512_load_pd((double*)(dft_freq + j + 4)); // Contains c4, c5, c6, c7
+			// a = [r0 i0 r1 i1 r2 i2 r3 i3]
+			// b = [r4 i4 r5 i5 r6 i6 r7 i7]
+			__m512d a = _mm512_loadu_pd((const double*)(dft_freq + j));
+			__m512d b = _mm512_loadu_pd((const double*)(dft_freq + j + 4));
 
-			// Unpack to group alternating real and imaginary parts.
-			__m512d riri0 = _mm512_unpacklo_pd(cplx0, cplx1); // [r0,r4, r1,r5, i0,i4, i1,i5]
-			__m512d riri1 = _mm512_unpackhi_pd(cplx0, cplx1); // [r2,r6, r3,r7, i2,i6, i3,i7]
+			__m512d re_inter = _mm512_unpacklo_pd(a, b); // [r0 r4 r1 r5 r2 r6 r3 r7]
+			__m512d im_inter = _mm512_unpackhi_pd(a, b); // [i0 i4 i1 i5 i2 i6 i3 i7]
 
-			// Create final vectors by selecting the correct 64-bit lanes from the unpacked results.
-			// This is a 2-input permutation. The index selects from the 16 available lanes (8 from a, 8 from b).
-			const __m512i P_REAL_IDX = _mm512_set_epi64(11, 9, 3, 1, 10, 8, 2, 0); // Indices for {r7,r6,r5,r4,r3,r2,r1,r0}
-			const __m512i P_IMAG_IDX = _mm512_set_epi64(15, 13, 7, 5, 14, 12, 6, 4); // Indices for {i7,i6,i5,i4,i3,i2,i1,i0}
-			__m512d real_vec = _mm512_permutex2var_pd(riri0, P_REAL_IDX, riri1);
-			__m512d imag_vec = _mm512_permutex2var_pd(riri0, P_IMAG_IDX, riri1);
+			__m512d real_vec = _mm512_permutexvar_pd(idx, re_inter); // [r0..r7]
+			__m512d imag_vec = _mm512_permutexvar_pd(idx, im_inter); // [i0..i7]
 
 			_mm512_storeu_pd(filter->in_freq_real + j, real_vec);
 			_mm512_storeu_pd(filter->in_freq_imag + j, imag_vec);
@@ -213,24 +214,19 @@ void hcPutSingle(HConvSingle* filter, double* x)
 		// Process 4 complex numbers (8 doubles) per loop.
 		const size_t complex_width = 4;
 		for (; j + complex_width <= freq_len; j += complex_width) {
-			// Load 4 complex numbers from two adjacent memory locations.
-			__m256d cplx0 = _mm256_load_pd((double*)(dft_freq + j));     // Contains c0, c1
-			__m256d cplx1 = _mm256_load_pd((double*)(dft_freq + j + 2)); // Contains c2, c3
+			// c0 = [r0 i0 r1 i1], c1 = [r2 i2 r3 i3]
+			__m256d c0 = _mm256_loadu_pd((const double*)(dft_freq + j));
+			__m256d c1 = _mm256_loadu_pd((const double*)(dft_freq + j + 2));
 
-			// Unpack to group alternating real and imaginary parts.
-			__m256d riri0 = _mm256_unpacklo_pd(cplx0, cplx1); // [r0, r2, i0, i2]
-			__m256d riri1 = _mm256_unpackhi_pd(cplx0, cplx1); // [r1, r3, i1, i3]
+			// Interleave within pairs across c0/c1.
+			// rtmp = [r0 r2 r1 r3], itmp = [i0 i2 i1 i3]
+			__m256d rtmp = _mm256_shuffle_pd(c0, c1, 0x0);
+			__m256d itmp = _mm256_shuffle_pd(c0, c1, 0xF);
 
-			// Permute the 128-bit lanes to gather all real and imaginary parts.
-			// The mask 0x20 = 0b00100000 -> lane0 from argB, lane0 from argA
-			__m256d real_vec = _mm256_permute2f128_pd(riri0, riri1, 0x20); // [r0, r2, r1, r3]
-			// The mask 0x31 = 0b00110001 -> lane1 from argB, lane1 from argA
-			__m256d imag_vec = _mm256_permute2f128_pd(riri0, riri1, 0x31); // [i0, i2, i1, i3]
-
-			// A final shuffle on each vector fixes the order.
-			// Mask 0b0101 swaps the middle two elements of the 256-bit vector.
-			real_vec = _mm256_permute_pd(real_vec, 0x05); // [r0, r1, r2, r3]
-			imag_vec = _mm256_permute_pd(imag_vec, 0x05); // [i0, i1, i2, i3]
+			// Fix the middle-lane order: [r0 r2 r1 r3] -> [r0 r1 r2 r3]
+			// 0xD8 = 11 01 10 00b selects [0,2,1,3].
+			__m256d real_vec = _mm256_permute4x64_pd(rtmp, 0xD8);
+			__m256d imag_vec = _mm256_permute4x64_pd(itmp, 0xD8);
 
 			_mm256_storeu_pd(filter->in_freq_real + j, real_vec);
 			_mm256_storeu_pd(filter->in_freq_imag + j, imag_vec);
@@ -240,18 +236,15 @@ void hcPutSingle(HConvSingle* filter, double* x)
 
 #if !defined(_M_ARM64)
 	{
-		// Process 2 complex numbers (4 doubles) per loop.
+		// Process 2 complex numbers per loop (SSE2).
 		const size_t complex_width = 2;
 		for (; j + complex_width <= freq_len; j += complex_width) {
-			// Load 2 complex numbers.
-			__m128d cplx0 = _mm_load_pd((double*)(dft_freq + j));     // [r0, i0]
-			__m128d cplx1 = _mm_load_pd((double*)(dft_freq + j + 1)); // [r1, i1]
+			// c0 = [r0 i0], c1 = [r1 i1]
+			__m128d c0 = _mm_loadu_pd((const double*)(dft_freq + j));
+			__m128d c1 = _mm_loadu_pd((const double*)(dft_freq + j + 1));
 
-			// A single shuffle is sufficient for the 128-bit case.
-			// Mask 0b00 grabs element 0 from each source.
-			__m128d real_vec = _mm_shuffle_pd(cplx0, cplx1, 0x00); // [r0, r1]
-			// Mask 0b11 grabs element 1 from each source.
-			__m128d imag_vec = _mm_shuffle_pd(cplx0, cplx1, 0x03); // [i0, i1]
+			__m128d real_vec = _mm_shuffle_pd(c0, c1, 0x00); // [r0 r1]
+			__m128d imag_vec = _mm_shuffle_pd(c0, c1, 0x03); // [i0 i1]
 
 			_mm_storeu_pd(filter->in_freq_real + j, real_vec);
 			_mm_storeu_pd(filter->in_freq_imag + j, imag_vec);
@@ -259,176 +252,174 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	}
 #endif
 
-	// Scalar Fallback for any remaining complex numbers (at most 1).
-	for (; j < freq_len; j++) {
+	// Scalar tail (<1 complex for r2c)
+	for (; j < freq_len; ++j) {
 		filter->in_freq_real[j] = dft_freq[j][0];
 		filter->in_freq_imag[j] = dft_freq[j][1];
 	}
 }
 
+
 void hcProcessSingle(HConvSingle* filter)
 {
 	const int flen = filter->framelength;
-	// The number of complex elements is framelength / 2 + 1.
-	// The number of double elements is 2 * (framelength / 2 + 1) = framelength + 2.
-	const int num_elements = flen + 1;
+	// Arrays hold flen+1 doubles (DC..Nyquist)
+	const size_t num_elements = (size_t)flen + 1;
+
 	const double* const x_real = filter->in_freq_real;
 	const double* const x_imag = filter->in_freq_imag;
 
 	const int start = filter->steptask[filter->step];
 	const int stop = filter->steptask[filter->step + 1];
 
-	for (int s = start; s < stop; s++) {
+	for (int s = start; s < stop; ++s) {
 		const int mix_idx = (s + filter->mixpos) % filter->num_mixbuf;
-		double* const y_real = filter->mixbuf_freq_real[mix_idx];
-		double* const y_imag = filter->mixbuf_freq_imag[mix_idx];
+
+		double* const       y_real = filter->mixbuf_freq_real[mix_idx];
+		double* const       y_imag = filter->mixbuf_freq_imag[mix_idx];
 		const double* const h_real = filter->filterbuf_freq_real[s];
 		const double* const h_imag = filter->filterbuf_freq_imag[s];
 
 #if !defined(_M_ARM64)
-		// Prefetch the filter data for the *next* segment to hide memory latency.
+		// Prefetch next filter segment to help hide memory latency.
 		if (s + 1 < stop) {
 			_mm_prefetch((char const*)(filter->filterbuf_freq_real[s + 1]), _MM_HINT_T0);
 			_mm_prefetch((char const*)(filter->filterbuf_freq_imag[s + 1]), _MM_HINT_T0);
 		}
 #endif
+
 		size_t n = 0;
 
 #if defined(__AVX512F__) && !defined(_M_ARM64)
-		// AVX-512 Path: Process 8 doubles (4 complex numbers) at a time.
-		{
-			const size_t simd_width = 8;
-			if (num_elements - n >= simd_width) {
-				for (; n + simd_width <= num_elements; n += simd_width) {
-					const __m512d xr = _mm512_loadu_pd(x_real + n);
-					const __m512d xi = _mm512_loadu_pd(x_imag + n);
-					const __m512d hr = _mm512_loadu_pd(h_real + n);
-					const __m512d hi = _mm512_loadu_pd(h_imag + n);
-					__m512d yr = _mm512_loadu_pd(y_real + n);
-					__m512d yi = _mm512_loadu_pd(y_imag + n);
+		// AVX-512: 8 doubles at a time.
+		for (; n + 8 <= num_elements; n += 8) {
+			const __m512d xr = _mm512_loadu_pd(x_real + n);
+			const __m512d xi = _mm512_loadu_pd(x_imag + n);
+			const __m512d hr = _mm512_loadu_pd(h_real + n);
+			const __m512d hi = _mm512_loadu_pd(h_imag + n);
 
-					// Real part: yr += xr*hr - xi*hi
-					yr = _mm512_fmadd_pd(xr, hr, yr);
-					yr = _mm512_fnmadd_pd(xi, hi, yr);
+			__m512d yr = _mm512_loadu_pd(y_real + n);
+			__m512d yi = _mm512_loadu_pd(y_imag + n);
 
-					// Imaginary part: yi += xr*hi + xi*hr
-					yi = _mm512_fmadd_pd(xr, hi, yi);
-					yi = _mm512_fmadd_pd(xi, hr, yi);
+			// Real: yr += xr*hr - xi*hi
+			const __m512d xrhr = _mm512_mul_pd(xr, hr);
+			const __m512d xihi = _mm512_mul_pd(xi, hi);
+			yr = _mm512_add_pd(yr, _mm512_sub_pd(xrhr, xihi));
 
-					_mm512_storeu_pd(y_real + n, yr);
-					_mm512_storeu_pd(y_imag + n, yi);
-				}
-			}
+			// Imag: yi += xr*hi + xi*hr
+			const __m512d xrhi = _mm512_mul_pd(xr, hi);
+			const __m512d xihr = _mm512_mul_pd(xi, hr);
+			yi = _mm512_add_pd(yi, _mm512_add_pd(xrhi, xihr));
+
+			_mm512_storeu_pd(y_real + n, yr);
+			_mm512_storeu_pd(y_imag + n, yi);
 		}
 #endif
 
 #if defined(__AVX2__) && !defined(_M_ARM64)
-		// AVX2 Path: Process 4 doubles (2 complex numbers) from the remainder.
-		{
-			const size_t simd_width = 4;
-			if (num_elements - n >= simd_width) {
-				// This loop will run at most once.
-				for (; n + simd_width <= num_elements; n += simd_width) {
-					const __m256d xr = _mm256_loadu_pd(x_real + n);
-					const __m256d xi = _mm256_loadu_pd(x_imag + n);
-					const __m256d hr = _mm256_loadu_pd(h_real + n);
-					const __m256d hi = _mm256_loadu_pd(h_imag + n);
-					__m256d yr = _mm256_loadu_pd(y_real + n);
-					__m256d yi = _mm256_loadu_pd(y_imag + n);
+		// AVX2: 4 doubles at a time.
+		for (; n + 4 <= num_elements; n += 4) {
+			const __m256d xr = _mm256_loadu_pd(x_real + n);
+			const __m256d xi = _mm256_loadu_pd(x_imag + n);
+			const __m256d hr = _mm256_loadu_pd(h_real + n);
+			const __m256d hi = _mm256_loadu_pd(h_imag + n);
 
-					yr = _mm256_fmadd_pd(xr, hr, yr);
-					yr = _mm256_fnmadd_pd(xi, hi, yr);
-					yi = _mm256_fmadd_pd(xr, hi, yi);
-					yi = _mm256_fmadd_pd(xi, hr, yi);
+			__m256d yr = _mm256_loadu_pd(y_real + n);
+			__m256d yi = _mm256_loadu_pd(y_imag + n);
 
-					_mm256_storeu_pd(y_real + n, yr);
-					_mm256_storeu_pd(y_imag + n, yi);
-				}
-			}
+			// Real: yr += xr*hr - xi*hi
+			const __m256d xrhr = _mm256_mul_pd(xr, hr);
+			const __m256d xihi = _mm256_mul_pd(xi, hi);
+			yr = _mm256_add_pd(yr, _mm256_sub_pd(xrhr, xihi));
+
+			// Imag: yi += xr*hi + xi*hr
+			const __m256d xrhi = _mm256_mul_pd(xr, hi);
+			const __m256d xihr = _mm256_mul_pd(xi, hr);
+			yi = _mm256_add_pd(yi, _mm256_add_pd(xrhi, xihr));
+
+			_mm256_storeu_pd(y_real + n, yr);
+			_mm256_storeu_pd(y_imag + n, yi);
 		}
 #endif
 
 #if !defined(_M_ARM64)
-		// SSE/AVX 128-bit Path: Process 2 doubles (1 complex number) from the remainder.
-		{
-			const size_t simd_width = 2;
-			if (num_elements - n >= simd_width) {
-				// This loop will run at most once.
-				for (; n + simd_width <= num_elements; n += simd_width) {
-					const __m128d xr = _mm_loadu_pd(x_real + n);
-					const __m128d xi = _mm_loadu_pd(x_imag + n);
-					const __m128d hr = _mm_loadu_pd(h_real + n);
-					const __m128d hi = _mm_loadu_pd(h_imag + n);
-					__m128d yr = _mm_loadu_pd(y_real + n);
-					__m128d yi = _mm_loadu_pd(y_imag + n);
-#if defined(__AVX2__)
-					yr = _mm_fmadd_pd(xr, hr, yr);
-					yr = _mm_fnmadd_pd(xi, hi, yr);
-					yi = _mm_fmadd_pd(xr, hi, yi);
-					yi = _mm_fmadd_pd(xi, hr, yi);
-#else // Fallback for pure SSE2 (no FMA)
-					__m128d real_part = _mm_sub_pd(_mm_mul_pd(xr, hr), _mm_mul_pd(xi, hi));
-					__m128d imag_part = _mm_add_pd(_mm_mul_pd(xr, hi), _mm_mul_pd(xi, hr));
-					yr = _mm_add_pd(yr, real_part);
-					yi = _mm_add_pd(yi, imag_part);
-#endif
-					_mm_storeu_pd(y_real + n, yr);
-					_mm_storeu_pd(y_imag + n, yi);
-				}
-			}
+		// SSE2: 2 doubles at a time.
+		for (; n + 2 <= num_elements; n += 2) {
+			const __m128d xr = _mm_loadu_pd(x_real + n);
+			const __m128d xi = _mm_loadu_pd(x_imag + n);
+			const __m128d hr = _mm_loadu_pd(h_real + n);
+			const __m128d hi = _mm_loadu_pd(h_imag + n);
+
+			__m128d yr = _mm_loadu_pd(y_real + n);
+			__m128d yi = _mm_loadu_pd(y_imag + n);
+
+			// Real: yr += xr*hr - xi*hi
+			const __m128d xrhr = _mm_mul_pd(xr, hr);
+			const __m128d xihi = _mm_mul_pd(xi, hi);
+			yr = _mm_add_pd(yr, _mm_sub_pd(xrhr, xihi));
+
+			// Imag: yi += xr*hi + xi*hr
+			const __m128d xrhi = _mm_mul_pd(xr, hi);
+			const __m128d xihr = _mm_mul_pd(xi, hr);
+			yi = _mm_add_pd(yi, _mm_add_pd(xrhi, xihr));
+
+			_mm_storeu_pd(y_real + n, yr);
+			_mm_storeu_pd(y_imag + n, yi);
 		}
 #endif
-		// Scalar Fallback: Process the final remaining element, if any.
+
+		// Scalar tail (and works for ARM64 too).
 		for (; n < num_elements; ++n) {
 			y_real[n] += x_real[n] * h_real[n] - x_imag[n] * h_imag[n];
 			y_imag[n] += x_real[n] * h_imag[n] + x_imag[n] * h_real[n];
 		}
 	}
+
 	filter->step = (filter->step + 1) % filter->maxstep;
 }
+
 
 void hcGetSingleImpl(HConvSingle* filter, double* y, bool additive)
 {
 	const int flen = filter->framelength;
 	const int freq_len = flen + 1;
 	const int mpos = filter->mixpos;
+
 	double* const out = filter->dft_time;
 	double* const hist = filter->history_time;
 	double* const mix_real = filter->mixbuf_freq_real[mpos];
 	double* const mix_imag = filter->mixbuf_freq_imag[mpos];
 
 #if defined(__AVX512F__) && !defined(_M_ARM64)
-	// Vectorized loop to re-interleave planar real/imag data and zero the source buffers.
+	// Re-interleave planar real/imag into interleaved [re,im] and zero sources.
 	int j = 0;
-	for (; j <= freq_len - 4; j += 4) { // Process 4 complex numbers
-		__m256d real_part = _mm256_loadu_pd(mix_real + j); // [r0, r1, r2, r3]
-		__m256d imag_part = _mm256_loadu_pd(mix_imag + j); // [i0, i1, i2, i3]
+	const __m256d z256 = _mm256_setzero_pd();
+	for (; j <= freq_len - 4; j += 4) {
+		const __m256d real_part = _mm256_loadu_pd(mix_real + j); // r0 r1 r2 r3
+		const __m256d imag_part = _mm256_loadu_pd(mix_imag + j); // i0 i1 i2 i3
 
-		// Interleave to [r0, i0, r1, i1]
-		__m256d cplx_lo = _mm256_unpacklo_pd(real_part, imag_part);
-		// Interleave to [r2, i2, r3, i3]
-		__m256d cplx_hi = _mm256_unpackhi_pd(real_part, imag_part);
+		const __m256d cplx_lo = _mm256_unpacklo_pd(real_part, imag_part); // r0 i0 r1 i1
+		const __m256d cplx_hi = _mm256_unpackhi_pd(real_part, imag_part); // r2 i2 r3 i3
 
-		// Combine into a single 512-bit vector for storing
-		__m512d cplx = _mm512_setzero_pd();
-		cplx = _mm512_insertf64x4(cplx, cplx_lo, 0);
+		__m512d cplx = _mm512_castpd256_pd512(cplx_lo);
 		cplx = _mm512_insertf64x4(cplx, cplx_hi, 1);
 
-		_mm512_store_pd((double*)(filter->dft_freq + j), cplx);
+		// use unaligned store (pointer not guaranteed 64B aligned)
+		_mm512_storeu_pd((double*)(filter->dft_freq + j), cplx);
 
-		// Zero out the source mixing buffers
-		_mm256_storeu_pd(mix_real + j, _mm256_setzero_pd());
-		_mm256_storeu_pd(mix_imag + j, _mm256_setzero_pd());
+		// zero the mix buffers
+		_mm256_storeu_pd(mix_real + j, z256);
+		_mm256_storeu_pd(mix_imag + j, z256);
 	}
-	// Scalar remainder
-	for (; j < freq_len; j++) {
+	// scalar tail
+	for (; j < freq_len; ++j) {
 		filter->dft_freq[j][0] = mix_real[j];
 		filter->dft_freq[j][1] = mix_imag[j];
 		mix_real[j] = 0.0;
 		mix_imag[j] = 0.0;
 	}
-#else // Scalar Fallback
-	for (int j = 0; j < freq_len; j++) {
+#else
+	for (int j = 0; j < freq_len; ++j) {
 		filter->dft_freq[j][0] = mix_real[j];
 		filter->dft_freq[j][1] = mix_imag[j];
 		mix_real[j] = 0.0;
@@ -439,50 +430,49 @@ void hcGetSingleImpl(HConvSingle* filter, double* y, bool additive)
 	fftw_execute(filter->ifft);
 
 #if defined(__AVX2__) && !defined(_M_ARM64)
-	// Vectorized main output calculation (overlap-add)
+	// overlap-add into y, matching A:
 	int n = 0;
-	const int vec_size = 4;
+	const int vec = 4;
+
 	if (additive) {
-		for (; n <= flen - vec_size; n += vec_size) {
-			const __m256d y_vec = _mm256_loadu_pd(y + n);
-			const __m256d out_vec = _mm256_loadu_pd(out + n);
-			const __m256d hist_vec = _mm256_loadu_pd(hist + n);
-			const __m256d sum = _mm256_add_pd(out_vec, hist_vec);
-			_mm256_storeu_pd(y + n, _mm256_add_pd(y_vec, sum));
+		for (; n <= flen - vec; n += vec) {
+			const __m256d yv = _mm256_loadu_pd(y + n);
+			const __m256d ov = _mm256_loadu_pd(out + n);
+			const __m256d hv = _mm256_loadu_pd(hist + n);
+			const __m256d sum = _mm256_add_pd(ov, hv);
+			_mm256_storeu_pd(y + n, _mm256_add_pd(yv, sum));
 		}
 	}
 	else {
-		for (; n <= flen - vec_size; n += vec_size) {
-			const __m256d out_vec = _mm256_loadu_pd(out + n);
-			const __m256d hist_vec = _mm256_loadu_pd(hist + n);
-			_mm256_storeu_pd(y + n, _mm256_add_pd(out_vec, hist_vec));
+		for (; n <= flen - vec; n += vec) {
+			const __m256d ov = _mm256_loadu_pd(out + n);
+			const __m256d hv = _mm256_loadu_pd(hist + n);
+			_mm256_storeu_pd(y + n, _mm256_add_pd(ov, hv));
 		}
 	}
-	// Vectorized history buffer update
-	for (n = 0; n <= flen - vec_size; n += vec_size) {
+	// history = out[flen : flen+flen)
+	for (n = 0; n <= flen - vec; n += vec) {
 		_mm256_storeu_pd(hist + n, _mm256_loadu_pd(out + flen + n));
 	}
-	// Use a scalar loop for all remaining operations to keep it simple.
+	// scalar tails
+	for (n = (flen / vec) * vec; n < flen; ++n) {
+		if (additive) y[n] += out[n] + hist[n];
+		else          y[n] = out[n] + hist[n];
+		hist[n] = out[flen + n];
+	}
+#else
 	if (additive) {
-		for (n = (flen / vec_size) * vec_size; n < flen; n++) y[n] += out[n] + hist[n];
+		for (int n = 0; n < flen; ++n) y[n] += out[n] + hist[n];
 	}
 	else {
-		for (n = (flen / vec_size) * vec_size; n < flen; n++) y[n] = out[n] + hist[n];
+		for (int n = 0; n < flen; ++n) y[n] = out[n] + hist[n];
 	}
-	for (n = (flen / vec_size) * vec_size; n < flen; ++n) hist[n] = out[flen + n];
-
-#else // Scalar Fallback
-	if (additive) {
-		for (int n = 0; n < flen; n++) y[n] += out[n] + hist[n];
-	}
-	else {
-		for (int n = 0; n < flen; n++) y[n] = out[n] + hist[n];
-	}
-	memcpy(hist, &(out[flen]), sizeof(double) * flen);
+	memcpy(hist, out + flen, (size_t)flen * sizeof(double));
 #endif
 
 	filter->mixpos = (filter->mixpos + 1) % filter->num_mixbuf;
 }
+
 
 void hcGetSingle(HConvSingle* filter, double* y)
 {
@@ -555,7 +545,7 @@ void hcInitSingle(HConvSingle* filter, double* h, int hlen, int flen, int steps)
 
 	// Use FFTW_MEASURE for production for potentially higher performance, at the cost of a longer setup time.
 	// FFTW_ESTIMATE is faster for setup.
-	unsigned fftw_flags = FFTW_ESTIMATE | FFTW_PRESERVE_INPUT;
+	unsigned fftw_flags = FFTW_MEASURE | FFTW_PRESERVE_INPUT;
 	filter->fft = fftw_plan_dft_r2c_1d(2 * flen, filter->dft_time, filter->dft_freq, fftw_flags);
 	filter->ifft = fftw_plan_dft_c2r_1d(2 * flen, filter->dft_freq, filter->dft_time, fftw_flags);
 

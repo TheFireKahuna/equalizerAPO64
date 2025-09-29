@@ -136,7 +136,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
@@ -151,7 +151,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
@@ -166,7 +166,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
@@ -186,7 +186,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -206,7 +206,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
@@ -226,7 +226,7 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3f.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>$(OutDir)Common.lib;version.lib;Shlwapi.lib;authz.lib;crypt32.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>

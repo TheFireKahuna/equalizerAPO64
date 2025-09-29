@@ -98,7 +98,7 @@ LangString VersionError ${LANG_ENGLISH} "This installer is only supposed to be r
 LangString VersionError ${LANG_GERMAN} "Dieses Installationsprogramm kann nur auf einem {0}-Windows verwendet werden. Bitte nutzen Sie die {1}-Version."
 
 LangString UCRTError ${LANG_ENGLISH} "Your Windows installation is missing required updates to use this program. Please install remaining Windows updates or the Visual C++ Redistributable for Visual Studio 2015 - 2022.$\n$\nDo you want to download the Visual C++ Redistributable now?"
-LangString UCRTError ${LANG_GERMAN} "Ihrer Windows-Installation fehlen benötigte Updates, um dieses Programm zu verwenden. Bitte installieren Sie ausstehende Windows-Updates oder das Visual C++ Redistributable für Visual Studio 2015 - 2022.$\n$\nMöchten Sie jetzt das Visual C++ Redistributable herunterladen?"
+LangString UCRTError ${LANG_GERMAN} "Ihrer Windows-Installation fehlen benï¿½tigte Updates, um dieses Programm zu verwenden. Bitte installieren Sie ausstehende Windows-Updates oder das Visual C++ Redistributable fï¿½r Visual Studio 2015 - 2022.$\n$\nMï¿½chten Sie jetzt das Visual C++ Redistributable herunterladen?"
 
 ;--------------------------------
 ;Functions
@@ -150,7 +150,7 @@ FunctionEnd
 ;--------------------------------
 ;Installer Sections
 LangString SecCheckForUpdates ${LANG_ENGLISH} "Check for updates automatically"
-LangString SecCheckForUpdates ${LANG_GERMAN} "Automatisch auf Updates prüfen"
+LangString SecCheckForUpdates ${LANG_GERMAN} "Automatisch auf Updates prï¿½fen"
 
 Section $(SecCheckForUpdates) SecCheckForUpdates
 SectionEnd
@@ -172,8 +172,8 @@ Section "-Install"
   
   ;Rename before delete as these files may be in use
   !insertmacro RenameAndDelete "$INSTDIR\EqualizerAPO.dll"
-  !insertmacro RenameAndDelete "$INSTDIR\libfftw3f-3.dll"
-  !insertmacro RenameAndDelete "$INSTDIR\fftw3f.dll"
+  !insertmacro RenameAndDelete "$INSTDIR\libfftw3-3.dll"
+  !insertmacro RenameAndDelete "$INSTDIR\fftw3.dll"
   !insertmacro RenameAndDelete "$INSTDIR\libsndfile-1.dll"
   !insertmacro RenameAndDelete "$INSTDIR\sndfile.dll"
   !insertmacro RenameAndDelete "$INSTDIR\msvcp100.dll"
@@ -195,7 +195,7 @@ Section "-Install"
   
   File "${BINPATH_EDITOR}\Editor.exe"
   
-  File "${LIBPATH}\fftw3f.dll"
+  File "${LIBPATH}\fftw3.dll"
   File "${LIBPATH}\sndfile.dll"
   File "${LIBPATH}\msvcp140.dll"
   File "${LIBPATH}\msvcp140_1.dll"
@@ -354,7 +354,7 @@ Section "-un.Uninstall"
   Delete /REBOOTOK "$INSTDIR\msvcp140_1.dll"
   Delete /REBOOTOK "$INSTDIR\msvcp140.dll"
   Delete /REBOOTOK "$INSTDIR\sndfile.dll"
-  Delete /REBOOTOK "$INSTDIR\fftw3f.dll"
+  Delete /REBOOTOK "$INSTDIR\fftw3.dll"
   Delete "$INSTDIR\Editor.exe"
   
   Delete "$INSTDIR\UpdateChecker.exe"

@@ -191,7 +191,7 @@
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <ControlFlowGuard>Guard</ControlFlowGuard>
       <SDLCheck>true</SDLCheck>
-      <EnableVectorLength>NotSet</EnableVectorLength>
+      <EnableVectorLength>VectorLength512</EnableVectorLength>
     </ClCompile>
     <Link>
       <SubSystem>Windows</SubSystem>

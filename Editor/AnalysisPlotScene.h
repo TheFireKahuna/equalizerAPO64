@@ -32,7 +32,7 @@ class AnalysisPlotScene : public FrequencyPlotScene
 public:
 	AnalysisPlotScene(QObject* parent = 0);
 
-	void setFreqData(fftwf_complex* freqData, int frameCount, unsigned sampleRate);
+	void setFreqData(fftw_complex* freqData, int frameCount, unsigned sampleRate);
 
 	const std::vector<FilterNode>& getNodes() const;
 

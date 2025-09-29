@@ -53,9 +53,9 @@ double hcTime(void)
 double getProcTime(int flen, int num, double dur)
 {
 	HConvSingle filter;
-	float *x;
-	float *h;
-	float *y;
+	double *x;
+	double *h;
+	double *y;
 	int xlen, hlen, ylen;
 	int size, n;
 	int pos;
@@ -65,8 +65,8 @@ double getProcTime(int flen, int num, double dur)
 	double lin, mul;
 
 	xlen = 2048*2048;
-	size = sizeof(float) * xlen;
-	x = (float *)fftwf_malloc(size);
+	size = sizeof(double) * xlen;
+	x = (double *)fftw_malloc(size);
 	lin = pow(10.0, -100.0 / 20.0);	// 0.00001 = -100dB
 	mul = pow(lin, 1.0 / (double)xlen);
 	x[0] = 1.0;
@@ -74,8 +74,8 @@ double getProcTime(int flen, int num, double dur)
 		x[n] = -mul * x[n - 1];
 
 	hlen = flen * num;
-	size = sizeof(float) * hlen;
-	h = (float *)fftwf_malloc(size);
+	size = sizeof(double) * hlen;
+	h = (double *)fftw_malloc(size);
 	lin = pow(10.0, -60.0 / 20.0);	// 0.001 = -60dB
 	mul = pow(lin, 1.0 / (double)hlen);
 	h[0] = 1.0;
@@ -83,8 +83,8 @@ double getProcTime(int flen, int num, double dur)
 		h[n] = mul * h[n - 1];
 
 	ylen = flen;
-	size = sizeof(float) * ylen;
-	y = (float *)fftwf_malloc(size);
+	size = sizeof(double) * ylen;
+	y = (double *)fftw_malloc(size);
 
 	hcInitSingle(&filter, h, hlen, flen, 1);
 
@@ -106,24 +106,24 @@ double getProcTime(int flen, int num, double dur)
 	printf("Processing time: %7.3f us\n", 1000000.0 * proc_time);
 
 	hcCloseSingle(&filter);
-	fftwf_free(x);
-	fftwf_free(h);
-	fftwf_free(y);
+	fftw_free(x);
+	fftw_free(h);
+	fftw_free(y);
 
         return proc_time;
 }
 
 
 
-void hcPutSingle(HConvSingle *filter, float *x)
+void hcPutSingle(HConvSingle *filter, double *x)
 {
 	int j, flen, size;
 
 	flen = filter->framelength;
-	size = sizeof(float) * flen;
+	size = sizeof(double) * flen;
 	memcpy(filter->dft_time, x, size);
 	memset(&(filter->dft_time[flen]), 0, size);
-	fftwf_execute(filter->fft);
+	fftw_execute(filter->fft);
 	for (j = 0; j < flen + 1; j++)
 	{
 		filter->in_freq_real[j] = filter->dft_freq[j][0];
@@ -136,12 +136,12 @@ void hcProcessSingle(HConvSingle *filter)
 {
 #if 0
 	int s, n, start, stop, flen;
-	float *x_real;
-	float *x_imag;
-	float *h_real;
-	float *h_imag;
-	float *y_real;
-	float *y_imag;
+	double *x_real;
+	double *x_imag;
+	double *h_real;
+	double *h_imag;
+	double *y_real;
+	double *y_imag;
 
 	flen = filter->framelength;
 	x_real = filter->in_freq_real;
@@ -173,12 +173,12 @@ void hcProcessSingle(HConvSingle *filter)
 	__m128 *h4_imag;
 	__m128 *y4_real;
 	__m128 *y4_imag;
-	float *x_real;
-	float *x_imag;
-	float *h_real;
-	float *h_imag;
-	float *y_real;
-	float *y_imag;
+	double *x_real;
+	double *x_imag;
+	double *h_real;
+	double *h_imag;
+	double *y_real;
+	double *y_imag;
 
 	flen = filter->framelength;
 	x_real = filter->in_freq_real;
@@ -226,11 +226,11 @@ void hcProcessSingle(HConvSingle *filter)
 }
 
 
-void hcGetSingle(HConvSingle *filter, float *y)
+void hcGetSingle(HConvSingle *filter, double *y)
 {
 	int flen, mpos;
-	float *out;
-	float *hist;
+	double *out;
+	double *hist;
 	int size, n, j;
 
 	flen = filter->framelength;
@@ -244,22 +244,22 @@ void hcGetSingle(HConvSingle *filter, float *y)
 		filter->mixbuf_freq_real[mpos][j] = 0.0;
 		filter->mixbuf_freq_imag[mpos][j] = 0.0;
 	}
-	fftwf_execute(filter->ifft);
+	fftw_execute(filter->ifft);
 	for (n = 0; n < flen; n++)
 	{
 		y[n] = out[n] + hist[n];
 	}
-	size = sizeof(float) * flen;
+	size = sizeof(double) * flen;
 	memcpy(hist, &(out[flen]), size);
 	filter->mixpos = (filter->mixpos + 1) % filter->num_mixbuf;
 }
 
 
-void hcGetAddSingle(HConvSingle *filter, float *y)
+void hcGetAddSingle(HConvSingle *filter, double *y)
 {
 	int flen, mpos;
-	float *out;
-	float *hist;
+	double *out;
+	double *hist;
 	int size, n, j;
 
 	flen = filter->framelength;
@@ -273,21 +273,21 @@ void hcGetAddSingle(HConvSingle *filter, float *y)
 		filter->mixbuf_freq_real[mpos][j] = 0.0;
 		filter->mixbuf_freq_imag[mpos][j] = 0.0;
 	}
-	fftwf_execute(filter->ifft);
+	fftw_execute(filter->ifft);
 	for (n = 0; n < flen; n++)
 	{
 		y[n] += out[n] + hist[n];
 	}
-	size = sizeof(float) * flen;
+	size = sizeof(double) * flen;
 	memcpy(hist, &(out[flen]), size);
 	filter->mixpos = (filter->mixpos + 1) % filter->num_mixbuf;
 }
 
 
-void hcInitSingle(HConvSingle *filter, float *h, int hlen, int flen, int steps)
+void hcInitSingle(HConvSingle *filter, double *h, int hlen, int flen, int steps)
 {
 	int i, j, size, num, pos;
-	float gain;
+	double gain;
 
 	// processing step counter
 	filter->step = 0;
@@ -302,17 +302,17 @@ void hcInitSingle(HConvSingle *filter, float *h, int hlen, int flen, int steps)
 	filter->framelength = flen;
 
 	// DFT buffer (time domain)
-	size = sizeof(float) * 2 * flen;
-	filter->dft_time = (float *)fftwf_malloc(size);
+	size = sizeof(double) * 2 * flen;
+	filter->dft_time = (double *)fftw_malloc(size);
 
 	// DFT buffer (frequency domain)
-	size = sizeof(fftwf_complex) * (flen + 1);
-	filter->dft_freq = (fftwf_complex*)fftwf_malloc(size);
+	size = sizeof(fftw_complex) * (flen + 1);
+	filter->dft_freq = (fftw_complex*)fftw_malloc(size);
 
 	// input buffer (frequency domain)
-	size = sizeof(float) * (flen + 1);
-	filter->in_freq_real = (float*)fftwf_malloc(size);
-	filter->in_freq_imag = (float*)fftwf_malloc(size);
+	size = sizeof(double) * (flen + 1);
+	filter->in_freq_real = (double*)fftw_malloc(size);
+	filter->in_freq_imag = (double*)fftw_malloc(size);
 
 	// number of filter segments
 	filter->num_filterbuf = (hlen + flen - 1) / flen;
@@ -335,52 +335,52 @@ void hcInitSingle(HConvSingle *filter, float *h, int hlen, int flen, int steps)
 	}
 
 	// filter segments (frequency domain)
-	size = sizeof(float*) * filter->num_filterbuf;
-	filter->filterbuf_freq_real = (float**)fftwf_malloc(size);
-	filter->filterbuf_freq_imag = (float**)fftwf_malloc(size);
+	size = sizeof(double*) * filter->num_filterbuf;
+	filter->filterbuf_freq_real = (double**)fftw_malloc(size);
+	filter->filterbuf_freq_imag = (double**)fftw_malloc(size);
 	for (i = 0; i < filter->num_filterbuf; i++)
 	{
-		size = sizeof(float) * (flen + 1);
-		filter->filterbuf_freq_real[i] = (float*)fftwf_malloc(size);
-		filter->filterbuf_freq_imag[i] = (float*)fftwf_malloc(size);
+		size = sizeof(double) * (flen + 1);
+		filter->filterbuf_freq_real[i] = (double*)fftw_malloc(size);
+		filter->filterbuf_freq_imag[i] = (double*)fftw_malloc(size);
 	}
 
 	// number of mixing segments
 	filter->num_mixbuf = filter->num_filterbuf + 1;
 
 	// mixing segments (frequency domain)
-	size = sizeof(float*) * filter->num_mixbuf;
-	filter->mixbuf_freq_real = (float**)fftwf_malloc(size);
-	filter->mixbuf_freq_imag = (float**)fftwf_malloc(size);
+	size = sizeof(double*) * filter->num_mixbuf;
+	filter->mixbuf_freq_real = (double**)fftw_malloc(size);
+	filter->mixbuf_freq_imag = (double**)fftw_malloc(size);
 	for (i = 0; i < filter->num_mixbuf; i++)
 	{
-		size = sizeof(float) * (flen + 1);
-		filter->mixbuf_freq_real[i] = (float*)fftwf_malloc(size);
-		filter->mixbuf_freq_imag[i] = (float*)fftwf_malloc(size);
+		size = sizeof(double) * (flen + 1);
+		filter->mixbuf_freq_real[i] = (double*)fftw_malloc(size);
+		filter->mixbuf_freq_imag[i] = (double*)fftw_malloc(size);
 		memset(filter->mixbuf_freq_real[i], 0, size);
 		memset(filter->mixbuf_freq_imag[i], 0, size);
 	}
 
 	// history buffer (time domain)
-	size = sizeof(float) * flen;
-	filter->history_time = (float *)fftwf_malloc(size);
+	size = sizeof(double) * flen;
+	filter->history_time = (double *)fftw_malloc(size);
 	memset(filter->history_time, 0, size);
 
 	// FFT transformation plan
-	filter->fft = fftwf_plan_dft_r2c_1d(2 * flen, filter->dft_time, filter->dft_freq, FFTW_ESTIMATE|FFTW_PRESERVE_INPUT);
+	filter->fft = fftw_plan_dft_r2c_1d(2 * flen, filter->dft_time, filter->dft_freq, FFTW_MEASURE|FFTW_PRESERVE_INPUT);
 
 	// IFFT transformation plan
-	filter->ifft = fftwf_plan_dft_c2r_1d(2 * flen, filter->dft_freq, filter->dft_time, FFTW_ESTIMATE|FFTW_PRESERVE_INPUT);
+	filter->ifft = fftw_plan_dft_c2r_1d(2 * flen, filter->dft_freq, filter->dft_time, FFTW_MEASURE|FFTW_PRESERVE_INPUT);
 
 	// generate filter segments
-	gain = 0.5f / flen;
-	size = sizeof(float) * 2 * flen;
+	gain = 0.5 / flen;
+	size = sizeof(double) * 2 * flen;
 	memset(filter->dft_time, 0, size);
 	for (i = 0; i < filter->num_filterbuf - 1; i++)
 	{
 		for (j = 0; j < flen; j++)
 			filter->dft_time[j] = gain * h[i * flen + j];
-		fftwf_execute(filter->fft);
+		fftw_execute(filter->fft);
 		for (j = 0; j < flen + 1; j++)
 		{
 			filter->filterbuf_freq_real[i][j] = filter->dft_freq[j][0];
@@ -389,9 +389,9 @@ void hcInitSingle(HConvSingle *filter, float *h, int hlen, int flen, int steps)
 	}
 	for (j = 0; j < hlen - i * flen; j++)
 		filter->dft_time[j] = gain * h[i * flen + j];
-	size = sizeof(float) * ((i + 1) * flen - hlen);
+	size = sizeof(double) * ((i + 1) * flen - hlen);
 	memset(&(filter->dft_time[hlen - i * flen]), 0, size);
-	fftwf_execute(filter->fft);
+	fftw_execute(filter->fft);
 	for (j = 0; j < flen + 1; j++)
 	{
 		filter->filterbuf_freq_real[i][j] = filter->dft_freq[j][0];
@@ -404,27 +404,27 @@ void hcCloseSingle(HConvSingle *filter)
 {
 	int i;
 
-	fftwf_destroy_plan(filter->ifft);
-	fftwf_destroy_plan(filter->fft);
-	fftwf_free(filter->history_time);
+	fftw_destroy_plan(filter->ifft);
+	fftw_destroy_plan(filter->fft);
+	fftw_free(filter->history_time);
 	for (i = 0; i < filter->num_mixbuf; i++)
 	{
-		fftwf_free(filter->mixbuf_freq_real[i]);
-		fftwf_free(filter->mixbuf_freq_imag[i]);
+		fftw_free(filter->mixbuf_freq_real[i]);
+		fftw_free(filter->mixbuf_freq_imag[i]);
 	}
-	fftwf_free(filter->mixbuf_freq_real);
-	fftwf_free(filter->mixbuf_freq_imag);
+	fftw_free(filter->mixbuf_freq_real);
+	fftw_free(filter->mixbuf_freq_imag);
 	for (i = 0; i < filter->num_filterbuf; i++)
 	{
-		fftwf_free(filter->filterbuf_freq_real[i]);
-		fftwf_free(filter->filterbuf_freq_imag[i]);
+		fftw_free(filter->filterbuf_freq_real[i]);
+		fftw_free(filter->filterbuf_freq_imag[i]);
 	}
-	fftwf_free(filter->filterbuf_freq_real);
-	fftwf_free(filter->filterbuf_freq_imag);
-	fftwf_free(filter->in_freq_real);
-	fftwf_free(filter->in_freq_imag);
-	fftwf_free(filter->dft_freq);
-	fftwf_free(filter->dft_time);
+	fftw_free(filter->filterbuf_freq_real);
+	fftw_free(filter->filterbuf_freq_imag);
+	fftw_free(filter->in_freq_real);
+	fftw_free(filter->in_freq_imag);
+	fftw_free(filter->dft_freq);
+	fftw_free(filter->dft_time);
 	free(filter->steptask);
 	memset(filter, 0, sizeof(HConvSingle));
 }
@@ -436,9 +436,9 @@ void hcCloseSingle(HConvSingle *filter)
 void hcBenchmarkDual(int sflen, int lflen)
 {
 	HConvDual filter;
-	float *x;
-	float *h;
-	float *y;
+	double *x;
+	double *h;
+	double *y;
 	int xlen, hlen, ylen;
 	int size, n;
 	int pos;
@@ -450,8 +450,8 @@ void hcBenchmarkDual(int sflen, int lflen)
 
 //	xlen = sflen;
 	xlen = 2048*2048;
-	size = sizeof(float) * xlen;
-	x = (float *)fftwf_malloc(size);
+	size = sizeof(double) * xlen;
+	x = (double *)fftw_malloc(size);
 	lin = pow(10.0, -100.0 / 20.0);	// 0.00001 = -100dB
 	mul = pow(lin, 1.0 / (double)xlen);
 	x[0] = 1.0;
@@ -459,8 +459,8 @@ void hcBenchmarkDual(int sflen, int lflen)
 		x[n] = -mul * x[n - 1];
 
 	hlen = 96000;
-	size = sizeof(float) * hlen;
-	h = (float *)fftwf_malloc(size);
+	size = sizeof(double) * hlen;
+	h = (double *)fftw_malloc(size);
 	lin = pow(10.0, -60.0 / 20.0);	// 0.001 = -60dB
 	mul = pow(lin, 1.0 / (double)hlen);
 	h[0] = 1.0;
@@ -468,8 +468,8 @@ void hcBenchmarkDual(int sflen, int lflen)
 		h[n] = mul * h[n - 1];
 
 	ylen = sflen;
-	size = sizeof(float) * ylen;
-	y = (float *)fftwf_malloc(size);
+	size = sizeof(double) * ylen;
+	y = (double *)fftw_malloc(size);
 
 	hcInitDual(&filter, h, hlen, sflen, lflen);
 
@@ -490,13 +490,13 @@ void hcBenchmarkDual(int sflen, int lflen)
 	printf("Estimated CPU load: %5.2f %%\n", cpu_load);
 
 	hcCloseDual(&filter);
-	fftwf_free(x);
-	fftwf_free(h);
-	fftwf_free(y);
+	fftw_free(x);
+	fftw_free(h);
+	fftw_free(y);
 }
 
 
-void hcProcessDual(HConvDual *filter, float *in, float *out)
+void hcProcessDual(HConvDual *filter, double *in, double *out)
 {
 	int lpos, size, i;
 
@@ -519,7 +519,7 @@ void hcProcessDual(HConvDual *filter, float *in, float *out)
 
 	// add current frame to long input buffer
 	lpos = filter->step * filter->flen_short;
-	size = sizeof(float) * filter->flen_short;
+	size = sizeof(double) * filter->flen_short;
 	memcpy(&(filter->in_long[lpos]), in, size);
 
 	// increase step counter
@@ -527,7 +527,7 @@ void hcProcessDual(HConvDual *filter, float *in, float *out)
 }
 
 
-void hcProcessAddDual(HConvDual *filter, float *in, float *out)
+void hcProcessAddDual(HConvDual *filter, double *in, double *out)
 {
 	int lpos, size, i;
 
@@ -550,7 +550,7 @@ void hcProcessAddDual(HConvDual *filter, float *in, float *out)
 
 	// add current frame to long input buffer
 	lpos = filter->step * filter->flen_short;
-	size = sizeof(float) * filter->flen_short;
+	size = sizeof(double) * filter->flen_short;
 	memcpy(&(filter->in_long[lpos]), in, size);
 
 	// increase step counter
@@ -558,20 +558,20 @@ void hcProcessAddDual(HConvDual *filter, float *in, float *out)
 }
 
 
-void hcInitDual(HConvDual *filter, float *h, int hlen, int sflen, int lflen)
+void hcInitDual(HConvDual *filter, double *h, int hlen, int sflen, int lflen)
 {
 	int size;
-	float *h2 = NULL;
+	double *h2 = NULL;
 	int h2len;
 
 	// sanity check: minimum impulse response length
 	h2len = 2 * lflen + 1;
 	if (hlen < h2len)
 	{
-		size = sizeof(float) * h2len;
-		h2 = (float*)fftwf_malloc(size);
+		size = sizeof(double) * h2len;
+		h2 = (double*)fftw_malloc(size);
 		memset(h2, 0, size);
-		size = sizeof(float) * hlen;
+		size = sizeof(double) * hlen;
 		memcpy(h2, h, size);
 		h = h2;
 		hlen = h2len;
@@ -590,13 +590,13 @@ void hcInitDual(HConvDual *filter, float *h, int hlen, int sflen, int lflen)
 	filter->flen_short = sflen;
 
 	// input buffer (long frame)
-	size = sizeof(float) * lflen;
-	filter->in_long = (float *)fftwf_malloc(size);
+	size = sizeof(double) * lflen;
+	filter->in_long = (double *)fftw_malloc(size);
 	memset(filter->in_long, 0, size);
 
 	// output buffer (long frame)
-	size = sizeof(float) * lflen;
-	filter->out_long = (float *)fftwf_malloc(size);
+	size = sizeof(double) * lflen;
+	filter->out_long = (double *)fftw_malloc(size);
 	memset(filter->out_long, 0, size);
 
 	// convolution filter (short segments)
@@ -611,7 +611,7 @@ void hcInitDual(HConvDual *filter, float *h, int hlen, int sflen, int lflen)
 
 	if (h2 != NULL)
 	{
-		fftwf_free(h2);
+		fftw_free(h2);
 	}
 }
 
@@ -622,8 +622,8 @@ void hcCloseDual(HConvDual *filter)
 	free(filter->f_short);
 	hcCloseSingle(filter->f_long);
 	free(filter->f_long);
-	fftwf_free(filter->out_long);
-	fftwf_free(filter->in_long);
+	fftw_free(filter->out_long);
+	fftw_free(filter->in_long);
 	memset(filter, 0, sizeof(HConvDual));
 }
 
@@ -634,9 +634,9 @@ void hcCloseDual(HConvDual *filter)
 void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 {
 	HConvTripple filter;
-	float *x;
-	float *h;
-	float *y;
+	double *x;
+	double *h;
+	double *y;
 	int xlen, hlen, ylen;
 	int size, n;
 	int pos;
@@ -648,8 +648,8 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 
 //	xlen = sflen;
 	xlen = 2048*2048;
-	size = sizeof(float) * xlen;
-	x = (float *)fftwf_malloc(size);
+	size = sizeof(double) * xlen;
+	x = (double *)fftw_malloc(size);
 	lin = pow(10.0, -100.0 / 20.0);	// 0.00001 = -100dB
 	mul = pow(lin, 1.0 / (double)xlen);
 	x[0] = 1.0;
@@ -657,8 +657,8 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 		x[n] = -mul * x[n - 1];
 
 	hlen = 96000;
-	size = sizeof(float) * hlen;
-	h = (float *)fftwf_malloc(size);
+	size = sizeof(double) * hlen;
+	h = (double *)fftw_malloc(size);
 	lin = pow(10.0, -60.0 / 20.0);	// 0.001 = -60dB
 	mul = pow(lin, 1.0 / (double)hlen);
 	h[0] = 1.0;
@@ -666,8 +666,8 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 		h[n] = mul * h[n - 1];
 
 	ylen = sflen;
-	size = sizeof(float) * ylen;
-	y = (float *)fftwf_malloc(size);
+	size = sizeof(double) * ylen;
+	y = (double *)fftw_malloc(size);
 
 	hcInitTripple(&filter, h, hlen, sflen, mflen, lflen);
 
@@ -693,13 +693,13 @@ void hcBenchmarkTripple(int sflen, int mflen, int lflen)
 	printf("Estimated CPU load: %5.2f %%\n", cpu_load);
 
 	hcCloseTripple(&filter);
-	fftwf_free(x);
-	fftwf_free(h);
-	fftwf_free(y);
+	fftw_free(x);
+	fftw_free(h);
+	fftw_free(y);
 }
 
 
-void hcProcessTripple(HConvTripple *filter, float *in, float *out)
+void hcProcessTripple(HConvTripple *filter, double *in, double *out)
 {
 	int lpos, size, i;
 
@@ -715,7 +715,7 @@ void hcProcessTripple(HConvTripple *filter, float *in, float *out)
 
 	// add current frame to medium input buffer
 	lpos = filter->step * filter->flen_short;
-	size = sizeof(float) * filter->flen_short;
+	size = sizeof(double) * filter->flen_short;
 	memcpy(&(filter->in_medium[lpos]), in, size);
 
 	// convolution with medium segments
@@ -729,7 +729,7 @@ void hcProcessTripple(HConvTripple *filter, float *in, float *out)
 }
 
 
-void hcProcessAddTripple(HConvTripple *filter, float *in, float *out)
+void hcProcessAddTripple(HConvTripple *filter, double *in, double *out)
 {
 	int lpos, size, i;
 
@@ -745,7 +745,7 @@ void hcProcessAddTripple(HConvTripple *filter, float *in, float *out)
 
 	// add current frame to medium input buffer
 	lpos = filter->step * filter->flen_short;
-	size = sizeof(float) * filter->flen_short;
+	size = sizeof(double) * filter->flen_short;
 	memcpy(&(filter->in_medium[lpos]), in, size);
 
 	// convolution with medium segments
@@ -759,20 +759,20 @@ void hcProcessAddTripple(HConvTripple *filter, float *in, float *out)
 }
 
 
-void hcInitTripple(HConvTripple *filter, float *h, int hlen, int sflen, int mflen, int lflen)
+void hcInitTripple(HConvTripple *filter, double *h, int hlen, int sflen, int mflen, int lflen)
 {
 	int size;
-	float *h2 = NULL;
+	double *h2 = NULL;
 	int h2len;
 
 	// sanity check: minimum impulse response length
 	h2len = mflen + 2 * lflen + 1;
 	if (hlen < h2len)
 	{
-		size = sizeof(float) * h2len;
-		h2 = (float*)fftwf_malloc(size);
+		size = sizeof(double) * h2len;
+		h2 = (double*)fftw_malloc(size);
 		memset(h2, 0, size);
-		size = sizeof(float) * hlen;
+		size = sizeof(double) * hlen;
 		memcpy(h2, h, size);
 		h = h2;
 		hlen = h2len;
@@ -791,13 +791,13 @@ void hcInitTripple(HConvTripple *filter, float *h, int hlen, int sflen, int mfle
 	filter->flen_short = sflen;
 
 	// input buffer (medium frame)
-	size = sizeof(float) * mflen;
-	filter->in_medium = (float *)fftwf_malloc(size);
+	size = sizeof(double) * mflen;
+	filter->in_medium = (double *)fftw_malloc(size);
 	memset(filter->in_medium, 0, size);
 
 	// output buffer (medium frame)
-	size = sizeof(float) * mflen;
-	filter->out_medium = (float *)fftwf_malloc(size);
+	size = sizeof(double) * mflen;
+	filter->out_medium = (double *)fftw_malloc(size);
 	memset(filter->out_medium, 0, size);
 
 	// convolution filter (short segments)
@@ -812,7 +812,7 @@ void hcInitTripple(HConvTripple *filter, float *h, int hlen, int sflen, int mfle
 
 	if (h2 != NULL)
 	{
-		fftwf_free(h2);
+		fftw_free(h2);
 	}
 }
 
@@ -823,7 +823,7 @@ void hcCloseTripple(HConvTripple *filter)
 	free(filter->f_short);
 	hcCloseDual(filter->f_medium);
 	free(filter->f_medium);
-	fftwf_free(filter->out_medium);
-	fftwf_free(filter->in_medium);
+	fftw_free(filter->out_medium);
+	fftw_free(filter->in_medium);
 	memset(filter, 0, sizeof(HConvTripple));
 }

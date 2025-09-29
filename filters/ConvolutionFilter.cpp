@@ -106,7 +106,7 @@ void ConvolutionFilter::initializeFilters(unsigned frameCount)
 	{
 		LogF(L"Error while reading impulse response file: %S", sf_strerror(inFile));
 	}
-	else if (abs(sampleRate - info.samplerate) > 1.0f)
+	else if (abs(sampleRate - info.samplerate) > 1.0)
 	{
 		LogF(L"Impulse response sample rate (%d Hz) does not match device sample rate (%f Hz)", info.samplerate, sampleRate);
 	}

@@ -37,7 +37,7 @@ public:
 	void beginGetResult();
 	void endGetResult();
 
-	fftwf_complex* getFreqData() const;
+	fftw_complex* getFreqData() const;
 	int getFreqDataLength() const;
 	int getFreqDataSampleRate() const;
 	double getPeakGain() const;
@@ -65,7 +65,7 @@ private:
 	int frameCount = 0;
 
 	// output
-	fftwf_complex* resultFreqData = NULL;
+	fftw_complex* resultFreqData = NULL;
 	int freqDataLength = 0;
 	int freqDataSampleRate;
 	double peakGain;
@@ -77,9 +77,9 @@ private:
 	// internal (not protected by mutex)
 	int lastFrameCount = -1;
 	int lastChannelCount = -1;
-	float* buf = NULL;
-	float* buf2 = NULL;
-	float* timeData = NULL;
-	fftwf_complex* freqData = NULL;
-	fftwf_plan planForward = NULL;
+	double* buf = NULL;
+	double* buf2 = NULL;
+	double* timeData = NULL;
+	fftw_complex* freqData = NULL;
+	fftw_plan planForward = NULL;
 };

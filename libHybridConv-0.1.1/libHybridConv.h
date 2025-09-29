@@ -34,7 +34,7 @@ typedef struct str_HConvSingle
 	int framelength;		// number of samples per audio frame
 	int *steptask;			// processing tasks per step
 	float *dft_time;		// DFT buffer (time domain)
-	fftwf_complex *dft_freq;	// DFT buffer (frequency domain)
+	fftw_complex *dft_freq;	// DFT buffer (frequency domain)
 	float *in_freq_real;		// input buffer (frequency domain)
 	float *in_freq_imag;		// input buffer (frequency domain)
 	int num_filterbuf;		// number of filter segments
@@ -44,8 +44,8 @@ typedef struct str_HConvSingle
 	float **mixbuf_freq_real;	// mixing segments (frequency domain)
 	float **mixbuf_freq_imag;	// mixing segments (frequency domain)
 	float *history_time;		// history buffer (time domain)
-	fftwf_plan fft;			// FFT transformation plan
-	fftwf_plan ifft;		// IFFT transformation plan
+	fftw_plan fft;			// FFT transformation plan
+	fftw_plan ifft;		// IFFT transformation plan
 } HConvSingle;
 
 

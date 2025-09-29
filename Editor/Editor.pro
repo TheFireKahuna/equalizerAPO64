@@ -283,7 +283,7 @@ FORMS    += \
 	guis/LoudnessCorrectionFilterGUIDialog.ui
 
 INCLUDEPATH += $$PWD/.. "C:/Program Files/libsndfile/include" "C:/Program Files/fftw/include" "C:/Program Files/muparserx_v3_0_1/parser"
-LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib fftw3f.lib
+LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib fftw3.lib
 
 build_pass:CONFIG(debug, debug|release) {
 	LIBS += muparserxd.lib

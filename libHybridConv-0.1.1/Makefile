@@ -5,7 +5,7 @@ LIBDIR=
 
 #CFLAGS=-g -O0 -msse -msse2 -fomit-frame-pointer -funroll-loops -ffast-math -Wall -Wextra 
 CFLAGS=-O2 -msse -msse2 -fomit-frame-pointer -funroll-loops -ffast-math -Wall -Wextra 
-LFLAGS=-lm -lfftw3f
+LFLAGS=-lm -lfftw3
 
 
 OBJ=libHybridConv.o hcTest.o
