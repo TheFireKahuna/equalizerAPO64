@@ -46,8 +46,8 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	fftw_make_planner_thread_safe();
 	fftw_complex* timeData = fftw_alloc_complex(filterLength * 2);
 	fftw_complex* freqData = fftw_alloc_complex(filterLength * 2);
-	fftw_plan planForward = fftw_plan_dft_1d(filterLength * 2, timeData, freqData, FFTW_FORWARD, FFTW_MEASURE);
-	fftw_plan planReverse = fftw_plan_dft_1d(filterLength * 2, freqData, timeData, FFTW_BACKWARD, FFTW_MEASURE);
+	fftw_plan planForward = fftw_plan_dft_1d(filterLength * 2, timeData, freqData, FFTW_FORWARD, FFTW_ESTIMATE);
+	fftw_plan planReverse = fftw_plan_dft_1d(filterLength * 2, freqData, timeData, FFTW_BACKWARD, FFTW_ESTIMATE);
 
 	GainIterator gainIterator(nodes);
 	for (unsigned i = 0; i < filterLength; i++)

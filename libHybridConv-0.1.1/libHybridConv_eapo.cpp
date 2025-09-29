@@ -181,32 +181,38 @@ void hcPutSingle(HConvSingle* filter, double* x)
 	// --- Phase 3: De-interleave FFTW complex output into planar real/imag ---
 	size_t j = 0;
 	fftw_complex* dft_freq = filter->dft_freq;
-
+	
 #if defined(__AVX512F__) && !defined(_M_ARM64)
-	{
-		// Process 8 complex numbers per iteration (16 doubles).
-		const size_t complex_width = 8;
+    {
+        // Process 8 complex numbers per loop (r0 i0 ... r7 i7)
+        const size_t CW = 8;
 
-		// We want: re_inter = [r0 r4 r1 r5 r2 r6 r3 r7] -> [r0 r1 r2 r3 r4 r5 r6 r7]
-		//          im_inter = [i0 i4 i1 i5 i2 i6 i3 i7] -> [i0 i1 i2 i3 i4 i5 i6 i7]
-		const __m512i idx = _mm512_setr_epi64(0, 2, 4, 6, 1, 3, 5, 7);
+        // Indices for _mm512_permutex2var_pd:
+        //   0..7  select from 'a' (first source)
+        //   8..15 select from 'b' (second source)
+        const __m512i idx_real = _mm512_setr_epi64(
+            0, 2, 4, 6,   // r0 r1 r2 r3 from 'a'
+            8 + 0, 8 + 2, 8 + 4, 8 + 6  // r4 r5 r6 r7 from 'b'
+        );
+        const __m512i idx_imag = _mm512_setr_epi64(
+            1, 3, 5, 7,   // i0 i1 i2 i3 from 'a'
+            8 + 1, 8 + 3, 8 + 5, 8 + 7  // i4 i5 i6 i7 from 'b'
+        );
 
-		for (; j + complex_width <= freq_len; j += complex_width) {
-			// a = [r0 i0 r1 i1 r2 i2 r3 i3]
-			// b = [r4 i4 r5 i5 r6 i6 r7 i7]
-			__m512d a = _mm512_loadu_pd((const double*)(dft_freq + j));
-			__m512d b = _mm512_loadu_pd((const double*)(dft_freq + j + 4));
+        for (; j + CW <= freq_len; j += CW) {
+            // a = [r0 i0 r1 i1 r2 i2 r3 i3]
+            // b = [r4 i4 r5 i5 r6 i6 r7 i7]
+            __m512d a = _mm512_loadu_pd((const double*)(dft_freq + j));
+            __m512d b = _mm512_loadu_pd((const double*)(dft_freq + j + 4));
 
-			__m512d re_inter = _mm512_unpacklo_pd(a, b); // [r0 r4 r1 r5 r2 r6 r3 r7]
-			__m512d im_inter = _mm512_unpackhi_pd(a, b); // [i0 i4 i1 i5 i2 i6 i3 i7]
+            // Directly select real and imag lanes from a|b
+            __m512d r = _mm512_permutex2var_pd(a, idx_real, b); // [r0..r7]
+            __m512d i = _mm512_permutex2var_pd(a, idx_imag, b); // [i0..i7]
 
-			__m512d real_vec = _mm512_permutexvar_pd(idx, re_inter); // [r0..r7]
-			__m512d imag_vec = _mm512_permutexvar_pd(idx, im_inter); // [i0..i7]
-
-			_mm512_storeu_pd(filter->in_freq_real + j, real_vec);
-			_mm512_storeu_pd(filter->in_freq_imag + j, imag_vec);
-		}
-	}
+            _mm512_storeu_pd(filter->in_freq_real + j, r);
+            _mm512_storeu_pd(filter->in_freq_imag + j, i);
+        }
+    }
 #endif
 
 #if defined(__AVX2__) && !defined(_M_ARM64)
@@ -378,112 +384,314 @@ void hcProcessSingle(HConvSingle* filter)
 	filter->step = (filter->step + 1) % filter->maxstep;
 }
 
-
-void hcGetSingleImpl(HConvSingle* filter, double* y, bool additive)
+static inline void zero_doubles_simd(double* __restrict p, int len)
 {
-	const int flen = filter->framelength;
-	const int freq_len = flen + 1;
-	const int mpos = filter->mixpos;
-
-	double* const out = filter->dft_time;
-	double* const hist = filter->history_time;
-	double* const mix_real = filter->mixbuf_freq_real[mpos];
-	double* const mix_imag = filter->mixbuf_freq_imag[mpos];
-
-#if defined(__AVX512F__) && !defined(_M_ARM64)
-	// Re-interleave planar real/imag into interleaved [re,im] and zero sources.
-	int j = 0;
-	const __m256d z256 = _mm256_setzero_pd();
-	for (; j <= freq_len - 4; j += 4) {
-		const __m256d real_part = _mm256_loadu_pd(mix_real + j); // r0 r1 r2 r3
-		const __m256d imag_part = _mm256_loadu_pd(mix_imag + j); // i0 i1 i2 i3
-
-		const __m256d cplx_lo = _mm256_unpacklo_pd(real_part, imag_part); // r0 i0 r1 i1
-		const __m256d cplx_hi = _mm256_unpackhi_pd(real_part, imag_part); // r2 i2 r3 i3
-
-		__m512d cplx = _mm512_castpd256_pd512(cplx_lo);
-		cplx = _mm512_insertf64x4(cplx, cplx_hi, 1);
-
-		// use unaligned store (pointer not guaranteed 64B aligned)
-		_mm512_storeu_pd((double*)(filter->dft_freq + j), cplx);
-
-		// zero the mix buffers
-		_mm256_storeu_pd(mix_real + j, z256);
-		_mm256_storeu_pd(mix_imag + j, z256);
+#if defined(__AVX512F__)
+	const int VW = 8; // doubles per 512-bit reg
+	__m512d z = _mm512_setzero_pd();
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		_mm512_storeu_pd(p + i, z);
 	}
-	// scalar tail
-	for (; j < freq_len; ++j) {
-		filter->dft_freq[j][0] = mix_real[j];
-		filter->dft_freq[j][1] = mix_imag[j];
-		mix_real[j] = 0.0;
-		mix_imag[j] = 0.0;
+	for (; i < len; ++i) p[i] = 0.0;
+#elif defined(__AVX2__)
+	const int VW = 4; // doubles per 256-bit reg
+	__m256d z = _mm256_setzero_pd();
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		_mm256_storeu_pd(p + i, z);
 	}
+	for (; i < len; ++i) p[i] = 0.0;
+#elif defined(__AVX__)
+	const int VW = 4; // AVX1 still has 256-bit double ops
+	__m256d z = _mm256_setzero_pd();
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		_mm256_storeu_pd(p + i, z);
+	}
+	for (; i < len; ++i) p[i] = 0.0;
 #else
-	for (int j = 0; j < freq_len; ++j) {
-		filter->dft_freq[j][0] = mix_real[j];
-		filter->dft_freq[j][1] = mix_imag[j];
-		mix_real[j] = 0.0;
-		mix_imag[j] = 0.0;
-	}
+# error "This file assumes at least AVX is available."
 #endif
-
-	fftw_execute(filter->ifft);
-
-#if defined(__AVX2__) && !defined(_M_ARM64)
-	// overlap-add into y, matching A:
-	int n = 0;
-	const int vec = 4;
-
-	if (additive) {
-		for (; n <= flen - vec; n += vec) {
-			const __m256d yv = _mm256_loadu_pd(y + n);
-			const __m256d ov = _mm256_loadu_pd(out + n);
-			const __m256d hv = _mm256_loadu_pd(hist + n);
-			const __m256d sum = _mm256_add_pd(ov, hv);
-			_mm256_storeu_pd(y + n, _mm256_add_pd(yv, sum));
-		}
-	}
-	else {
-		for (; n <= flen - vec; n += vec) {
-			const __m256d ov = _mm256_loadu_pd(out + n);
-			const __m256d hv = _mm256_loadu_pd(hist + n);
-			_mm256_storeu_pd(y + n, _mm256_add_pd(ov, hv));
-		}
-	}
-	// history = out[flen : flen+flen)
-	for (n = 0; n <= flen - vec; n += vec) {
-		_mm256_storeu_pd(hist + n, _mm256_loadu_pd(out + flen + n));
-	}
-	// scalar tails
-	for (n = (flen / vec) * vec; n < flen; ++n) {
-		if (additive) y[n] += out[n] + hist[n];
-		else          y[n] = out[n] + hist[n];
-		hist[n] = out[flen + n];
-	}
-#else
-	if (additive) {
-		for (int n = 0; n < flen; ++n) y[n] += out[n] + hist[n];
-	}
-	else {
-		for (int n = 0; n < flen; ++n) y[n] = out[n] + hist[n];
-	}
-	memcpy(hist, out + flen, (size_t)flen * sizeof(double));
-#endif
-
-	filter->mixpos = (filter->mixpos + 1) % filter->num_mixbuf;
 }
 
+static inline void add_out_hist_to_y_simd(const double* __restrict out,
+	const double* __restrict hist,
+	double* __restrict y,
+	int len,
+	int add_to_existing_y /*0: assign; 1: += */)
+{
+#if defined(__AVX512F__)
+	const int VW = 8;
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		__m512d vout = _mm512_loadu_pd(out + i);
+		__m512d vhist = _mm512_loadu_pd(hist + i);
+		__m512d vsum = _mm512_add_pd(vout, vhist);
+		if (add_to_existing_y) {
+			__m512d vy = _mm512_loadu_pd(y + i);
+			vsum = _mm512_add_pd(vsum, vy);
+		}
+		_mm512_storeu_pd(y + i, vsum);
+	}
+	for (; i < len; ++i) {
+		double s = out[i] + hist[i];
+		y[i] = add_to_existing_y ? (y[i] + s) : s;
+	}
+#elif defined(__AVX2__)
+	const int VW = 4;
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		__m256d vout = _mm256_loadu_pd(out + i);
+		__m256d vhist = _mm256_loadu_pd(hist + i);
+		__m256d vsum = _mm256_add_pd(vout, vhist);
+		if (add_to_existing_y) {
+			__m256d vy = _mm256_loadu_pd(y + i);
+			vsum = _mm256_add_pd(vsum, vy);
+		}
+		_mm256_storeu_pd(y + i, vsum);
+	}
+	for (; i < len; ++i) {
+		double s = out[i] + hist[i];
+		y[i] = add_to_existing_y ? (y[i] + s) : s;
+	}
+#elif defined(__AVX__)
+	const int VW = 4;
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		__m256d vout = _mm256_loadu_pd(out + i);
+		__m256d vhist = _mm256_loadu_pd(hist + i);
+		__m256d vsum = _mm256_add_pd(vout, vhist);
+		if (add_to_existing_y) {
+			__m256d vy = _mm256_loadu_pd(y + i);
+			vsum = _mm256_add_pd(vsum, vy);
+		}
+		_mm256_storeu_pd(y + i, vsum);
+	}
+	for (; i < len; ++i) {
+		double s = out[i] + hist[i];
+		y[i] = add_to_existing_y ? (y[i] + s) : s;
+	}
+#else
+# error "This file assumes at least AVX is available."
+#endif
+}
+
+static inline void copy_hist_from_out_tail_simd(double* __restrict hist,
+	const double* __restrict out_tail,
+	int len)
+{
+#if defined(__AVX512F__)
+	const int VW = 8;
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		__m512d v = _mm512_loadu_pd(out_tail + i);
+		_mm512_storeu_pd(hist + i, v);
+	}
+	for (; i < len; ++i) hist[i] = out_tail[i];
+#elif defined(__AVX2__)
+	const int VW = 4;
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		__m256d v = _mm256_loadu_pd(out_tail + i);
+		_mm256_storeu_pd(hist + i, v);
+	}
+	for (; i < len; ++i) hist[i] = out_tail[i];
+#elif defined(__AVX__)
+	const int VW = 4;
+	int i = 0;
+	for (; i + VW <= len; i += VW) {
+		__m256d v = _mm256_loadu_pd(out_tail + i);
+		_mm256_storeu_pd(hist + i, v);
+	}
+	for (; i < len; ++i) hist[i] = out_tail[i];
+#else
+# error "This file assumes at least AVX is available."
+#endif
+}
 
 void hcGetSingle(HConvSingle* filter, double* y)
 {
-	hcGetSingleImpl(filter, y, false);
+	int flen = filter->framelength;
+	int mpos = filter->mixpos;
+
+	double* out = filter->dft_time;        // length = 2*flen
+	double* hist = filter->history_time;    // length = flen
+
+	// Move one frequency frame from mixbuf -> dft_freq and zero the source.
+	// Keep scalar here to preserve exact per-bin assignment order into AoS fftw_complex.
+	for (int j = 0; j < flen + 1; ++j)
+	{
+		filter->dft_freq[j][0] = filter->mixbuf_freq_real[mpos][j];
+		filter->dft_freq[j][1] = filter->mixbuf_freq_imag[mpos][j];
+	}
+
+	// Zero the mix buffers for this slot (vectorized).
+	zero_doubles_simd(filter->mixbuf_freq_real[mpos], flen + 1);
+	zero_doubles_simd(filter->mixbuf_freq_imag[mpos], flen + 1);
+
+	// IFFT (unchanged).
+	fftw_execute(filter->ifft);
+
+	// Time-domain overlap-add: y[n] = out[n] + hist[n]   (vectorized).
+	add_out_hist_to_y_simd(/*out:*/ out,
+		/*hist:*/ hist,
+		/*y:*/ y,
+		/*len:*/ flen,
+		/*add_to_existing_y:*/ 0);
+
+	// Update history with tail: hist <- out[flen .. 2*flen-1] (vectorized).
+	copy_hist_from_out_tail_simd(hist, out + flen, flen);
+
+	// Advance circular position.
+	filter->mixpos = (mpos + 1) % filter->num_mixbuf;
 }
 
 void hcGetAddSingle(HConvSingle* filter, double* y)
 {
-	hcGetSingleImpl(filter, y, true);
+	int flen = filter->framelength;
+	int mpos = filter->mixpos;
+
+	double* out = filter->dft_time;        // length = 2*flen
+	double* hist = filter->history_time;    // length = flen
+
+	// Move one frequency frame from mixbuf -> dft_freq and zero the source.
+	for (int j = 0; j < flen + 1; ++j)
+	{
+		filter->dft_freq[j][0] = filter->mixbuf_freq_real[mpos][j];
+		filter->dft_freq[j][1] = filter->mixbuf_freq_imag[mpos][j];
+	}
+
+	zero_doubles_simd(filter->mixbuf_freq_real[mpos], flen + 1);
+	zero_doubles_simd(filter->mixbuf_freq_imag[mpos], flen + 1);
+
+	fftw_execute(filter->ifft);
+
+	// Accumulate: y[n] += out[n] + hist[n]   (vectorized).
+	add_out_hist_to_y_simd(/*out:*/ out,
+		/*hist:*/ hist,
+		/*y:*/ y,
+		/*len:*/ flen,
+		/*add_to_existing_y:*/ 1);
+
+	// Update history with tail.
+	copy_hist_from_out_tail_simd(hist, out + flen, flen);
+
+	filter->mixpos = (mpos + 1) % filter->num_mixbuf;
 }
-void hcInitSingle(HConvSingle* filter, double* h, int hlen, int flen, int steps)
+
+static inline void mul_store_gain_double(double* __restrict dst,
+	const double* __restrict src,
+	int n, double gain)
+{
+#if defined(__AVX512F__)
+	const int V = 8;
+	__m512d g = _mm512_set1_pd(gain);
+	int i = 0;
+	for (; i + V <= n; i += V) {
+		__m512d x = _mm512_loadu_pd(src + i);
+		x = _mm512_mul_pd(x, g);
+		_mm512_storeu_pd(dst + i, x);
+	}
+	for (; i < n; ++i) dst[i] = src[i] * gain;
+#elif defined(__AVX2__) || defined(__AVX__)
+	// For doubles, AVX intrinsics (_mm256_*) are the FP workhorses; AVX2 adds ints.
+	const int V = 4;
+	__m256d g = _mm256_set1_pd(gain);
+	int i = 0;
+	for (; i + V <= n; i += V) {
+		__m256d x = _mm256_loadu_pd(src + i);
+		x = _mm256_mul_pd(x, g);
+		_mm256_storeu_pd(dst + i, x);
+	}
+	for (; i < n; ++i) dst[i] = src[i] * gain;
+#else
+	for (int i = 0; i < n; ++i) dst[i] = src[i] * gain;
+#endif
+}
+
+static inline void copy_split_complex_scalar(const fftw_complex * __restrict src,
+	double* __restrict re,
+	double* __restrict im,
+	int n_complex)
+{
+	// n_complex = flen + 1
+	for (int j = 0; j < n_complex; ++j) {
+		re[j] = src[j][0];
+		im[j] = src[j][1];
+	}
+}
+
+// Vectorized interleaved (re,im) -> planar (re[] / im[])
+static inline void copy_split_complex_vec(const fftw_complex* __restrict src,
+	double* __restrict re,
+	double* __restrict im,
+	int n_complex)
+{
+	const double* s = (const double*)src;
+	int j = 0;
+
+#if defined(__AVX512F__)
+	// 4 complex per iter: load 8 doubles: [r0,i0,r1,i1,r2,i2,r3,i3]
+	for (; j + 4 <= n_complex; j += 4) {
+		__m512d v = _mm512_loadu_pd(s + (size_t)j * 2);
+
+		// Build index vectors to select even (re) and odd (im) lanes.
+		// We’ll take the lower 256 bits (first 4 lanes) after permute.
+		const __m512i idx_even = _mm512_set_epi64(6, 4, 2, 0, 6, 4, 2, 0);
+		const __m512i idx_odd = _mm512_set_epi64(7, 5, 3, 1, 7, 5, 3, 1);
+
+		__m512d v_re = _mm512_permutexvar_pd(idx_even, v); // [r0,r2,r4?,r6? | dup]
+		__m512d v_im = _mm512_permutexvar_pd(idx_odd, v); // [i0,i2,i4?,i6? | dup]
+
+		// Store lower 256 containing [r0, r1, r2, r3]? Wait—our even/odd
+		// indices were 0,2,4,6 and 1,3,5,7. For 4 complexes:
+		// even -> [r0,r1,r2,r3] map is [0,2,4,6] over [r0,i0,r1,i1,r2,i2,r3,i3] = [0,2,4,6].
+		// odd  -> [i0,i1,i2,i3] map is [1,3,5,7].
+		__m256d re256 = _mm512_castpd512_pd256(v_re);
+		__m256d im256 = _mm512_castpd512_pd256(v_im);
+
+		_mm256_storeu_pd(re + j, re256);
+		_mm256_storeu_pd(im + j, im256);
+	}
+#elif defined(__AVX2__)
+	// 4 complex per iter using 256-bit path:
+	// a = [r0,i0,r1,i1], b = [r2,i2,r3,i3]
+	// re_temp = shuffle_pd(a,b,0x0) -> [r0,r2, r1,r3]
+	// im_temp = shuffle_pd(a,b,0xF) -> [i0,i2, i1,i3]
+	// Then swap lanes 1<->2 with permute4x64 imm=0xD8 to get [r0,r1,r2,r3] and [i0,i1,i2,i3]
+	for (; j + 4 <= n_complex; j += 4) {
+		__m256d a = _mm256_loadu_pd(s + (size_t)j * 2);
+		__m256d b = _mm256_loadu_pd(s + (size_t)j * 2 + 4);
+		__m256d re_tmp = _mm256_shuffle_pd(a, b, 0x0);
+		__m256d im_tmp = _mm256_shuffle_pd(a, b, 0xF);
+		__m256d re_vec = _mm256_permute4x64_pd(re_tmp, 0xD8); // [0,2,1,3] -> [0,1,2,3]
+		__m256d im_vec = _mm256_permute4x64_pd(im_tmp, 0xD8);
+		_mm256_storeu_pd(re + j, re_vec);
+		_mm256_storeu_pd(im + j, im_vec);
+	}
+#elif defined(__AVX__)
+	// 2 complex per iter using 128-bit SSE ops (valid in AVX TU):
+	// a = [r0,i0,r1,i1]
+	// re = shuffle(a, a, 0b1000) -> [r0,r1]
+	// im = shuffle(a, a, 0b1111) with mask picking odds -> [i0,i1]
+	for (; j + 2 <= n_complex; j += 2) {
+		__m128d lo = _mm_loadu_pd(s + (size_t)j * 2);         // [r0,i0]
+		__m128d hi = _mm_loadu_pd(s + (size_t)j * 2 + 2);     // [r1,i1]
+		__m128d a = _mm_shuffle_pd(lo, hi, 0b00);            // [r0,r1]
+		__m128d b = _mm_shuffle_pd(lo, hi, 0b11);            // [i0,i1]
+		_mm_storeu_pd(re + j, a);
+		_mm_storeu_pd(im + j, b);
+	}
+#endif
+
+	// Tail
+	for (; j < n_complex; ++j) {
+		re[j] = s[2 * (size_t)j + 0];
+		im[j] = s[2 * (size_t)j + 1];
+	}
+}
+void hcInitSingle(HConvSingle * filter, double* h, int hlen, int flen, int steps)
 {
 	int i, j, size, num, pos;
 	double gain;
@@ -545,35 +753,47 @@ void hcInitSingle(HConvSingle* filter, double* h, int hlen, int flen, int steps)
 
 	// Use FFTW_MEASURE for production for potentially higher performance, at the cost of a longer setup time.
 	// FFTW_ESTIMATE is faster for setup.
-	unsigned fftw_flags = FFTW_MEASURE | FFTW_PRESERVE_INPUT;
+	unsigned fftw_flags = FFTW_ESTIMATE | FFTW_PRESERVE_INPUT;
 	filter->fft = fftw_plan_dft_r2c_1d(2 * flen, filter->dft_time, filter->dft_freq, fftw_flags);
 	filter->ifft = fftw_plan_dft_c2r_1d(2 * flen, filter->dft_freq, filter->dft_time, fftw_flags);
 
 	gain = 0.5 / flen;
 
 	memset(filter->dft_time, 0, sizeof(double) * 2 * flen);
+
+	// Full-length segments
 	for (i = 0; i < filter->num_filterbuf - 1; i++) {
-		for (j = 0; j < flen; j++)
-			filter->dft_time[j] = gain * h[i * flen + j];
+		// dft_time[0:flen] = gain * h[i * flen + 0 : + flen]
+		mul_store_gain_double(filter->dft_time, h + (size_t)i * flen, flen, gain);
+
 		fftw_execute(filter->fft);
-		for (j = 0; j < flen + 1; j++) {
-			filter->filterbuf_freq_real[i][j] = filter->dft_freq[j][0];
-			filter->filterbuf_freq_imag[i][j] = filter->dft_freq[j][1];
-		}
+
+		// Split complex to separate real/imag buffers
+		copy_split_complex_vec((const fftw_complex*)filter->dft_freq,
+			filter->filterbuf_freq_real[i],
+			filter->filterbuf_freq_imag[i],
+			flen + 1);
 	}
 
+	// Tail (possibly partial) segment
 	int last_segment_len = hlen - i * flen;
-	for (j = 0; j < last_segment_len; j++)
-		filter->dft_time[j] = gain * h[i * flen + j];
-	memset(&(filter->dft_time[last_segment_len]), 0, sizeof(double) * (2 * flen - last_segment_len));
+	if (last_segment_len > 0) {
+		mul_store_gain_double(filter->dft_time, h + (size_t)i * flen, last_segment_len, gain);
+		// zero the remainder up to 2*flen
+		memset(&filter->dft_time[last_segment_len], 0,
+			sizeof(double) * (2 * (size_t)flen - (size_t)last_segment_len));
+	}
+	else {
+		// No tail data: ensure the time buffer is zeroed
+		memset(filter->dft_time, 0, sizeof(double) * 2 * flen);
+	}
 
 	fftw_execute(filter->fft);
-	for (j = 0; j < flen + 1; j++) {
-		filter->filterbuf_freq_real[i][j] = filter->dft_freq[j][0];
-		filter->filterbuf_freq_imag[i][j] = filter->dft_freq[j][1];
-	}
+	copy_split_complex_vec((const fftw_complex*)filter->dft_freq,
+		filter->filterbuf_freq_real[i],
+		filter->filterbuf_freq_imag[i],
+		flen + 1);
 }
-
 
 void hcCloseSingle(HConvSingle* filter)
 {
