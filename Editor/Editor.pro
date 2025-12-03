@@ -14,8 +14,11 @@ TEMPLATE = app
 PRECOMPILED_HEADER = stable.h
 QMAKE_CXXFLAGS_WARN_ON -= -w34100
 QMAKE_LFLAGS += /STACK:32000000
+QMAKE_CXXFLAGS += /arch:AVX2
+QMAKE_CXXFLAGS_RELEASE += /O2
 
 DEFINES += _UNICODE
+DEFINES += MUP_USE_WIDE_STRING
 
 SOURCES += main.cpp\
 	../helpers/LogHelper.cpp \
@@ -282,7 +285,33 @@ FORMS    += \
 	guis/LoudnessCorrectionFilterGUI.ui \
 	guis/LoudnessCorrectionFilterGUIDialog.ui
 
-INCLUDEPATH += $$PWD/.. "C:/Program Files/libsndfile/include" "C:/Program Files/fftw/include" "C:/Program Files/muparserx_v3_0_1/parser"
+# Dependency paths with environment variable support and fallbacks
+LIBSNDFILE_ROOT = $$(LIBSNDFILE_ROOT)
+isEmpty(LIBSNDFILE_ROOT) {
+	LIBSNDFILE_ROOT = "C:/Program Files/libsndfile"
+}
+
+FFTW_INCLUDE = $$(FFTW_INCLUDE)
+isEmpty(FFTW_INCLUDE) {
+	FFTW_INCLUDE = "C:/Program Files/fftw/include"
+}
+
+FFTW_LIB = $$(FFTW_LIB)
+isEmpty(FFTW_LIB) {
+	FFTW_LIB = "C:/Program Files/fftw/lib"
+}
+
+MUPARSERX_INCLUDE = $$(MUPARSERX_INCLUDE)
+isEmpty(MUPARSERX_INCLUDE) {
+	MUPARSERX_INCLUDE = "C:/Program Files/muparserx_v3_0_1"
+}
+
+MUPARSERX_LIB = $$(MUPARSERX_LIB)
+isEmpty(MUPARSERX_LIB) {
+	MUPARSERX_LIB = "C:/Program Files/muparserx_v3_0_1/lib64"
+}
+
+INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_ROOT/include $$FFTW_INCLUDE $$MUPARSERX_INCLUDE
 LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib fftw3.lib
 
 build_pass:CONFIG(debug, debug|release) {
@@ -292,11 +321,36 @@ build_pass:CONFIG(debug, debug|release) {
 }
 
 contains(QT_ARCH, arm64) {
-	QMAKE_LIBDIR += "C:/Program Files/libsndfile/lib/ARM64" "C:/Program Files/fftw/lib/ARM64" "C:/Program Files/muparserx_v3_0_1/lib64/ARM64"
+	QMAKE_LIBDIR += $$LIBSNDFILE_ROOT/lib $$FFTW_LIB $$MUPARSERX_LIB
 } else:contains(QT_ARCH, x86_64) {
-	QMAKE_LIBDIR += "C:/Program Files/libsndfile/lib" "C:/Program Files/fftw/lib" "C:/Program Files/muparserx_v3_0_1/lib64"
+	QMAKE_LIBDIR += $$LIBSNDFILE_ROOT/lib $$FFTW_LIB $$MUPARSERX_LIB
 } else {
-	QMAKE_LIBDIR += "C:/Program Files (x86)/libsndfile/lib" "C:/Program Files (x86)/fftw/lib" "C:/Program Files/muparserx_v3_0_1/lib"
+	QMAKE_LIBDIR += $$LIBSNDFILE_ROOT/lib $$FFTW_LIB $$MUPARSERX_LIB
+}
+
+# Include Common.lib
+LIBS += Common.lib
+contains(QT_ARCH, arm64) {
+	build_pass:CONFIG(debug, debug|release) {
+		QMAKE_LIBDIR += "../ARM64/Debug"
+
+	} else {
+		QMAKE_LIBDIR += "../ARM64/Release"
+	}
+} else:contains(QT_ARCH, x86_64) {
+	build_pass:CONFIG(debug, debug|release) {
+		QMAKE_LIBDIR += "../x64/Debug"
+
+	} else {
+		QMAKE_LIBDIR += "../x64/Release"
+	}
+} else {
+	build_pass:CONFIG(debug, debug|release) {
+		QMAKE_LIBDIR += "../x32/Debug"
+
+	} else {
+		QMAKE_LIBDIR += "../x32/Release"
+	}
 }
 
 RESOURCES += \

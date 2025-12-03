@@ -577,6 +577,77 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 		ReleaseSemaphore(loadSemaphore, 1, NULL);
 	}
 }
+
+// Process interleaved audio (double*) - native double precision without conversion
+void FilterEngine::process(double* output, double* input, unsigned frameCount)
+{
+	if (currentConfig->isEmpty() && nextConfig == NULL)
+	{
+		// Bypass mode: if no filters are active, just copy input to output if necessary.
+		if (realChannelCount == outputChannelCount && input != output) {
+			memcpy(output, input, outputChannelCount * frameCount * sizeof(double));
+		}
+		return;
+	}
+
+	// Direct double-precision processing - no float conversion needed!
+	currentConfig->read(input, frameCount);
+	currentConfig->process(frameCount);
+
+	if (nextConfig != NULL)
+	{
+		nextConfig->read(input, frameCount);
+		nextConfig->process(frameCount);
+		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
+	}
+
+	currentConfig->write(output, frameCount);
+
+	if (nextConfig != NULL && transitionCounter >= transitionLength)
+	{
+		previousConfig = currentConfig;
+		currentConfig = nextConfig;
+		nextConfig = NULL;
+		transitionCounter = 0;
+		ReleaseSemaphore(loadSemaphore, 1, NULL);
+	}
+}
+
+// Process non-interleaved audio (double**) - native double precision without conversion
+void FilterEngine::process(double** output, double** input, unsigned frameCount)
+{
+	if (currentConfig->isEmpty() && nextConfig == NULL)
+	{
+		// Bypass mode
+		if (realChannelCount == outputChannelCount && input != output) {
+			for (unsigned c = 0; c < realChannelCount; c++)
+				memcpy(output[c], input[c], frameCount * sizeof(double));
+		}
+		return;
+	}
+
+	// Direct double-precision processing - no float conversion needed!
+	currentConfig->read(input, frameCount);
+	currentConfig->process(frameCount);
+
+	if (nextConfig != NULL)
+	{
+		nextConfig->read(input, frameCount);
+		nextConfig->process(frameCount);
+		transitionCounter = currentConfig->doTransition(nextConfig, frameCount, transitionCounter, transitionLength);
+	}
+
+	currentConfig->write(output, frameCount);
+
+	if (nextConfig != NULL && transitionCounter >= transitionLength)
+	{
+		previousConfig = currentConfig;
+		currentConfig = nextConfig;
+		nextConfig = NULL;
+		transitionCounter = 0;
+		ReleaseSemaphore(loadSemaphore, 1, NULL);
+	}
+}
 #pragma AVRT_CODE_END
 
 void FilterEngine::addFilters(vector<IFilter*> filters)

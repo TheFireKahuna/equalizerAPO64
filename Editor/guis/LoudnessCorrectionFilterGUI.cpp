@@ -22,7 +22,7 @@
 #include "LoudnessCorrectionFilterGUI.h"
 #include "ui_LoudnessCorrectionFilterGUI.h"
 
-LoudnessCorrectionFilterGUI::LoudnessCorrectionFilterGUI(float refLevel, float refOffset, float att)
+LoudnessCorrectionFilterGUI::LoudnessCorrectionFilterGUI(double refLevel, double refOffset, double att)
 	: IFilterGUI(),
 	ui(new Ui::LoudnessCorrectionFilterGUI)
 {
@@ -99,7 +99,7 @@ void LoudnessCorrectionFilterGUI::on_calibrateButton_clicked()
 
 void LoudnessCorrectionFilterGUI::updateVolume()
 {
-	float volume;
+	double volume;
 	HRESULT res = volumeController.getVolume(volume);
 
 	if (SUCCEEDED(res) && volume != lastVolume)

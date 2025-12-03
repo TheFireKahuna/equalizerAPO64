@@ -43,5 +43,5 @@ private:
 	FilterTable* filterTable;
 	QTimer* timer = NULL;
 	VolumeController* volumeController = NULL;
-	float lastVolume = -1;
+	double lastVolume = -1;
 };

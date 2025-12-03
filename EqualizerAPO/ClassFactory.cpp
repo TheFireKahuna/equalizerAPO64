@@ -19,7 +19,7 @@
 
 #include "stdafx.h"
 #include "EqualizerAPO.h"
-#include "helpers/LogHelper.h"
+#include "../helpers/LogHelper.h"
 #include "ClassFactory.h"
 
 long ClassFactory::lockCount = 0;

@@ -24,8 +24,8 @@
 
 #include "EqualizerAPO.h"
 #include "ClassFactory.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/LogHelper.h"
+#include "../helpers/RegistryHelper.h"
+#include "../helpers/LogHelper.h"
 
 using namespace std;
 

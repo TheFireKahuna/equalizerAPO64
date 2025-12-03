@@ -85,7 +85,7 @@ void ReadRegDWORDFunction::Eval(ptr_val_type& ret, const ptr_val_type* arg, int 
 	{
 		unsigned long value = RegistryHelper::readDWORDValue(key, valuename);
 
-		*ret = (int)value;
+		*ret = (mup::int_type)value;
 
 		engine->watchRegistryKey(key);
 	}

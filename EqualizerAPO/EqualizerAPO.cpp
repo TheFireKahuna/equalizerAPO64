@@ -22,10 +22,10 @@
 #define INITGUID
 #include <mmdeviceapi.h>
 
-#include "helpers/LogHelper.h"
-#include "helpers/RegistryHelper.h"
-#include "helpers/StringHelper.h"
-#include "DeviceAPOInfo.h"
+#include "../helpers/LogHelper.h"
+#include "../helpers/RegistryHelper.h"
+#include "../helpers/StringHelper.h"
+#include "../DeviceAPOInfo.h"
 #include "EqualizerAPO.h"
 
 using namespace std;

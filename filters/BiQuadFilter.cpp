@@ -28,6 +28,36 @@ BiQuadFilter::BiQuadFilter(BiQuad::Type type, double dbGain, double freq, double
 {
 }
 
+BiQuad::Type BiQuadFilter::getType() const
+{
+    return type;
+}
+
+double BiQuadFilter::getDbGain() const
+{
+    return dbGain;
+}
+
+double BiQuadFilter::getFreq() const
+{
+    return freq;
+}
+
+double BiQuadFilter::getBandwidthOrQOrS() const
+{
+    return bandwidthOrQOrS;
+}
+
+bool BiQuadFilter::getIsBandwidthOrS() const
+{
+    return isBandwidthOrS;
+}
+
+bool BiQuadFilter::getIsCornerFreq() const
+{
+    return isCornerFreq;
+}
+
 std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
     this->channelCount = channelNames.size();

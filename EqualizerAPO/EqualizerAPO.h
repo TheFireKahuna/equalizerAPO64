@@ -23,7 +23,7 @@
 #include <Unknwn.h>
 #include <audioenginebaseapo.h>
 #include <BaseAudioProcessingObject.h>
-#include "FilterEngine.h"
+#include "../FilterEngine.h"
 
 class INonDelegatingUnknown
 {

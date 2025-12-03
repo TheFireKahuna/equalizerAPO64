@@ -29,12 +29,12 @@
 #include <sndfile.h>
 #include <tclap/CmdLine.h>
 
-#include "version.h"
-#include "FilterEngine.h"
-#include "helpers/LogHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/PrecisionTimer.h"
-#include "helpers/MemoryHelper.h"
+#include "../version.h"
+#include "../FilterEngine.h"
+#include "../helpers/LogHelper.h"
+#include "../helpers/StringHelper.h"
+#include "../helpers/PrecisionTimer.h"
+#include "../helpers/MemoryHelper.h"
 
 using namespace std;
 

@@ -33,7 +33,7 @@ class LoudnessCorrectionFilterGUI : public IFilterGUI
 	Q_OBJECT
 
 public:
-	explicit LoudnessCorrectionFilterGUI(float refLevel, float refOffset, float att);
+	explicit LoudnessCorrectionFilterGUI(double refLevel, double refOffset, double att);
 	~LoudnessCorrectionFilterGUI();
 
 	void store(QString& command, QString& parameters) override;
@@ -51,5 +51,5 @@ private:
 	bool state = true;
 	QTimer timer;
 	VolumeController volumeController;
-	float lastVolume = -1;
+	double lastVolume = -1;
 };

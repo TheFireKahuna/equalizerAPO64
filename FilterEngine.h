@@ -49,6 +49,8 @@ public:
 	void watchRegistryKey(const std::wstring& key);
 	void process(float* output, float* input, unsigned frameCount);
 	void process(float** output, float** input, unsigned frameCount);
+	void process(double* output, double* input, unsigned frameCount);
+	void process(double** output, double** input, unsigned frameCount);
 
 	bool isPreMix() const {return preMix;}
 	bool isCapture() const {return capture;}

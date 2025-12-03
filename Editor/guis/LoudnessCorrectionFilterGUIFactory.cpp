@@ -81,7 +81,7 @@ void LoudnessCorrectionFilterGUIFactory::checkVolume()
 	}
 	else
 	{
-		float volume;
+		double volume;
 		HRESULT res = volumeController->getVolume(volume);
 
 		if (SUCCEEDED(res) && volume != lastVolume)

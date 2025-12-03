@@ -23,7 +23,7 @@
 #include <helpers/ServiceHelper.h>
 #include <VoicemeeterAPOInfo.h>
 #include "DeviceTestDialog.h"
-#include "version.h"
+#include "../version.h"
 #include "DeviceSelector.h"
 
 DeviceSelector::DeviceSelector(QWidget* parent)

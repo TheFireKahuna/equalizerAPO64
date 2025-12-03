@@ -35,9 +35,9 @@ using namespace mup;
 void ExpressionFilterFactory::initialize(FilterEngine* engine)
 {
 	parser = engine->getParser();
-	parser->DefineConst(L"inputChannelCount", (int)engine->getInputChannelCount());
-	parser->DefineConst(L"outputChannelCount", (int)engine->getOutputChannelCount());
-	parser->DefineConst(L"sampleRate", engine->getSampleRate());
+	parser->DefineConst(L"inputChannelCount", mup::int_type(engine->getInputChannelCount()));
+	parser->DefineConst(L"outputChannelCount", mup::int_type(engine->getOutputChannelCount()));
+	parser->DefineConst(L"sampleRate", mup::float_type(engine->getSampleRate()));
 
 	parser->DefineFun(new ReadRegStringFunction(engine));
 	parser->DefineFun(new ReadRegDWORDFunction(engine));

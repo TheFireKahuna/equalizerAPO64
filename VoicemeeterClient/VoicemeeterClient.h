@@ -21,7 +21,7 @@
 
 #include <string>
 #include <vector>
-#include "FilterEngine.h"
+#include "../FilterEngine.h"
 #include "VoicemeeterRemote.h"
 
 class VoicemeeterClient
