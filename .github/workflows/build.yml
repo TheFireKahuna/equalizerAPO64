@@ -1,0 +1,638 @@
+name: Build EqualizerAPO
+
+on:
+  push:
+    branches: [ main, test-ci ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+  packages: write
+  artifact-metadata: write
+
+env:
+  SOLUTION_FILE: EqualizerAPO.sln
+  BUILD_CONFIGURATION: Release
+
+jobs:
+  build:
+    runs-on: windows-2025
+    strategy:
+      matrix:
+        platform: [x64]
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Add MSBuild to PATH
+      uses: microsoft/setup-msbuild@v2
+      with:
+        msbuild-architecture: x64
+
+    - name: Setup NuGet
+      uses: NuGet/setup-nuget@v2
+
+    # Download FFTW from amd-fftw repository artifacts
+    - name: Download FFTW artifacts
+      uses: dawidd6/action-download-artifact@v3
+      with:
+        github_token: ${{ secrets.GH_PAT }}
+        workflow: c-cpp.yml
+        repo: TheFireKahuna/amd-fftw
+        name: fftw-windows-release-${{ matrix.platform }}
+        path: ${{ github.workspace }}\deps\fftw
+        check_artifacts: true
+        search_artifacts: true
+        workflow_conclusion: success
+        allow_forks: true
+      continue-on-error: true
+
+    # Download muParserX from repository artifacts
+    - name: Download muParserX artifacts
+      uses: dawidd6/action-download-artifact@v3
+      with:
+        github_token: ${{ secrets.GH_PAT }}
+        workflow: c-cpp.yml
+        repo: TheFireKahuna/muparserx
+        name: muparserx-msvc-release
+        path: ${{ github.workspace }}\deps\muparserx
+        check_artifacts: true
+        search_artifacts: true
+        workflow_conclusion: success
+        allow_forks: true
+      continue-on-error: true
+
+    # Download libsndfile from releases
+    - name: Download libsndfile
+      shell: pwsh
+      run: |
+        $platform = "${{ matrix.platform }}"
+        $assetName = "libsndfile-1.2.2-win64.zip"
+        Write-Host "Downloading $assetName..."
+        $url = "https://github.com/libsndfile/libsndfile/releases/download/1.2.2/$assetName"
+        $outFile = "${{ github.workspace }}\libsndfile.zip"
+        $tempExtract = "${{ github.workspace }}\deps\libsndfile-temp"
+
+        try {
+          Invoke-WebRequest -Uri $url -OutFile $outFile -ErrorAction Stop
+          Expand-Archive -Path $outFile -DestinationPath $tempExtract -Force
+
+          # Move contents from nested directory to deps\libsndfile
+          $nestedDir = Get-ChildItem -Path $tempExtract -Directory | Select-Object -First 1
+          if ($nestedDir) {
+            Move-Item -Path "$($nestedDir.FullName)\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
+            Remove-Item -Path $tempExtract -Recurse -Force
+          } else {
+            Move-Item -Path "$tempExtract\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
+            Remove-Item -Path $tempExtract -Recurse -Force
+          }
+
+          Write-Host "libsndfile downloaded and extracted successfully"
+        } catch {
+          Write-Warning "Failed to download libsndfile: $_"
+          Write-Host "Attempting to use GitHub API..."
+          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/libsndfile/libsndfile/releases/tags/1.2.2"
+          $asset = $release.assets | Where-Object { $_.name -eq $assetName }
+          if ($asset) {
+            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $outFile
+            Expand-Archive -Path $outFile -DestinationPath $tempExtract -Force
+
+            $nestedDir = Get-ChildItem -Path $tempExtract -Directory | Select-Object -First 1
+            if ($nestedDir) {
+              Move-Item -Path "$($nestedDir.FullName)\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
+              Remove-Item -Path $tempExtract -Recurse -Force
+            } else {
+              Move-Item -Path "$tempExtract\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
+              Remove-Item -Path $tempExtract -Recurse -Force
+            }
+          } else {
+            Write-Error "Asset $assetName not found in release"
+            exit 1
+          }
+        }
+
+    # Clone tclap repository (header-only library)
+    - name: Download TCLAP
+      uses: actions/checkout@v4
+      with:
+        repository: TheFireKahuna/tclap
+        token: ${{ secrets.GITHUB_TOKEN }}
+        path: deps/tclap
+
+    # Setup dependency structures
+    - name: Setup dependency structures
+      shell: pwsh
+      run: |
+        $depsPath = "${{ github.workspace }}\deps"
+        Write-Host "=== Creating Dependency Structures ==="
+
+        # Check FFTW structure
+        Write-Host "`nFFTW structure:"
+        if (Test-Path "$depsPath\fftw") {
+          Get-ChildItem "$depsPath\fftw" -Recurse | Select-Object FullName
+        } else {
+          Write-Warning "FFTW directory not found"
+        }
+
+        # Check muParserX structure
+        Write-Host "`nmuParserX structure:"
+        if (Test-Path "$depsPath\muparserx") {
+          Get-ChildItem "$depsPath\muparserx" -Recurse | Select-Object FullName
+        } else {
+          Write-Warning "muParserX directory not found"
+        }
+
+        # Check libsndfile structure
+        Write-Host "`nlibsndfile structure:"
+        if (Test-Path "$depsPath\libsndfile") {
+          Get-ChildItem "$depsPath\libsndfile" -Recurse -Depth 1 | Select-Object FullName
+        } else {
+          Write-Warning "libsndfile directory not found"
+        }
+
+        # Check TCLAP structure
+        Write-Host "`nTCLAP structure:"
+        if (Test-Path "$depsPath\tclap") {
+          Get-ChildItem "$depsPath\tclap" -Recurse -Depth 1 | Select-Object FullName
+        } else {
+          Write-Warning "TCLAP directory not found"
+        }
+
+        Write-Host "=== Locating dependency files ==="
+
+        # Find actual locations of critical files
+        $fftwHeader = Get-ChildItem -Path "$depsPath\fftw\Include" -Recurse -Filter "fftw3.h" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $fftwLib = Get-ChildItem -Path "$depsPath\fftw\Release" -Recurse -Filter "libfftw3.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+        $mpxLib = Get-ChildItem -Path "$depsPath\muparserx\build\Release" -Recurse -Filter "muparserx.lib" -ErrorAction SilentlyContinue | Select-Object -First 1
+
+        # Set environment variables pointing to actual locations
+        if ($fftwHeader) {
+          $fftwInclude = $fftwHeader.Directory.FullName
+          echo "FFTW_INCLUDE=$fftwInclude" >> $env:GITHUB_ENV
+          Write-Host "FFTW_INCLUDE=$fftwInclude"
+        } else {
+          Write-Error "fftw3.h not found"
+          exit 1
+        }
+
+        if ($fftwLib) {
+          $fftwLibPath = $fftwLib.Directory.FullName
+
+          # Rename libfftw3.lib to fftw3.lib
+          if (Test-Path "$fftwLibPath\libfftw3.lib") {
+            Rename-Item -Path "$fftwLibPath\libfftw3.lib" -NewName "fftw3.lib" -Force
+            Write-Host "Renamed libfftw3.lib to fftw3.lib"
+          }
+
+          echo "FFTW_LIB=$fftwLibPath" >> $env:GITHUB_ENV
+          Write-Host "FFTW_LIB=$fftwLibPath"
+        } else {
+          Write-Error "libfftw3.lib not found"
+          exit 1
+        }
+
+        if (Test-Path  "$depsPath\muparserx") {
+          echo "MUPARSERX_INCLUDE=$depsPath\muparserx\parser" >> $env:GITHUB_ENV
+          Write-Host "MUPARSERX_INCLUDE=$depsPath\muparserx\parser"
+        } else {
+          Write-Error "muparserx folder not found"
+          exit 1
+        }
+
+        if ($mpxLib) {
+          $mpxLibPath = $mpxLib.Directory.FullName
+          echo "MUPARSERX_LIB=$mpxLibPath" >> $env:GITHUB_ENV
+          Write-Host "MUPARSERX_LIB=$mpxLibPath"
+        } else {
+          Write-Error "muparserx.lib not found"
+          exit 1
+        }
+
+        # Set root paths for libsndfile and tclap (still used by projects)
+        echo "LIBSNDFILE_ROOT=$depsPath\libsndfile" >> $env:GITHUB_ENV
+        echo "TCLAP_ROOT=$depsPath\tclap" >> $env:GITHUB_ENV
+
+        Write-Host "`nAll dependency paths configured successfully"
+
+    # Install Qt for Editor, DeviceSelector, and UpdateChecker (x64 only, ARM64 skipped)
+    # Qt 6.9.1 installs in ~20 seconds, so caching disabled to avoid complexity
+    - name: Install Qt
+      if: matrix.platform == 'x64'
+      uses: jurplel/install-qt-action@v4
+      with:
+        version: '6.9.1'
+        host: 'windows'
+        target: 'desktop'
+        arch: 'win64_msvc2022_64'
+        dir: '${{ github.workspace }}\Qt'
+        install-deps: 'true'
+        cache: 'false'
+        set-env: 'true'
+        setup-python: 'false'
+        aqtversion: '==3.3.0'
+        py7zrversion: '==0.20.8'
+        extra: '--external 7z'
+
+    # Build the solution (excluding Qt VS Tools projects which will be built separately)
+    - name: Build solution
+      shell: pwsh
+      run: |
+        # Build main projects (excluding DeviceSelector and UpdateChecker which use Qt VS Tools)
+        # Qt VS Tools projects need special handling for CI environments
+
+        Write-Host "Building Common, EqualizerAPO, Benchmark, VoicemeeterClient..."
+
+        $projects = @(
+          "Common.vcxproj",
+          "EqualizerAPO\EqualizerAPO.vcxproj",
+          "Benchmark\Benchmark.vcxproj",
+          "VoicemeeterClient\VoicemeeterClient.vcxproj"
+        )
+
+        # Set LIB environment variable so linker can find our libraries
+        # The linker searches directories in the LIB environment variable
+        $libPaths = @(
+          "$env:LIBSNDFILE_ROOT\lib",
+          "$env:MUPARSERX_LIB",
+          "$env:FFTW_LIB"
+        )
+        if ($env:LIB) {
+          $env:LIB = ($libPaths + $env:LIB) -join ";"
+        } else {
+          $env:LIB = $libPaths -join ";"
+        }
+        Write-Host "  LIB (linker search path): $env:LIB"
+        Write-Host ""
+
+        $buildParams = @(
+          "/m",
+          "/p:Configuration=${{ env.BUILD_CONFIGURATION }}",
+          "/p:Platform=${{ matrix.platform }}",
+          "/t:rebuild",
+          "/p:LIBSNDFILE_ROOT=$env:LIBSNDFILE_ROOT",
+          "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE",
+          "/p:FFTW_LIB=$env:FFTW_LIB",
+          "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
+          "/p:MUPARSERX_LIB=$env:MUPARSERX_LIB",
+          "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
+          "/p:PlatformToolset=v143"  # Override to VS 2022 toolset for CI (project uses v145/VS 2026)
+        )
+
+        foreach ($project in $projects) {
+          Write-Host "`n=== Building $project ==="
+          Write-Host "MSBuild command: msbuild $project $($buildParams -join ' ')"
+          msbuild $project @buildParams
+          if ($LASTEXITCODE -ne 0) {
+            Write-Error "Build failed for $project"
+            exit $LASTEXITCODE
+          }
+        }
+
+      
+    #
+    # Configure MSVC
+    #
+    - name: Configure MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+
+    # Build Qt projects with qmake (Editor, DeviceSelector, UpdateChecker)
+    - name: Build Qt Applications
+      if: matrix.platform == 'x64'
+      shell: pwsh
+      run: |
+        # Find qmake from Qt installation
+        $qmakePath = Get-Command qmake -ErrorAction SilentlyContinue
+        if (-not $qmakePath) {
+          $qmakePath = "$env:Qt6_DIR\bin\qmake.exe"
+        }
+        Write-Host "Using qmake: $qmakePath"
+
+        $lreleasePath = Get-Command lrelease -ErrorAction SilentlyContinue
+        if (-not $lreleasePath) {
+          $lreleasePath = "$env:Qt6_DIR\bin\lrelease.exe"
+        }
+        Write-Host "Using lrelease: $lreleasePath"
+
+        $windeployqtPath = Get-Command windeployqt -ErrorAction SilentlyContinue
+        if (-not $windeployqtPath) {
+          $windeployqtPath = "$env:Qt6_DIR\bin\windeployqt.exe"
+        }
+        Write-Host "Using windeployqt: $windeployqtPath"
+
+        # Find build tool (jom or nmake)
+        $jomPath = Get-Command jom -ErrorAction SilentlyContinue
+        $buildTool = if ($jomPath) { "jom" } else { "nmake" }
+        Write-Host "Using build tool: $buildTool"
+
+        # Helper function to build a Qt project
+        function Build-QtProject {
+          param($projectName, $projectPath)
+
+          Write-Host "`n=== Building $projectName ==="
+          $buildDir = "build-$projectName-${{ matrix.platform }}"
+
+          New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
+          Set-Location $buildDir
+          
+
+          & $lreleasePath ..\$projectPath
+          & $qmakePath ..\$projectPath -r "CONFIG+=release"
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "$projectName qmake failed"
+            Set-Location ..
+            return $false
+          }
+
+          & $buildTool
+          if ($LASTEXITCODE -ne 0) {
+            Write-Warning "$projectName build failed"
+            Set-Location ..
+            return $false
+          }
+
+          # Deploy Qt dependencies (DLLs, plugins, etc.)
+          Write-Host "Deploying Qt dependencies for $projectName..."
+          $exePath = "release\$projectName.exe"
+          if (Test-Path $exePath) {
+            Write-Host "Running: $windeployqtPath $exePath --release --no-opengl-sw"
+            & $windeployqtPath $exePath --release --no-opengl-sw
+            if ($LASTEXITCODE -ne 0) {
+              Write-Error "windeployqt failed for $projectName (exit code: $LASTEXITCODE)"
+              Set-Location ..
+              return $false
+            }
+
+            # Verify critical Qt files were deployed
+            $requiredFiles = @("platforms\qwindows.dll")
+            $missingFiles = @()
+            foreach ($file in $requiredFiles) {
+              $filePath = "release\$file"
+              if (-not (Test-Path $filePath)) {
+                $missingFiles += $file
+              }
+            }
+
+            if ($missingFiles.Count -gt 0) {
+              Write-Error "Critical Qt files missing after windeployqt: $($missingFiles -join ', ')"
+              Set-Location ..
+              return $false
+            }
+
+            Write-Host "Qt dependencies deployed successfully for $projectName"
+          } else {
+            Write-Error "Executable not found at $exePath"
+            Set-Location ..
+            return $false
+          }
+
+          Set-Location ..
+          Write-Host "$projectName built successfully"
+          return $true
+        }
+
+        # Build all Qt projects
+        $editorSuccess = Build-QtProject "Editor" "Editor\Editor.pro"
+        $deviceSelectorSuccess = Build-QtProject "DeviceSelector" "DeviceSelector\DeviceSelector.pro"
+        $updateCheckerSuccess = Build-QtProject "UpdateChecker" "UpdateChecker\UpdateChecker.pro"
+
+        # Check if any builds failed
+        if (-not $editorSuccess) {
+          Write-Error "Editor build failed"
+          exit 1
+        }
+        if (-not $deviceSelectorSuccess) {
+          Write-Error "DeviceSelector build failed"
+          exit 1
+        }
+        if (-not $updateCheckerSuccess) {
+          Write-Error "UpdateChecker build failed"
+          exit 1
+        }
+
+        Write-Host "`nAll Qt applications built successfully!"
+
+    # Package artifacts
+    - name: Package binaries
+      shell: pwsh
+      run: |
+        $platform = "${{ matrix.platform }}"
+        $artifactName = "EqualizerAPO-$platform"
+        $artifactPath = "${{ github.workspace }}\artifacts\$artifactName"
+
+        New-Item -ItemType Directory -Force -Path $artifactPath | Out-Null
+
+        # Determine output directory (all platforms use {Platform}/Release)
+        $outDir = "$platform\Release"
+
+        # Copy main binaries (required files)
+        $requiredFiles = @(
+          "EqualizerAPO\x64\Release\EqualizerAPO.dll",
+          "Benchmark\x64\Release\Benchmark.exe",
+          "VoicemeeterClient\x64\Release\VoicemeeterClient.exe"
+        )
+
+        foreach ($file in $requiredFiles) {
+          $sourcePath = "${{ github.workspace }}\$file"
+          if (Test-Path $sourcePath) {
+            Copy-Item $sourcePath -Destination $artifactPath
+            Write-Host "Copied: $file"
+          } else {
+            Write-Error "Required file not found: $file"
+            exit 1
+          }
+        }
+        Copy-Item ${{ github.workspace }}\deps\fftw\Release\libfftw3.dll -Destination $artifactPath -Force
+        Copy-Item ${{ github.workspace }}\deps\libsndfile\sndfile.dll -Destination $artifactPath -Force
+
+        # Copy Qt applications built with qmake (Editor, DeviceSelector, UpdateChecker)
+        # Include all deployed Qt dependencies (DLLs, plugins, etc.)
+        $qtApps = @("Editor", "DeviceSelector", "UpdateChecker")
+
+        # Only copy Qt apps for x64 (they're not built for ARM64)
+        if ($platform -eq "x64") {
+          foreach ($appName in $qtApps) {
+            $buildDir = "${{ github.workspace }}\build-$appName-$platform\release"
+            $exePath = "$buildDir\$appName.exe"
+
+            if (Test-Path $exePath) {
+              # Copy the entire release directory to preserve Qt deployment structure
+              # This includes the .exe, Qt DLLs, platforms/, styles/, etc.
+              # BUT exclude build artifacts (.obj, .res, .log, etc.)
+              Write-Host "Copying $appName with Qt dependencies..."
+
+              # Get all items in the release directory, excluding build artifacts
+              $excludeExtensions = @('.obj', '.res', '.log', '.tlog', '.iobj', '.ipdb', '.ilk', '.pdb')
+              $items = Get-ChildItem -Path $buildDir -Recurse | Where-Object {
+                # Exclude files with build artifact extensions
+                if (-not $_.PSIsContainer) {
+                  $extension = $_.Extension.ToLower()
+                  return -not ($excludeExtensions -contains $extension)
+                }
+                return $true  # Include all directories
+              }
+
+              foreach ($item in $items) {
+                $relativePath = $item.FullName.Substring($buildDir.Length + 1)
+                $targetPath = Join-Path $artifactPath $relativePath
+
+                if ($item.PSIsContainer) {
+                  # Create directory
+                  New-Item -ItemType Directory -Force -Path $targetPath | Out-Null
+                } else {
+                  # Copy file
+                  $targetDir = Split-Path $targetPath -Parent
+                  if (-not (Test-Path $targetDir)) {
+                    New-Item -ItemType Directory -Force -Path $targetDir | Out-Null
+                  }
+                  Copy-Item -Path $item.FullName -Destination $targetPath -Force
+                }
+              }
+
+              Write-Host "Copied: $appName with Qt dependencies (DLLs, plugins, excluding .obj files)"
+            } else {
+              Write-Host "$appName.exe not built (build may have failed)"
+            }
+          }
+        } else {
+          Write-Host "Qt applications skipped for ARM64"
+        }
+
+    # Upload artifacts
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: EqualizerAPO-${{ matrix.platform }}
+        path: |
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/*.dll
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/*.exe
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/iconengines/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/imageformats/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/platforms/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/styles/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/tls/
+        if-no-files-found: error
+        retention-days: 90
+
+  # Create installer (runs after all platforms are built)
+  create-installer:
+    needs: build
+    runs-on: windows-2025
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Download all artifacts
+      uses: actions/download-artifact@v4
+      with:
+        path: ${{ github.workspace }}\artifacts
+
+    - name: Prepare installer files
+      shell: pwsh
+      run: |
+        # Copy binaries to expected locations for NSIS
+        # NSIS expects:
+        # - Project binaries (.exe, EqualizerAPO.dll) in x64\Release\
+        # - Dependencies (Qt DLLs, libfftw3.dll, sndfile.dll, etc.) in lib64\
+
+        $platform = "x64"
+        $artifactDir = "${{ github.workspace }}\artifacts\EqualizerAPO-$platform"
+        $targetBinDir = "${{ github.workspace }}\$platform\Release"
+        $targetLibDir = "${{ github.workspace }}\lib64"
+
+        if (Test-Path $artifactDir) {
+          New-Item -ItemType Directory -Force -Path $targetBinDir | Out-Null
+          New-Item -ItemType Directory -Force -Path $targetLibDir | Out-Null
+
+          # Copy project binaries to x64\Release
+          $projectBinaries = @(
+            "EqualizerAPO.dll",
+            "Benchmark.exe",
+            "VoicemeeterClient.exe",
+            "DeviceSelector.exe",
+            "UpdateChecker.exe",
+            "Editor.exe"
+          )
+
+          foreach ($file in $projectBinaries) {
+            $sourcePath = Join-Path $artifactDir $file
+            if (Test-Path $sourcePath) {
+              Copy-Item $sourcePath -Destination $targetBinDir -Force
+              Write-Host "Copied to binaries: $file"
+            } else {
+              Write-Warning "Project binary not found: $file"
+            }
+          }
+
+          # Copy all dependency DLLs and Qt folders to lib64
+          # Qt folders are grouped under lib64\qt\<folder>\...
+          $qtFolders = @('platforms', 'styles', 'iconengines', 'imageformats', 'tls')
+          $qtTargetDir = Join-Path $targetLibDir 'qt'
+          New-Item -ItemType Directory -Force -Path $qtTargetDir | Out-Null
+
+          Get-ChildItem -Path $artifactDir | ForEach-Object {
+            $name = $_.Name
+
+            # Skip project binaries (already copied above)
+            if ($projectBinaries -contains $name) {
+              return
+            }
+
+            if ($_.PSIsContainer -and $qtFolders -contains $name) {
+              # Qt runtime folder -> lib64\qt\<name>\... (preserve subfolders & DLLs)
+              $dest = Join-Path $qtTargetDir $name
+              Copy-Item -Path $_.FullName -Destination $dest -Recurse -Force
+              Write-Host "Copied Qt folder to lib64\qt: $name\"
+            }
+            elseif ($_.PSIsContainer) {
+              # Non-Qt directories (if any) still go at lib64 root
+              Copy-Item -Path $_.FullName -Destination $targetLibDir -Recurse -Force
+              Write-Host "Copied non-Qt folder to lib64: $name\"
+            }
+            else {
+              # Individual files (DLLs, etc.) go in lib64 root
+              Copy-Item -Path $_.FullName -Destination $targetLibDir -Force
+              Write-Host "Copied to lib64: $name"
+            }
+          }
+          Write-Host "`nArtifacts organized for NSIS installer:"
+          Write-Host "  Binaries: $targetBinDir"
+          Write-Host "  Dependencies: $targetLibDir"
+        } else {
+          Write-Error "Artifact directory not found: $artifactDir"
+          exit 1
+        }
+
+    - name: Install NSIS
+      uses: negrutiu/nsis-install@v2
+
+    - name: Install `NsArray` from web
+      uses: negrutiu/nsis-install-plugin@v1
+      with:
+        url: https://nsis.sourceforge.io/mediawiki/images/9/97/NsArray.zip
+
+    - name: Install `NSISpcre` from web
+      uses: negrutiu/nsis-install-plugin@v1
+      with:
+        url: https://github.com/mazinsw/NSISpcre/archive/refs/heads/master.zip
+    - name: Install `AccessControl` from web
+      uses: negrutiu/nsis-install-plugin@v1
+      with:
+        url: https://nsis.sourceforge.io/mediawiki/images/4/4a/AccessControl.zip
+    - name: Build installer
+      run: makensis ${{ github.workspace }}\Setup\Setup64.nsi
+
+    - name: Upload installers
+      uses: actions/upload-artifact@v4
+      with:
+        name: Installers
+        path: ${{ github.workspace }}\Setup\*.exe
+        if-no-files-found: warn
+        retention-days: 90
