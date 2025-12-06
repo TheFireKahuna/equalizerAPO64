@@ -19,137 +19,12 @@
 
 #include "stdafx.h"
 #include <algorithm>
-#include <cmath> // For std::cos
-
-#ifndef _M_ARM64
-#include <immintrin.h>
-#endif
 
 #include "FilterEngine.h"
 #include "helpers/MemoryHelper.h"
 #include "FilterConfiguration.h"
 
 using namespace std;
-// Deinterleave interleaved stereo (LRLR...) -> L[0..], R[0..]
-static inline void deinterleave_stereo_scalar(const double* src, double* __restrict L, double* __restrict R, unsigned nframes) {
-	for (unsigned i = 0; i < nframes; ++i) {
-		L[i] = src[2u * i + 0];
-		R[i] = src[2u * i + 1];
-	}
-}
-
-// Interleave stereo L/R -> (LRLR...)
-static inline void interleave_stereo_scalar(const double* __restrict L, const double* __restrict R, double* dst, unsigned nframes) {
-	for (unsigned i = 0; i < nframes; ++i) {
-		dst[2u * i + 0] = L[i];
-		dst[2u * i + 1] = R[i];
-	}
-}
-
-#if defined(__AVX512F__)
-// AVX-512F: process 4 frames (8 doubles) per ZMM using compress/expand.
-// Masks for even (L) and odd (R) lanes over 8 elements: even=0b10101010 (0xAA), odd=0b01010101 (0x55)
-static inline void deinterleave_stereo_avx512(const double* src, double* __restrict L, double* __restrict R, unsigned nframes) {
-	const unsigned step = 4; // frames per 512b chunk (8 doubles)
-	const unsigned n4 = (nframes / step) * step;
-	const __mmask8 mask_even = 0x55; // lanes 0,2,4,6 -> L
-	const __mmask8 mask_odd = 0xAA; // lanes 1,3,5,7 -> R
-
-	unsigned i = 0;
-	for (; i < n4; i += step) {
-		__m512d v = _mm512_loadu_pd(src + (size_t)2 * i); // load 8 doubles: L0 R0 L1 R1 L2 R2 L3 R3
-		_mm512_mask_compressstoreu_pd(L + i, mask_even, v); // write L0 L1 L2 L3
-		_mm512_mask_compressstoreu_pd(R + i, mask_odd, v); // write R0 R1 R2 R3
-	}
-	if (i < nframes) {
-		deinterleave_stereo_scalar(src + 2u * i, L + i, R + i, nframes - i);
-	}
-}
-
-static inline void interleave_stereo_avx512(const double* __restrict L, const double* __restrict R, double* dst, unsigned nframes) {
-	const unsigned step = 4; // frames per 512b chunk (8 doubles)
-	const unsigned n4 = (nframes / step) * step;
-	const __mmask8 mask_even = 0x55; // lanes 0,2,4,6 -> L
-	const __mmask8 mask_odd = 0xAA; // lanes 1,3,5,7 -> R
-
-	unsigned i = 0;
-	for (; i < n4; i += step) {
-		__m512d v = _mm512_setzero_pd();
-		// Expand-load L into even lanes
-		v = _mm512_mask_expandloadu_pd(v, mask_even, L + i); // places L0 L1 L2 L3 into lanes 0,2,4,6
-		// Expand-load R into odd lanes
-		v = _mm512_mask_expandloadu_pd(v, mask_odd, R + i); // places R0 R1 R2 R3 into lanes 1,3,5,7
-		_mm512_storeu_pd(dst + (size_t)2 * i, v); // store LRLR...
-	}
-	if (i < nframes) {
-		interleave_stereo_scalar(L + i, R + i, dst + 2u * i, nframes - i);
-	}
-}
-#endif // __AVX512F__
-
-#if defined(__AVX2__) || defined(__AVX__)
-// AVX/AVX2 256-bit: process 4 frames per iteration (8 doubles total via two 256b loads)
-
-// Deinterleave:
-// a = [L0 R0 L1 R1], b = [L2 R2 L3 R3]
-// pa = permute2f128(a,b,0x20) -> [L0 R0 L2 R2]
-// pb = permute2f128(a,b,0x31) -> [L1 R1 L3 R3]
-// left  = shuffle_pd(pa,pb,0x0) -> [L0 L1 L2 L3]
-// right = shuffle_pd(pa,pb,0xF) -> [R0 R1 R2 R3]
-static inline void deinterleave_stereo_avx(const double* src, double* __restrict L, double* __restrict R, unsigned nframes) {
-	const unsigned step = 4; // frames per 256b sequence (two loads)
-	const unsigned n4 = (nframes / step) * step;
-
-	unsigned i = 0;
-	for (; i < n4; i += step) {
-		__m256d a = _mm256_loadu_pd(src + (size_t)2 * i + 0); // L0 R0 L1 R1
-		__m256d b = _mm256_loadu_pd(src + (size_t)2 * i + 4); // L2 R2 L3 R3
-
-		__m256d pa = _mm256_permute2f128_pd(a, b, 0x20);    // L0 R0 L2 R2
-		__m256d pb = _mm256_permute2f128_pd(a, b, 0x31);    // L1 R1 L3 R3
-
-		__m256d left = _mm256_shuffle_pd(pa, pb, 0x0);     // L0 L1 L2 L3
-		__m256d right = _mm256_shuffle_pd(pa, pb, 0xF);     // R0 R1 R2 R3
-
-		_mm256_storeu_pd(L + i, left);
-		_mm256_storeu_pd(R + i, right);
-	}
-	if (i < nframes) {
-		deinterleave_stereo_scalar(src + 2u * i, L + i, R + i, nframes - i);
-	}
-}
-
-// Interleave:
-// L=[L0 L1 L2 L3], R=[R0 R1 R2 R3]
-// lo = unpacklo(L,R) -> [L0 R0 L1 R1]
-// hi = unpackhi(L,R) -> [L2 R2 L3 R3]
-// store lo then hi
-static inline void interleave_stereo_avx(const double* __restrict L, const double* __restrict R, double* dst, unsigned nframes) {
-	const unsigned step = 4;
-	const unsigned n4 = (nframes / step) * step;
-
-	unsigned i = 0;
-	for (; i < n4; i += step) {
-		__m256d l = _mm256_loadu_pd(L + i); // [L0 L1 L2 L3]
-		__m256d r = _mm256_loadu_pd(R + i); // [R0 R1 R2 R3]
-
-
-		__m256d t0 = _mm256_unpacklo_pd(l, r); // [L0 R0 L2 R2]
-		__m256d t1 = _mm256_unpackhi_pd(l, r); // [L1 R1 L3 R3]
-
-
-		__m256d lo = _mm256_permute2f128_pd(t0, t1, 0x20); // [L0 R0 L1 R1]
-		__m256d hi = _mm256_permute2f128_pd(t0, t1, 0x31); // [L2 R2 L3 R3]
-
-
-		_mm256_storeu_pd(dst + (size_t)2 * i + 0, lo);
-		_mm256_storeu_pd(dst + (size_t)2 * i + 4, hi);
-	}
-	if (i < nframes) {
-		interleave_stereo_scalar(L + i, R + i, dst + 2u * i, nframes - i);
-	}
-}
-#endif // __AVX2__ || __AVX__
 
 FilterConfiguration::FilterConfiguration(FilterEngine* engine, const vector<FilterInfo*>& filterInfos, unsigned allChannelCount)
 {
@@ -219,28 +94,16 @@ void FilterConfiguration::read(double* input, unsigned frameCount)
 	{
 	case 1:
 		DEINTERLEAVE_MACRO(1)
-			break;
-	case 2:
-	{
-		double* L = allSamples[0];
-		double* R = allSamples[1];
-		const double* src = input;
-
-#if defined(__AVX512F__)
-		deinterleave_stereo_avx512(src, L, R, frameCount);
-#elif defined(__AVX2__) || defined(__AVX__)
-		deinterleave_stereo_avx(src, L, R, frameCount);
-#else
-		deinterleave_stereo_scalar(src, L, R, frameCount);
-#endif
 		break;
-	}
+	case 2:
+		DEINTERLEAVE_MACRO(2)
+		break;
 	case 6:
 		DEINTERLEAVE_MACRO(6)
-			break;
+		break;
 	case 8:
 		DEINTERLEAVE_MACRO(8)
-			break;
+		break;
 	default:
 		DEINTERLEAVE_MACRO(realChannelCount)
 	}
@@ -325,28 +188,16 @@ void FilterConfiguration::write(double* output, unsigned frameCount)
 	{
 	case 1:
 		INTERLEAVE_MACRO(1)
-			break;
-	case 2:
-	{
-		const double* L = allSamples[0];
-		const double* R = allSamples[1];
-		double* dst = output;
-
-#if defined(__AVX512F__)
-		interleave_stereo_avx512(L, R, dst, frameCount);
-#elif defined(__AVX2__) || defined(__AVX__)
-		interleave_stereo_avx(L, R, dst, frameCount);
-#else
-		interleave_stereo_scalar(L, R, dst, frameCount);
-#endif
 		break;
-	}
+	case 2:
+		INTERLEAVE_MACRO(2)
+		break;
 	case 6:
 		INTERLEAVE_MACRO(6)
-			break;
+		break;
 	case 8:
 		INTERLEAVE_MACRO(8)
-			break;
+		break;
 	default:
 		INTERLEAVE_MACRO(outputChannelCount)
 	}

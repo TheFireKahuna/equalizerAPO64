@@ -49,7 +49,7 @@ public:
 	unsigned doTransition(FilterConfiguration* nextConfig, unsigned frameCount, unsigned transitionCounter, unsigned transitionLength);
 	void write(double* output, unsigned frameCount);
 	void write(double** output, unsigned frameCount);
-	double** getOutputSamples() { return allSamples; }
+	double** getOutputSamples() {return allSamples;}
 	bool isEmpty();
 
 private:
