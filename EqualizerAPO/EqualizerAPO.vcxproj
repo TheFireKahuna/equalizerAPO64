@@ -101,7 +101,8 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <LIBSNDFILE_ROOT Condition="'$(LIBSNDFILE_ROOT)'==''">C:\Program Files\libsndfile</LIBSNDFILE_ROOT>
+    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">C:\Program Files\libsndfile\include</LIBSNDFILE_INCLUDE>
+    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">C:\Program Files\libsndfile\lib</LIBSNDFILE_LIB>
     <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">C:\Program Files\fftw\include</FFTW_INCLUDE>
     <FFTW_LIB Condition="'$(FFTW_LIB)'==''">C:\Program Files\fftw\lib</FFTW_LIB>
     <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">C:\Program Files\muparserx_v3_0_1\parser</MUPARSERX_INCLUDE>
@@ -110,32 +111,32 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_ROOT)\lib;$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_ROOT)\lib;$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <LinkIncremental>true</LinkIncremental>
     <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_ROOT)\lib\ARM64;$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_ROOT)\lib;$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_ROOT)\lib;$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(SolutionDir);$(IncludePath)</IncludePath>
-    <LibraryPath>$(LIBSNDFILE_ROOT)\lib\ARM64;$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
+    <LibraryPath>$(LIBSNDFILE_LIB);$(MUPARSERX_LIB);$(FFTW_LIB);$(LibraryPath)</LibraryPath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -241,7 +242,8 @@
       <LanguageStandard>stdcpp17</LanguageStandard>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <EnableParallelCodeGeneration>true</EnableParallelCodeGeneration>
-      <EnableEnhancedInstructionSet>AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'==''">AdvancedVectorExtensions2</EnableEnhancedInstructionSet>
+      <EnableEnhancedInstructionSet Condition="'$(EnableEnhancedInstructionSet)'!=''">$(EnableEnhancedInstructionSet)</EnableEnhancedInstructionSet>
       <StringPooling>true</StringPooling>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>

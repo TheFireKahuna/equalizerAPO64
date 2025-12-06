@@ -2,7 +2,7 @@ name: Build EqualizerAPO
 
 on:
   push:
-    branches: [ main, test-ci ]
+    branches: [ main, SIMD_CI ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -19,11 +19,43 @@ env:
 
 jobs:
   build:
-    runs-on: windows-2025
     strategy:
+      fail-fast: false
       matrix:
-        platform: [x64]
+        name: [
+          windows-x64-avx2,
+          windows-x64-avx512,
+          windows-arm64
+        ]
+        include:
+          - name: windows-x64-avx2
+            os: windows-2025
+            platform: x64
+            simd_variant: avx2
+            arch_flag: AdvancedVectorExtensions2
+            fftw_artifact: fftw-windows-release-x64-avx2
+            muparserx_artifact: muparserx-msvc-release-x64-avx2
+            libsndfile_artifact: libsndfile-x64-avx2
+            msvcdevplatform: x64
+          - name: windows-x64-avx512
+            os: windows-2025
+            platform: x64
+            simd_variant: avx512
+            arch_flag: AdvancedVectorExtensions512
+            fftw_artifact: fftw-windows-release-x64-avx512
+            muparserx_artifact: muparserx-msvc-release-x64-avx512
+            libsndfile_artifact: libsndfile-x64-avx512
+            msvcdevplatform: x64
+          - name: windows-arm64
+            os: windows-11-arm
+            platform: ARM64
+            simd_variant: neon
+            fftw_artifact: fftw-windows-release-arm64
+            muparserx_artifact: muparserx-msvc-release-ARM64
+            libsndfile_artifact: libsndfile-arm64
+            msvcdevplatform: x86_arm64 
 
+    runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -31,7 +63,7 @@ jobs:
     - name: Add MSBuild to PATH
       uses: microsoft/setup-msbuild@v2
       with:
-        msbuild-architecture: x64
+        msbuild-architecture: ${{ matrix.platform }}
 
     - name: Setup NuGet
       uses: NuGet/setup-nuget@v2
@@ -43,13 +75,12 @@ jobs:
         github_token: ${{ secrets.GH_PAT }}
         workflow: c-cpp.yml
         repo: TheFireKahuna/amd-fftw
-        name: fftw-windows-release-${{ matrix.platform }}
+        name: ${{ matrix.fftw_artifact }}
         path: ${{ github.workspace }}\deps\fftw
         check_artifacts: true
         search_artifacts: true
         workflow_conclusion: success
         allow_forks: true
-      continue-on-error: true
 
     # Download muParserX from repository artifacts
     - name: Download muParserX artifacts
@@ -58,62 +89,26 @@ jobs:
         github_token: ${{ secrets.GH_PAT }}
         workflow: c-cpp.yml
         repo: TheFireKahuna/muparserx
-        name: muparserx-msvc-release
+        name: ${{ matrix.muparserx_artifact }}
         path: ${{ github.workspace }}\deps\muparserx
         check_artifacts: true
         search_artifacts: true
         workflow_conclusion: success
         allow_forks: true
-      continue-on-error: true
 
-    # Download libsndfile from releases
-    - name: Download libsndfile
-      shell: pwsh
-      run: |
-        $platform = "${{ matrix.platform }}"
-        $assetName = "libsndfile-1.2.2-win64.zip"
-        Write-Host "Downloading $assetName..."
-        $url = "https://github.com/libsndfile/libsndfile/releases/download/1.2.2/$assetName"
-        $outFile = "${{ github.workspace }}\libsndfile.zip"
-        $tempExtract = "${{ github.workspace }}\deps\libsndfile-temp"
-
-        try {
-          Invoke-WebRequest -Uri $url -OutFile $outFile -ErrorAction Stop
-          Expand-Archive -Path $outFile -DestinationPath $tempExtract -Force
-
-          # Move contents from nested directory to deps\libsndfile
-          $nestedDir = Get-ChildItem -Path $tempExtract -Directory | Select-Object -First 1
-          if ($nestedDir) {
-            Move-Item -Path "$($nestedDir.FullName)\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
-            Remove-Item -Path $tempExtract -Recurse -Force
-          } else {
-            Move-Item -Path "$tempExtract\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
-            Remove-Item -Path $tempExtract -Recurse -Force
-          }
-
-          Write-Host "libsndfile downloaded and extracted successfully"
-        } catch {
-          Write-Warning "Failed to download libsndfile: $_"
-          Write-Host "Attempting to use GitHub API..."
-          $release = Invoke-RestMethod -Uri "https://api.github.com/repos/libsndfile/libsndfile/releases/tags/1.2.2"
-          $asset = $release.assets | Where-Object { $_.name -eq $assetName }
-          if ($asset) {
-            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $outFile
-            Expand-Archive -Path $outFile -DestinationPath $tempExtract -Force
-
-            $nestedDir = Get-ChildItem -Path $tempExtract -Directory | Select-Object -First 1
-            if ($nestedDir) {
-              Move-Item -Path "$($nestedDir.FullName)\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
-              Remove-Item -Path $tempExtract -Recurse -Force
-            } else {
-              Move-Item -Path "$tempExtract\*" -Destination "${{ github.workspace }}\deps\libsndfile" -Force
-              Remove-Item -Path $tempExtract -Recurse -Force
-            }
-          } else {
-            Write-Error "Asset $assetName not found in release"
-            exit 1
-          }
-        }
+    # Download muParserX from repository artifacts
+    - name: Download libsndfile artifacts
+      uses: dawidd6/action-download-artifact@v3
+      with:
+        github_token: ${{ secrets.GH_PAT }}
+        workflow: action.yml
+        repo: TheFireKahuna/libsndfile
+        name: ${{ matrix.libsndfile_artifact }}
+        path: ${{ github.workspace }}\deps\libsndfile
+        check_artifacts: true
+        search_artifacts: true
+        workflow_conclusion: success
+        allow_forks: true
 
     # Clone tclap repository (header-only library)
     - name: Download TCLAP
@@ -149,7 +144,7 @@ jobs:
         # Check libsndfile structure
         Write-Host "`nlibsndfile structure:"
         if (Test-Path "$depsPath\libsndfile") {
-          Get-ChildItem "$depsPath\libsndfile" -Recurse -Depth 1 | Select-Object FullName
+          Get-ChildItem "$depsPath\libsndfile" -Recurse | Select-Object FullName
         } else {
           Write-Warning "libsndfile directory not found"
         }
@@ -213,28 +208,25 @@ jobs:
         }
 
         # Set root paths for libsndfile and tclap (still used by projects)
-        echo "LIBSNDFILE_ROOT=$depsPath\libsndfile" >> $env:GITHUB_ENV
+        echo "LIBSNDFILE_INCLUDE=$depsPath\libsndfile\include" >> $env:GITHUB_ENV
+        echo "LIBSNDFILE_LIB=$depsPath\libsndfile\build\Release" >> $env:GITHUB_ENV
         echo "TCLAP_ROOT=$depsPath\tclap" >> $env:GITHUB_ENV
 
         Write-Host "`nAll dependency paths configured successfully"
 
-    # Install Qt for Editor, DeviceSelector, and UpdateChecker (x64 only, ARM64 skipped)
-    # Qt 6.9.1 installs in ~20 seconds, so caching disabled to avoid complexity
+    # Install Qt for Editor, DeviceSelector, and UpdateChecker
     - name: Install Qt
-      if: matrix.platform == 'x64'
       uses: jurplel/install-qt-action@v4
       with:
-        version: '6.9.1'
-        host: 'windows'
+        version: '6.10.1'
+        host: ${{ matrix.platform == 'ARM64' && 'windows_arm64' || 'windows' }}
         target: 'desktop'
-        arch: 'win64_msvc2022_64'
+        arch: ${{ matrix.platform == 'ARM64' && 'win64_msvc2022_arm64' || 'win64_msvc2022_64' }}
         dir: '${{ github.workspace }}\Qt'
         install-deps: 'true'
         cache: 'false'
         set-env: 'true'
         setup-python: 'false'
-        aqtversion: '==3.3.0'
-        py7zrversion: '==0.20.8'
         extra: '--external 7z'
 
     # Build the solution (excluding Qt VS Tools projects which will be built separately)
@@ -256,7 +248,7 @@ jobs:
         # Set LIB environment variable so linker can find our libraries
         # The linker searches directories in the LIB environment variable
         $libPaths = @(
-          "$env:LIBSNDFILE_ROOT\lib",
+          "$env:LIBSNDFILE_LIB",
           "$env:MUPARSERX_LIB",
           "$env:FFTW_LIB"
         )
@@ -273,7 +265,8 @@ jobs:
           "/p:Configuration=${{ env.BUILD_CONFIGURATION }}",
           "/p:Platform=${{ matrix.platform }}",
           "/t:rebuild",
-          "/p:LIBSNDFILE_ROOT=$env:LIBSNDFILE_ROOT",
+          "/p:LIBSNDFILE_INCLUDE=$env:LIBSNDFILE_INCLUDE",
+          "/p:LIBSNDFILE_LIB=$env:LIBSNDFILE_LIB",
           "/p:FFTW_INCLUDE=$env:FFTW_INCLUDE",
           "/p:FFTW_LIB=$env:FFTW_LIB",
           "/p:MUPARSERX_INCLUDE=$env:MUPARSERX_INCLUDE",
@@ -281,6 +274,19 @@ jobs:
           "/p:TCLAP_ROOT=$env:TCLAP_ROOT",
           "/p:PlatformToolset=v143"  # Override to VS 2022 toolset for CI (project uses v145/VS 2026)
         )
+
+        $BuildPlatform = "${{ matrix.platform }}"
+        # Only add instruction set override if specified (not for ARM64)
+        if ($BuildPlatform -eq "x64") {
+          # Set instruction set based on SIMD variant
+          $instructionSet = if ("${{ matrix.simd_variant }}" -eq "avx512") {
+            "AdvancedVectorExtensions512"
+          } else {
+            "AdvancedVectorExtensions2"
+          }
+          Write-Host "Building with instruction set: $instructionSet (variant: ${{ matrix.simd_variant }})"
+          $buildParams += "/p:EnableEnhancedInstructionSet=$instructionSet"
+        }
 
         foreach ($project in $projects) {
           Write-Host "`n=== Building $project ==="
@@ -299,11 +305,10 @@ jobs:
     - name: Configure MSVC
       uses: ilammy/msvc-dev-cmd@v1
       with:
-        arch: x64
+        arch: ${{ matrix.msvcdevplatform }}
 
     # Build Qt projects with qmake (Editor, DeviceSelector, UpdateChecker)
     - name: Build Qt Applications
-      if: matrix.platform == 'x64'
       shell: pwsh
       run: |
         # Find qmake from Qt installation
@@ -330,6 +335,18 @@ jobs:
         $buildTool = if ($jomPath) { "jom" } else { "nmake" }
         Write-Host "Using build tool: $buildTool"
 
+        $BuildPlatform = "${{ matrix.platform }}"
+        if ($BuildPlatform -eq "x64") {
+          # Set compiler flags based on SIMD variant
+          $simdFlags = switch ("${{ matrix.simd_variant }}") {
+            "avx512" { "/arch:AVX512" }
+            "avx2" { "/arch:AVX2" }
+          }
+          if ($simdFlags) {
+            Write-Host "Qt builds using SIMD flags: $simdFlags (variant: ${{ matrix.simd_variant }})"
+          }
+        }
+
         # Helper function to build a Qt project
         function Build-QtProject {
           param($projectName, $projectPath)
@@ -339,10 +356,17 @@ jobs:
 
           New-Item -ItemType Directory -Force -Path $buildDir | Out-Null
           Set-Location $buildDir
-          
+
 
           & $lreleasePath ..\$projectPath
-          & $qmakePath ..\$projectPath -r "CONFIG+=release"
+          # Remove /arch:AVX2 from .pro file and replace with our SIMD variant
+          # This is done by removing the hardcoded /arch flag and adding our SIMD variant (if specified)
+          if ($BuildPlatform -eq "x64") {
+            & $qmakePath ..\$projectPath -r "CONFIG+=release" "QMAKE_CXXFLAGS-=/arch:AVX2" "QMAKE_CXXFLAGS+=$simdFlags"
+          }
+          else {
+            & $qmakePath ..\$projectPath -r "CONFIG+=release"
+          }
           if ($LASTEXITCODE -ne 0) {
             Write-Warning "$projectName qmake failed"
             Set-Location ..
@@ -422,7 +446,8 @@ jobs:
       shell: pwsh
       run: |
         $platform = "${{ matrix.platform }}"
-        $artifactName = "EqualizerAPO-$platform"
+        $simdVariant = "${{ matrix.simd_variant }}"
+        $artifactName = "EqualizerAPO-$platform-$simdVariant"
         $artifactPath = "${{ github.workspace }}\artifacts\$artifactName"
 
         New-Item -ItemType Directory -Force -Path $artifactPath | Out-Null
@@ -432,9 +457,9 @@ jobs:
 
         # Copy main binaries (required files)
         $requiredFiles = @(
-          "EqualizerAPO\x64\Release\EqualizerAPO.dll",
-          "Benchmark\x64\Release\Benchmark.exe",
-          "VoicemeeterClient\x64\Release\VoicemeeterClient.exe"
+          "EqualizerAPO\${{ matrix.platform }}\Release\EqualizerAPO.dll",
+          "Benchmark\${{ matrix.platform }}\Release\Benchmark.exe",
+          "VoicemeeterClient\${{ matrix.platform }}\Release\VoicemeeterClient.exe"
         )
 
         foreach ($file in $requiredFiles) {
@@ -448,15 +473,13 @@ jobs:
           }
         }
         Copy-Item ${{ github.workspace }}\deps\fftw\Release\libfftw3.dll -Destination $artifactPath -Force
-        Copy-Item ${{ github.workspace }}\deps\libsndfile\sndfile.dll -Destination $artifactPath -Force
+        Copy-Item ${{ github.workspace }}\deps\libsndfile\build\Release\sndfile.dll -Destination $artifactPath -Force
 
         # Copy Qt applications built with qmake (Editor, DeviceSelector, UpdateChecker)
         # Include all deployed Qt dependencies (DLLs, plugins, etc.)
         $qtApps = @("Editor", "DeviceSelector", "UpdateChecker")
 
-        # Only copy Qt apps for x64 (they're not built for ARM64)
-        if ($platform -eq "x64") {
-          foreach ($appName in $qtApps) {
+        foreach ($appName in $qtApps) {
             $buildDir = "${{ github.workspace }}\build-$appName-$platform\release"
             $exePath = "$buildDir\$appName.exe"
 
@@ -498,24 +521,21 @@ jobs:
             } else {
               Write-Host "$appName.exe not built (build may have failed)"
             }
-          }
-        } else {
-          Write-Host "Qt applications skipped for ARM64"
         }
 
     # Upload artifacts
     - name: Upload build artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: EqualizerAPO-${{ matrix.platform }}
+        name: EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}
         path: |
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/*.dll
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/*.exe
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/iconengines/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/imageformats/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/platforms/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/styles/
-          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}/tls/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/*.dll
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/*.exe
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/iconengines/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/imageformats/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/platforms/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/styles/
+          ${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-${{ matrix.simd_variant }}/tls/
         if-no-files-found: error
         retention-days: 90
 
@@ -524,6 +544,21 @@ jobs:
     needs: build
     runs-on: windows-2025
     if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    strategy:
+      matrix:
+        include:
+          - platform: x64
+            simd_variant: avx2
+            setup_file: Setup64
+            installer_name: x64-avx2
+          - platform: x64
+            simd_variant: avx512
+            setup_file: Setup64
+            installer_name: x64-avx512
+          - platform: ARM64
+            simd_variant: neon
+            setup_file: SetupARM64
+            installer_name: arm64
 
     steps:
     - name: Checkout repository
@@ -539,19 +574,19 @@ jobs:
       run: |
         # Copy binaries to expected locations for NSIS
         # NSIS expects:
-        # - Project binaries (.exe, EqualizerAPO.dll) in x64\Release\
+        # - Project binaries (.exe, EqualizerAPO.dll) in Platform\Release\
         # - Dependencies (Qt DLLs, libfftw3.dll, sndfile.dll, etc.) in lib64\
 
-        $platform = "x64"
-        $artifactDir = "${{ github.workspace }}\artifacts\EqualizerAPO-$platform"
-        $targetBinDir = "${{ github.workspace }}\$platform\Release"
+        $simdVariant = "${{ matrix.simd_variant }}"
+        $artifactDir = "${{ github.workspace }}\artifacts\EqualizerAPO-${{ matrix.platform }}-$simdVariant"
+        $targetBinDir = "${{ github.workspace }}\${{ matrix.platform }}\Release"
         $targetLibDir = "${{ github.workspace }}\lib64"
 
         if (Test-Path $artifactDir) {
           New-Item -ItemType Directory -Force -Path $targetBinDir | Out-Null
           New-Item -ItemType Directory -Force -Path $targetLibDir | Out-Null
 
-          # Copy project binaries to x64\Release
+          # Copy project binaries to Platform\Release
           $projectBinaries = @(
             "EqualizerAPO.dll",
             "Benchmark.exe",
@@ -627,12 +662,12 @@ jobs:
       with:
         url: https://nsis.sourceforge.io/mediawiki/images/4/4a/AccessControl.zip
     - name: Build installer
-      run: makensis ${{ github.workspace }}\Setup\Setup64.nsi
+      run: makensis ${{ github.workspace }}\Setup\${{ matrix.setup_file }}.nsi
 
     - name: Upload installers
       uses: actions/upload-artifact@v4
       with:
-        name: Installers
+        name: EqualizerAPO_Setup-${{ matrix.installer_name }}
         path: ${{ github.workspace }}\Setup\*.exe
         if-no-files-found: warn
         retention-days: 90

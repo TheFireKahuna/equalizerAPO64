@@ -120,8 +120,10 @@ std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned ma
 
 void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
 {
+#if !defined(_M_ARM64)
     unsigned old_mxcsr = _mm_getcsr();
     _mm_setcsr(old_mxcsr | 0x8040);
+#endif
 
     unsigned processedChannels = 0;
 
@@ -142,6 +144,7 @@ void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
         processedChannels += num_avx256_chunks * avx256_width;
     }
 #endif
+#if !defined(_M_ARM64)
 
     const unsigned sse128_width = 2;
     unsigned num_sse128_chunks = ((unsigned)channelCount - processedChannels) / sse128_width;
@@ -149,12 +152,15 @@ void BiQuadFilter::process(double** output, double** input, unsigned frameCount)
         process_sse128(output, input, frameCount, processedChannels, num_sse128_chunks * sse128_width);
         processedChannels += num_sse128_chunks * sse128_width;
     }
+#endif
 
     if (processedChannels < (unsigned)channelCount) {
         process_scalar(output, input, frameCount, processedChannels);
     }
 
+#if !defined(_M_ARM64)
     _mm_setcsr(old_mxcsr);
+#endif
 }
 
 
@@ -250,6 +256,7 @@ void BiQuadFilter::process_avx256(double** output, double** input, unsigned fram
 }
 #endif
 
+#if !defined(_M_ARM64)
 // SSE optimized processing for 2 channels (stereo) at a time
 void BiQuadFilter::process_sse128(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels)
 {
@@ -303,6 +310,7 @@ void BiQuadFilter::process_sse128(double** output, double** input, unsigned fram
         _mm_store_pd(&y2[i], _y2);
     }
 }
+#endif
 
 
 // Scalar processing for any final leftover channels (e.g., the 7th channel in a 7.1 setup)

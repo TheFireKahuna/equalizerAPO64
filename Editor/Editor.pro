@@ -14,7 +14,6 @@ TEMPLATE = app
 PRECOMPILED_HEADER = stable.h
 QMAKE_CXXFLAGS_WARN_ON -= -w34100
 QMAKE_LFLAGS += /STACK:32000000
-QMAKE_CXXFLAGS += /arch:AVX2
 QMAKE_CXXFLAGS_RELEASE += /O2
 
 DEFINES += _UNICODE
@@ -286,9 +285,13 @@ FORMS    += \
 	guis/LoudnessCorrectionFilterGUIDialog.ui
 
 # Dependency paths with environment variable support and fallbacks
-LIBSNDFILE_ROOT = $$(LIBSNDFILE_ROOT)
-isEmpty(LIBSNDFILE_ROOT) {
-	LIBSNDFILE_ROOT = "C:/Program Files/libsndfile"
+LIBSNDFILE_INCLUDE = $$(LIBSNDFILE_INCLUDE)
+isEmpty(LIBSNDFILE_INCLUDE) {
+	LIBSNDFILE_INCLUDE = "C:/Program Files/libsndfile/include"
+}
+LIBSNDFILE_LIB = $$(LIBSNDFILE_LIB)
+isEmpty(LIBSNDFILE_LIB) {
+	LIBSNDFILE_LIB = "C:/Program Files/libsndfile/lib"
 }
 
 FFTW_INCLUDE = $$(FFTW_INCLUDE)
@@ -311,7 +314,7 @@ isEmpty(MUPARSERX_LIB) {
 	MUPARSERX_LIB = "C:/Program Files/muparserx_v3_0_1/lib64"
 }
 
-INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_ROOT/include $$FFTW_INCLUDE $$MUPARSERX_INCLUDE
+INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE
 LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib fftw3.lib
 
 build_pass:CONFIG(debug, debug|release) {
@@ -321,11 +324,13 @@ build_pass:CONFIG(debug, debug|release) {
 }
 
 contains(QT_ARCH, arm64) {
-	QMAKE_LIBDIR += $$LIBSNDFILE_ROOT/lib $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
 } else:contains(QT_ARCH, x86_64) {
-	QMAKE_LIBDIR += $$LIBSNDFILE_ROOT/lib $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_CXXFLAGS += /arch:AVX2
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
 } else {
-	QMAKE_LIBDIR += $$LIBSNDFILE_ROOT/lib $$FFTW_LIB $$MUPARSERX_LIB
+	QMAKE_CXXFLAGS += /arch:AVX2
+	QMAKE_LIBDIR += $$LIBSNDFILE_LIB $$FFTW_LIB $$MUPARSERX_LIB
 }
 
 # Include Common.lib

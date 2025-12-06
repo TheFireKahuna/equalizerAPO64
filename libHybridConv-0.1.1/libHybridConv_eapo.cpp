@@ -411,7 +411,9 @@ static inline void zero_doubles_simd(double* __restrict p, int len)
 	}
 	for (; i < len; ++i) p[i] = 0.0;
 #else
-# error "This file assumes at least AVX is available."
+	for (int i = 0; i < len; ++i) {
+		p[i] = 0.0;
+	}
 #endif
 }
 
@@ -473,7 +475,10 @@ static inline void add_out_hist_to_y_simd(const double* __restrict out,
 		y[i] = add_to_existing_y ? (y[i] + s) : s;
 	}
 #else
-# error "This file assumes at least AVX is available."
+	for (int i = 0; i < len; ++i) {
+		double s = out[i] + hist[i];
+		y[i] = add_to_existing_y ? (y[i] + s) : s;
+	}
 #endif
 }
 
@@ -506,7 +511,8 @@ static inline void copy_hist_from_out_tail_simd(double* __restrict hist,
 	}
 	for (; i < len; ++i) hist[i] = out_tail[i];
 #else
-# error "This file assumes at least AVX is available."
+	for (int i = 0; i < len; ++i)
+		hist[i] = out_tail[i];
 #endif
 }
 

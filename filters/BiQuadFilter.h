@@ -66,7 +66,9 @@ private:
     void process_avx256(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);
 #endif
     // Use AVX for the 128-bit FMA path if available, otherwise plain SSE2
+#if !defined(_M_ARM64)
     void process_sse128(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);
+#endif
     void process_scalar(double** output, double** input, unsigned frameCount, unsigned startChannel);
 };
 #pragma AVRT_VTABLES_END
