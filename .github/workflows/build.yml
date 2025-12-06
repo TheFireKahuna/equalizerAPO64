@@ -25,6 +25,7 @@ jobs:
         name: [
           windows-x64-avx2,
           windows-x64-avx512,
+          windows-x64-avx10_1,
           windows-arm64
         ]
         include:
@@ -45,6 +46,15 @@ jobs:
             fftw_artifact: fftw-windows-release-x64-avx512
             muparserx_artifact: muparserx-msvc-release-x64-avx512
             libsndfile_artifact: libsndfile-x64-avx512
+            msvcdevplatform: x64
+          - name: windows-x64-avx10_1
+            os: windows-2025
+            platform: x64
+            simd_variant: avx10_1
+            arch_flag: AdvancedVectorExtensions101
+            fftw_artifact: fftw-windows-release-x64-avx10
+            muparserx_artifact: muparserx-msvc-release-x64-avx10
+            libsndfile_artifact: libsndfile-x64-avx10
             msvcdevplatform: x64
           - name: windows-arm64
             os: windows-11-arm
@@ -281,6 +291,8 @@ jobs:
           # Set instruction set based on SIMD variant
           $instructionSet = if ("${{ matrix.simd_variant }}" -eq "avx512") {
             "AdvancedVectorExtensions512"
+          } elseif ("${{ matrix.simd_variant }}" -eq "avx10_1") {
+            "AdvancedVectorExtensions101"
           } else {
             "AdvancedVectorExtensions2"
           }
@@ -340,6 +352,7 @@ jobs:
           # Set compiler flags based on SIMD variant
           $simdFlags = switch ("${{ matrix.simd_variant }}") {
             "avx512" { "/arch:AVX512" }
+            "avx10_1" { "/arch:AVX10.1" }
             "avx2" { "/arch:AVX2" }
           }
           if ($simdFlags) {
@@ -555,6 +568,10 @@ jobs:
             simd_variant: avx512
             setup_file: Setup64
             installer_name: x64-avx512
+          - platform: x64
+            simd_variant: avx10_1
+            setup_file: Setup64
+            installer_name: x64-avx10_1
           - platform: ARM64
             simd_variant: neon
             setup_file: SetupARM64
