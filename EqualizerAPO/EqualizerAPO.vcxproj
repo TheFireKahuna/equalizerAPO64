@@ -150,7 +150,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
     <Midl>
@@ -170,7 +170,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
     <Midl>
@@ -190,7 +190,7 @@
     <Link>
       <SubSystem>Windows</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserxd.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
     <Midl>
@@ -225,7 +225,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -291,7 +291,7 @@
       <GenerateDebugInformation>false</GenerateDebugInformation>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>..\$(Platform)\$(Configuration)\Common.lib;Kernel32.lib;version.lib;oleaut32.lib;advapi32.lib;user32.lib;uuid.lib;AudioBaseProcessingObjectV140.lib;audiomediatypecrt.lib;authz.lib;crypt32.lib;audioeng.lib;dbghelp.lib;sndfile.lib;fftw3.lib;muparserx.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>EqualizerAPO.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
