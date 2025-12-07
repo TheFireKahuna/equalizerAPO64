@@ -7,7 +7,7 @@ This effort was inspired and founded on a previous conversion of EqualizerAPO to
 Double procession processing (64 bit internal pipeline) in EqualizerAPO maintains precision and quality when applying multiple overlapping effects. Examples include convolution, complex parametric EQ setups or GraphicEQ's. Support for AVX256 also ensures similar performance to the original 32 bit pipeline, with additional optional support for AVX512 to further enhance performance. ARM is also supported via a native start-to-end build of all dependencies and Qt projects.
 
 ## Features
-- **Double precision processing filter engine** (64bit audio processing) for improved fidelity with more complex setups
+- **Double precision processing filter engine** (32bit floats -> 64bit doubles) for improved fidelity with more complex setups
 - Support for AVX2 & AVX-512 in both EAPO and all dependencies, including FFTW3's AVX2/AVX-512 optimizations.
 - Expanded usage of AVX instructions to reduce processing latency
 - Uses shared VC++ DLLs for improved compatibility
