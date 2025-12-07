@@ -186,13 +186,6 @@ jobs:
 
         if ($fftwLib) {
           $fftwLibPath = $fftwLib.Directory.FullName
-
-          # Rename libfftw3.lib to fftw3.lib
-          if (Test-Path "$fftwLibPath\libfftw3.lib") {
-            Rename-Item -Path "$fftwLibPath\libfftw3.lib" -NewName "fftw3.lib" -Force
-            Write-Host "Renamed libfftw3.lib to fftw3.lib"
-          }
-
           echo "FFTW_LIB=$fftwLibPath" >> $env:GITHUB_ENV
           Write-Host "FFTW_LIB=$fftwLibPath"
         } else {

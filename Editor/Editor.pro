@@ -315,7 +315,7 @@ isEmpty(MUPARSERX_LIB) {
 }
 
 INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE
-LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib fftw3.lib
+LIBS += user32.lib advapi32.lib version.lib ole32.lib Shlwapi.lib authz.lib crypt32.lib dbghelp.lib winmm.lib sndfile.lib libfftw3.lib
 
 build_pass:CONFIG(debug, debug|release) {
 	LIBS += muparserxd.lib
