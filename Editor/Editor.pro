@@ -287,31 +287,31 @@ FORMS    += \
 # Dependency paths with environment variable support and fallbacks
 LIBSNDFILE_INCLUDE = $$(LIBSNDFILE_INCLUDE)
 isEmpty(LIBSNDFILE_INCLUDE) {
-	LIBSNDFILE_INCLUDE = "C:/Program Files/libsndfile/include"
+	LIBSNDFILE_INCLUDE = "F:/Git/libsndfile/build/include"
 }
 LIBSNDFILE_LIB = $$(LIBSNDFILE_LIB)
 isEmpty(LIBSNDFILE_LIB) {
-	LIBSNDFILE_LIB = "C:/Program Files/libsndfile/lib"
+	LIBSNDFILE_LIB = "F:/Git/libsndfile/build/Release"
 }
 
 FFTW_INCLUDE = $$(FFTW_INCLUDE)
 isEmpty(FFTW_INCLUDE) {
-	FFTW_INCLUDE = "C:/Program Files/fftw/include"
+	FFTW_INCLUDE = "F:/Git/amd-fftw/include"
 }
 
 FFTW_LIB = $$(FFTW_LIB)
 isEmpty(FFTW_LIB) {
-	FFTW_LIB = "C:/Program Files/fftw/lib"
+	FFTW_LIB = "F:/Git/amd-fftw/build/Release"
 }
 
 MUPARSERX_INCLUDE = $$(MUPARSERX_INCLUDE)
 isEmpty(MUPARSERX_INCLUDE) {
-	MUPARSERX_INCLUDE = "C:/Program Files/muparserx_v3_0_1"
+	MUPARSERX_INCLUDE = "F:/Git/amd-fftw/muparserx/parser"
 }
 
 MUPARSERX_LIB = $$(MUPARSERX_LIB)
 isEmpty(MUPARSERX_LIB) {
-	MUPARSERX_LIB = "C:/Program Files/muparserx_v3_0_1/lib64"
+	MUPARSERX_LIB = "F:/Git/amd-fftw/muparserx/build/Release"
 }
 
 INCLUDEPATH += $$PWD/.. $$LIBSNDFILE_INCLUDE $$FFTW_INCLUDE $$MUPARSERX_INCLUDE

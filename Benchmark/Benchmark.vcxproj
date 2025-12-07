@@ -95,13 +95,13 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup>
-    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">C:\Program Files\libsndfile\include</LIBSNDFILE_INCLUDE>
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">C:\Program Files\libsndfile\lib</LIBSNDFILE_LIB>
-    <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">C:\Program Files\fftw\include</FFTW_INCLUDE>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">C:\Program Files\fftw\lib</FFTW_LIB>
-    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">C:\Program Files\muparserx_v3_0_1\parser</MUPARSERX_INCLUDE>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">C:\Program Files\muparserx_v3_0_1\lib64</MUPARSERX_LIB>
-    <TCLAP_ROOT Condition="'$(TCLAP_ROOT)'==''">C:\Program Files\tclap</TCLAP_ROOT>
+    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">F:\Git\libsndfile\include</LIBSNDFILE_INCLUDE>
+    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">F:\Git\libsndfile\build\Release</LIBSNDFILE_LIB>
+    <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">F:\Git\amd-fftw\build\include</FFTW_INCLUDE>
+    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">F:\Git\amd-fftw\build\Release</FFTW_LIB>
+    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">F:\Git\muparserx\parser</MUPARSERX_INCLUDE>
+    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">F:\Git\muparserx\build\Release</MUPARSERX_LIB>
+    <TCLAP_ROOT Condition="'$(TCLAP_ROOT)'==''">F:\Git\tclap</TCLAP_ROOT>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <LinkIncremental>true</LinkIncremental>
