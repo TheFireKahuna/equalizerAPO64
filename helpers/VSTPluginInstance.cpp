@@ -29,6 +29,8 @@ using namespace std;
 
 #define equalizerApoVSTID CCONST('E', 'A', 'P', 'O');
 
+VstTimeInfo vstTime{ 0,0,0,0,0,0,0,0,0,0,{0}, 0xFFFF };
+
 static intptr_t callback(AEffect* effect, int32_t opcode, int32_t index, intptr_t value, void* ptr, float opt)
 {
 	VSTPluginInstance* instance = effect != NULL ? (VSTPluginInstance*)effect->user : NULL;
@@ -66,6 +68,10 @@ static intptr_t callback(AEffect* effect, int32_t opcode, int32_t index, intptr_
 		return effect != NULL ? effect->dispatcher(effect, effEditIdle, 0, 0, NULL, 0.0f) : 0;
 
 	case audioMasterGetTime:
+		if (instance != NULL) {
+			vstTime.sampleRate = instance->getSampleRate();
+			return (intptr_t)&vstTime;
+		}
 		return 0;
 
 	case audioMasterGetSampleRate:

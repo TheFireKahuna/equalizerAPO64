@@ -138,8 +138,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 	if (skipProcessing)
 	{
 		for (unsigned i = 0; i < channelCount; i++)
-			if (input[i] != output[i])
-				memcpy(output[i], input[i], frameCount * sizeof(double));
+			memcpy(output[i], input[i], frameCount * sizeof(double));
 		return;
 	}
 
@@ -213,8 +212,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 		}
 
 		for (unsigned i = 0; i < channelCount; i++)
-			if (input[i] != output[i])
-				memcpy(output[i], input[i], frameCount * sizeof(double));
+			memcpy(output[i], input[i], frameCount * sizeof(double));
 	}
 }
 #pragma AVRT_CODE_END
