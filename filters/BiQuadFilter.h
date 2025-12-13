@@ -55,9 +55,9 @@ private:
 
     size_t channelCount;
 
-    // Aligned to 32 bytes for AVX registers (__m256d)
-    alignas(32) std::vector<double> a0, a1, a2, b1, b2; // Coefficients
-    alignas(32) std::vector<double> x1, x2, y1, y2;     // State variables
+    // Coefficient and state vectors (using unaligned SIMD loads/stores)
+    std::vector<double> a0, a1, a2, b1, b2; // Coefficients
+    std::vector<double> x1, x2, y1, y2;     // State variables
 
 #if defined(__AVX512F__) && !defined(_M_ARM64)
     void process_avx512(double** output, double** input, unsigned frameCount, unsigned startChannel, unsigned numChannels);

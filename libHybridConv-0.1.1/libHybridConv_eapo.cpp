@@ -21,7 +21,7 @@
 
 #include "stdafx.h"
 #ifndef _M_ARM64
-#include <xmmintrin.h>
+#include <immintrin.h>
 #endif
 #include <stdio.h>
 #include <stdlib.h>
@@ -131,8 +131,11 @@ void hcPutSingle(HConvSingle* filter, double* x)
 			__m512d v = _mm512_loadu_pd(x + n);
 			_mm512_storeu_pd(filter->dft_time + n, v);
 		}
-		for (; n + simd_width <= dft_len; n += simd_width) {
-			_mm512_storeu_pd(filter->dft_time + n, zero_vec);
+		// Only zero-pad if we've finished copying input
+		if (n >= flen) {
+			for (; n + simd_width <= dft_len; n += simd_width) {
+				_mm512_storeu_pd(filter->dft_time + n, zero_vec);
+			}
 		}
 	}
 #endif
@@ -146,8 +149,11 @@ void hcPutSingle(HConvSingle* filter, double* x)
 			__m256d v = _mm256_loadu_pd(x + n);
 			_mm256_storeu_pd(filter->dft_time + n, v);
 		}
-		for (; n + simd_width <= dft_len; n += simd_width) {
-			_mm256_storeu_pd(filter->dft_time + n, zero_vec);
+		// Only zero-pad if we've finished copying input
+		if (n >= flen) {
+			for (; n + simd_width <= dft_len; n += simd_width) {
+				_mm256_storeu_pd(filter->dft_time + n, zero_vec);
+			}
 		}
 	}
 #endif
@@ -161,8 +167,11 @@ void hcPutSingle(HConvSingle* filter, double* x)
 			__m128d v = _mm_loadu_pd(x + n);
 			_mm_storeu_pd(filter->dft_time + n, v);
 		}
-		for (; n + simd_width <= dft_len; n += simd_width) {
-			_mm_storeu_pd(filter->dft_time + n, zero_vec);
+		// Only zero-pad if we've finished copying input
+		if (n >= flen) {
+			for (; n + simd_width <= dft_len; n += simd_width) {
+				_mm_storeu_pd(filter->dft_time + n, zero_vec);
+			}
 		}
 	}
 #endif
@@ -308,14 +317,12 @@ void hcProcessSingle(HConvSingle* filter)
 			__m512d yi = _mm512_loadu_pd(y_imag + n);
 
 			// Real: yr += xr*hr - xi*hi
-			const __m512d xrhr = _mm512_mul_pd(xr, hr);
-			const __m512d xihi = _mm512_mul_pd(xi, hi);
-			yr = _mm512_add_pd(yr, _mm512_sub_pd(xrhr, xihi));
+			yr = _mm512_fmadd_pd(xr, hr, yr);    // yr = xr*hr + yr
+			yr = _mm512_fnmadd_pd(xi, hi, yr);   // yr = -(xi*hi) + yr = yr - xi*hi
 
 			// Imag: yi += xr*hi + xi*hr
-			const __m512d xrhi = _mm512_mul_pd(xr, hi);
-			const __m512d xihr = _mm512_mul_pd(xi, hr);
-			yi = _mm512_add_pd(yi, _mm512_add_pd(xrhi, xihr));
+			yi = _mm512_fmadd_pd(xr, hi, yi);    // yi = xr*hi + yi
+			yi = _mm512_fmadd_pd(xi, hr, yi);    // yi = xi*hr + yi
 
 			_mm512_storeu_pd(y_real + n, yr);
 			_mm512_storeu_pd(y_imag + n, yi);
@@ -334,14 +341,12 @@ void hcProcessSingle(HConvSingle* filter)
 			__m256d yi = _mm256_loadu_pd(y_imag + n);
 
 			// Real: yr += xr*hr - xi*hi
-			const __m256d xrhr = _mm256_mul_pd(xr, hr);
-			const __m256d xihi = _mm256_mul_pd(xi, hi);
-			yr = _mm256_add_pd(yr, _mm256_sub_pd(xrhr, xihi));
+			yr = _mm256_fmadd_pd(xr, hr, yr);    // yr = xr*hr + yr
+			yr = _mm256_fnmadd_pd(xi, hi, yr);   // yr = -(xi*hi) + yr = yr - xi*hi
 
 			// Imag: yi += xr*hi + xi*hr
-			const __m256d xrhi = _mm256_mul_pd(xr, hi);
-			const __m256d xihr = _mm256_mul_pd(xi, hr);
-			yi = _mm256_add_pd(yi, _mm256_add_pd(xrhi, xihr));
+			yi = _mm256_fmadd_pd(xr, hi, yi);    // yi = xr*hi + yi
+			yi = _mm256_fmadd_pd(xi, hr, yi);    // yi = xi*hr + yi
 
 			_mm256_storeu_pd(y_real + n, yr);
 			_mm256_storeu_pd(y_imag + n, yi);
@@ -360,14 +365,12 @@ void hcProcessSingle(HConvSingle* filter)
 			__m128d yi = _mm_loadu_pd(y_imag + n);
 
 			// Real: yr += xr*hr - xi*hi
-			const __m128d xrhr = _mm_mul_pd(xr, hr);
-			const __m128d xihi = _mm_mul_pd(xi, hi);
-			yr = _mm_add_pd(yr, _mm_sub_pd(xrhr, xihi));
+			yr = _mm_fmadd_pd(xr, hr, yr);       // yr = xr*hr + yr
+			yr = _mm_fnmadd_pd(xi, hi, yr);      // yr = -(xi*hi) + yr = yr - xi*hi
 
 			// Imag: yi += xr*hi + xi*hr
-			const __m128d xrhi = _mm_mul_pd(xr, hi);
-			const __m128d xihr = _mm_mul_pd(xi, hr);
-			yi = _mm_add_pd(yi, _mm_add_pd(xrhi, xihr));
+			yi = _mm_fmadd_pd(xr, hi, yi);       // yi = xr*hi + yi
+			yi = _mm_fmadd_pd(xi, hr, yi);       // yi = xi*hr + yi
 
 			_mm_storeu_pd(y_real + n, yr);
 			_mm_storeu_pd(y_imag + n, yi);

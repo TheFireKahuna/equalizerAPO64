@@ -171,16 +171,16 @@ void BiQuadFilter::process_avx512(double** output, double** input, unsigned fram
     const unsigned simd_width = 8;
     for (unsigned i = startChannel; i < startChannel + numChannels; i += simd_width)
     {
-        const __m512d _a0 = _mm512_load_pd(&a0[i]);
-        const __m512d _b1 = _mm512_load_pd(&b1[i]);
-        const __m512d _b2 = _mm512_load_pd(&b2[i]);
-        const __m512d _a1 = _mm512_load_pd(&a1[i]);
-        const __m512d _a2 = _mm512_load_pd(&a2[i]);
+        const __m512d _a0 = _mm512_loadu_pd(&a0[i]);
+        const __m512d _b1 = _mm512_loadu_pd(&b1[i]);
+        const __m512d _b2 = _mm512_loadu_pd(&b2[i]);
+        const __m512d _a1 = _mm512_loadu_pd(&a1[i]);
+        const __m512d _a2 = _mm512_loadu_pd(&a2[i]);
 
-        __m512d _x1 = _mm512_load_pd(&x1[i]);
-        __m512d _x2 = _mm512_load_pd(&x2[i]);
-        __m512d _y1 = _mm512_load_pd(&y1[i]);
-        __m512d _y2 = _mm512_load_pd(&y2[i]);
+        __m512d _x1 = _mm512_loadu_pd(&x1[i]);
+        __m512d _x2 = _mm512_loadu_pd(&x2[i]);
+        __m512d _y1 = _mm512_loadu_pd(&y1[i]);
+        __m512d _y2 = _mm512_loadu_pd(&y2[i]);
 
         for (unsigned j = 0; j < frameCount; ++j)
         {
@@ -201,10 +201,10 @@ void BiQuadFilter::process_avx512(double** output, double** input, unsigned fram
             for (int k = 0; k < 8; ++k) output[i + k][j] = result_array[k];
         }
 
-        _mm512_store_pd(&x1[i], _x1);
-        _mm512_store_pd(&x2[i], _x2);
-        _mm512_store_pd(&y1[i], _y1);
-        _mm512_store_pd(&y2[i], _y2);
+        _mm512_storeu_pd(&x1[i], _x1);
+        _mm512_storeu_pd(&x2[i], _x2);
+        _mm512_storeu_pd(&y1[i], _y1);
+        _mm512_storeu_pd(&y2[i], _y2);
     }
 }
 #endif
@@ -216,16 +216,16 @@ void BiQuadFilter::process_avx256(double** output, double** input, unsigned fram
     const unsigned simd_width = 4;
     for (unsigned i = startChannel; i < startChannel + numChannels; i += simd_width)
     {
-        const __m256d _a0 = _mm256_load_pd(&a0[i]);
-        const __m256d _b1 = _mm256_load_pd(&b1[i]);
-        const __m256d _b2 = _mm256_load_pd(&b2[i]);
-        const __m256d _a1 = _mm256_load_pd(&a1[i]);
-        const __m256d _a2 = _mm256_load_pd(&a2[i]);
+        const __m256d _a0 = _mm256_loadu_pd(&a0[i]);
+        const __m256d _b1 = _mm256_loadu_pd(&b1[i]);
+        const __m256d _b2 = _mm256_loadu_pd(&b2[i]);
+        const __m256d _a1 = _mm256_loadu_pd(&a1[i]);
+        const __m256d _a2 = _mm256_loadu_pd(&a2[i]);
 
-        __m256d _x1 = _mm256_load_pd(&x1[i]);
-        __m256d _x2 = _mm256_load_pd(&x2[i]);
-        __m256d _y1 = _mm256_load_pd(&y1[i]);
-        __m256d _y2 = _mm256_load_pd(&y2[i]);
+        __m256d _x1 = _mm256_loadu_pd(&x1[i]);
+        __m256d _x2 = _mm256_loadu_pd(&x2[i]);
+        __m256d _y1 = _mm256_loadu_pd(&y1[i]);
+        __m256d _y2 = _mm256_loadu_pd(&y2[i]);
 
         for (unsigned j = 0; j < frameCount; ++j)
         {
@@ -248,10 +248,10 @@ void BiQuadFilter::process_avx256(double** output, double** input, unsigned fram
             output[i + 3][j] = result_array[3];
         }
 
-        _mm256_store_pd(&x1[i], _x1);
-        _mm256_store_pd(&x2[i], _x2);
-        _mm256_store_pd(&y1[i], _y1);
-        _mm256_store_pd(&y2[i], _y2);
+        _mm256_storeu_pd(&x1[i], _x1);
+        _mm256_storeu_pd(&x2[i], _x2);
+        _mm256_storeu_pd(&y1[i], _y1);
+        _mm256_storeu_pd(&y2[i], _y2);
     }
 }
 #endif
@@ -263,16 +263,16 @@ void BiQuadFilter::process_sse128(double** output, double** input, unsigned fram
     const unsigned simd_width = 2;
     for (unsigned i = startChannel; i < startChannel + numChannels; i += simd_width)
     {
-        const __m128d _a0 = _mm_load_pd(&a0[i]);
-        const __m128d _b1 = _mm_load_pd(&b1[i]);
-        const __m128d _b2 = _mm_load_pd(&b2[i]);
-        const __m128d _a1 = _mm_load_pd(&a1[i]);
-        const __m128d _a2 = _mm_load_pd(&a2[i]);
+        const __m128d _a0 = _mm_loadu_pd(&a0[i]);
+        const __m128d _b1 = _mm_loadu_pd(&b1[i]);
+        const __m128d _b2 = _mm_loadu_pd(&b2[i]);
+        const __m128d _a1 = _mm_loadu_pd(&a1[i]);
+        const __m128d _a2 = _mm_loadu_pd(&a2[i]);
 
-        __m128d _x1 = _mm_load_pd(&x1[i]);
-        __m128d _x2 = _mm_load_pd(&x2[i]);
-        __m128d _y1 = _mm_load_pd(&y1[i]);
-        __m128d _y2 = _mm_load_pd(&y2[i]);
+        __m128d _x1 = _mm_loadu_pd(&x1[i]);
+        __m128d _x2 = _mm_loadu_pd(&x2[i]);
+        __m128d _y1 = _mm_loadu_pd(&y1[i]);
+        __m128d _y2 = _mm_loadu_pd(&y2[i]);
 
         for (unsigned j = 0; j < frameCount; ++j)
         {
@@ -304,10 +304,10 @@ void BiQuadFilter::process_sse128(double** output, double** input, unsigned fram
             output[i + 0][j] = result_array[0];
             output[i + 1][j] = result_array[1];
         }
-        _mm_store_pd(&x1[i], _x1);
-        _mm_store_pd(&x2[i], _x2);
-        _mm_store_pd(&y1[i], _y1);
-        _mm_store_pd(&y2[i], _y2);
+        _mm_storeu_pd(&x1[i], _x1);
+        _mm_storeu_pd(&x2[i], _x2);
+        _mm_storeu_pd(&y1[i], _y1);
+        _mm_storeu_pd(&y2[i], _y2);
     }
 }
 #endif
