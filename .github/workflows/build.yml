@@ -227,7 +227,6 @@ jobs:
         arch: ${{ matrix.platform == 'ARM64' && 'win64_msvc2022_arm64' || 'win64_msvc2022_64' }}
         dir: '${{ github.workspace }}\Qt'
         install-deps: 'true'
-        cache: 'false'
         set-env: 'true'
         setup-python: 'false'
         extra: '--external 7z'
