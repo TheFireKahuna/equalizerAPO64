@@ -191,8 +191,7 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 				// Convert output from float** back to double** into the final destination
 				for (int j = 0; j < effect->numOutputs(); j++)
 				{
-					if (channelOffset + j < channelCount) // Only convert for real output channels
-						convertFloatToDouble(outputArray[j], floatOutputs[j], frameCount);
+					convertFloatToDouble(outputArray[j], floatOutputs[j], frameCount);
 				}
 			}
 

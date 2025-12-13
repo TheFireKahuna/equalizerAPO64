@@ -35,7 +35,7 @@ public:
 
 	std::wstring getLibPath() override;
 
-	typedef AEffect* (* vstPluginMain)(audioMasterCallback audioMaster);
+	typedef vst_effect_t* (* vstPluginMain)(vst_host_callback_t audioMaster);
 	vstPluginMain VSTPluginMain;
 
 protected:

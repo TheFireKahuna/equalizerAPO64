@@ -70,7 +70,7 @@ public:
 
 private:
 	std::shared_ptr<VSTPluginLibrary> library;
-	AEffect* effect = NULL;
+	vst_effect_t* effect = NULL;
 	std::function<void()> automateFunc;
 	std::function<void(int, int)> sizeWindowFunc;
 	float sampleRate = 0.0f;
