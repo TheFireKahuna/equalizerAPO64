@@ -239,6 +239,14 @@ bool VSTPluginInstance::canDoubleReplacing() const
 	return (effect->flags & VST_EFFECT_FLAG_SUPPORTS_DOUBLE) != 0;
 }
 
+int VSTPluginInstance::getInitialDelay() const
+{
+	if (effect == NULL)
+		return 0;
+
+	return effect->delay;
+}
+
 void VSTPluginInstance::setProcessLevel(int value)
 {
 	processLevel = value;

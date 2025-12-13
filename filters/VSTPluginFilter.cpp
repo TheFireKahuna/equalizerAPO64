@@ -100,6 +100,19 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		}
 	}
 
+	// Allocate delay compensation buffers
+	delayBufferLength = firstEffect->getInitialDelay();
+	if (delayBufferLength > 0)
+	{
+		delayBuffers = (double**)MemoryHelper::alloc(channelCount * sizeof(double*));
+		for (unsigned i = 0; i < channelCount; i++)
+		{
+			delayBuffers[i] = (double*)MemoryHelper::alloc(delayBufferLength * sizeof(double));
+			memset(delayBuffers[i], 0, delayBufferLength * sizeof(double));
+		}
+		delayBufferOffset = 0;
+	}
+
 	return channelNames;
 }
 
@@ -206,6 +219,54 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 
 			channelOffset += effectChannelCount;
 		}
+
+		// Apply delay compensation if needed
+		if (delayBuffers != NULL && delayBufferLength > 0)
+		{
+			for (unsigned i = 0; i < channelCount; i++)
+			{
+				double* outputChannel = output[i];
+				double* delayBuffer = delayBuffers[i];
+
+				if (delayBufferLength <= frameCount)
+				{
+					// Delay is smaller than frame count - output from buffer then from current processing
+					memcpy(outputChannel, delayBuffer + delayBufferOffset, (delayBufferLength - delayBufferOffset) * sizeof(double));
+					memcpy(outputChannel + delayBufferLength - delayBufferOffset, delayBuffer, delayBufferOffset * sizeof(double));
+					memcpy(outputChannel + delayBufferLength, outputChannel, (frameCount - delayBufferLength) * sizeof(double));
+					memcpy(delayBuffer, outputChannel + frameCount - delayBufferLength, delayBufferLength * sizeof(double));
+				}
+				else
+				{
+					// Create temporary buffer to hold current output
+					double* tempBuffer = (double*)MemoryHelper::alloc(frameCount * sizeof(double));
+					memcpy(tempBuffer, outputChannel, frameCount * sizeof(double));
+
+					if (delayBufferLength < delayBufferOffset + frameCount)
+					{
+						// Wrapping around the delay buffer
+						memcpy(outputChannel, delayBuffer + delayBufferOffset, (delayBufferLength - delayBufferOffset) * sizeof(double));
+						memcpy(outputChannel + delayBufferLength - delayBufferOffset, delayBuffer, (frameCount - (delayBufferLength - delayBufferOffset)) * sizeof(double));
+						memcpy(delayBuffer + delayBufferOffset, tempBuffer, (delayBufferLength - delayBufferOffset) * sizeof(double));
+						memcpy(delayBuffer, tempBuffer + delayBufferLength - delayBufferOffset, (frameCount - (delayBufferLength - delayBufferOffset)) * sizeof(double));
+					}
+					else
+					{
+						// Simple case - no wrapping
+						memcpy(outputChannel, delayBuffer + delayBufferOffset, frameCount * sizeof(double));
+						memcpy(delayBuffer + delayBufferOffset, tempBuffer, frameCount * sizeof(double));
+					}
+
+					MemoryHelper::free(tempBuffer);
+				}
+			}
+
+			// Update buffer offset
+			if (delayBufferLength <= frameCount)
+				delayBufferOffset = 0;
+			else
+				delayBufferOffset = (delayBufferOffset + frameCount) % delayBufferLength;
+		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
 	{
@@ -289,4 +350,14 @@ void VSTPluginFilter::cleanup()
 		MemoryHelper::free(_floatOutputBuffer);
 		_floatOutputBuffer = NULL;
 	}
+
+	if (delayBuffers != NULL)
+	{
+		for (unsigned i = 0; i < channelCount; i++)
+			MemoryHelper::free(delayBuffers[i]);
+		MemoryHelper::free(delayBuffers);
+		delayBuffers = NULL;
+	}
+	delayBufferLength = 0;
+	delayBufferOffset = 0;
 }

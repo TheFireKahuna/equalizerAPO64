@@ -47,6 +47,7 @@ public:
 	int getLanguage() const;
 	void setLanguage(int value);
 	bool canDoubleReplacing() const;
+	int getInitialDelay() const;
 
 	void prepareForProcessing(float sampleRate, int blockSize);
 	void writeToEffect(const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap);
