@@ -297,9 +297,11 @@ void hcProcessSingle(HConvSingle* filter)
 
 #if !defined(_M_ARM64)
 		// Prefetch next filter segment to help hide memory latency.
-		if (s + 1 < stop) {
-			_mm_prefetch((char const*)(filter->filterbuf_freq_real[s + 1]), _MM_HINT_T0);
-			_mm_prefetch((char const*)(filter->filterbuf_freq_imag[s + 1]), _MM_HINT_T0);
+		// For large filter banks, prefetch 2 segments ahead for better performance.
+		const int prefetch_distance = (stop - start > 4) ? 2 : 1;
+		if (s + prefetch_distance < stop) {
+			_mm_prefetch((char const*)(filter->filterbuf_freq_real[s + prefetch_distance]), _MM_HINT_T0);
+			_mm_prefetch((char const*)(filter->filterbuf_freq_imag[s + prefetch_distance]), _MM_HINT_T0);
 		}
 #endif
 
@@ -428,15 +430,15 @@ static inline void add_out_hist_to_y_simd(const double* __restrict out,
 {
 #if defined(__AVX512F__)
 	const int VW = 8;
+	const __mmask8 mask = add_to_existing_y ? 0xFF : 0x00;
 	int i = 0;
 	for (; i + VW <= len; i += VW) {
 		__m512d vout = _mm512_loadu_pd(out + i);
 		__m512d vhist = _mm512_loadu_pd(hist + i);
 		__m512d vsum = _mm512_add_pd(vout, vhist);
-		if (add_to_existing_y) {
-			__m512d vy = _mm512_loadu_pd(y + i);
-			vsum = _mm512_add_pd(vsum, vy);
-		}
+		// If add_to_existing_y=0, mask is 0 and vy is not added
+		__m512d vy = _mm512_maskz_loadu_pd(mask, y + i);
+		vsum = _mm512_mask_add_pd(vsum, mask, vsum, vy);
 		_mm512_storeu_pd(y + i, vsum);
 	}
 	for (; i < len; ++i) {
