@@ -231,6 +231,11 @@ int VSTPluginInstance::getProcessLevel() const
 	return processLevel;
 }
 
+bool VSTPluginInstance::canDoubleReplacing() const
+{
+	return (effect->flags & effFlagsCanDoubleReplacing) != 0;
+}
+
 void VSTPluginInstance::setProcessLevel(int value)
 {
 	processLevel = value;
@@ -335,6 +340,14 @@ void VSTPluginInstance::processReplacing(float** inputArray, float** outputArray
 		return;
 
 	effect->processReplacing(effect, inputArray, outputArray, frameCount);
+}
+
+void VSTPluginInstance::processDoubleReplacing(double** inputArray, double** outputArray, int frameCount)
+{
+	if (effect == NULL)
+		return;
+
+	effect->processDoubleReplacing(effect, inputArray, outputArray, frameCount);
 }
 
 void VSTPluginInstance::process(float** inputArray, float** outputArray, int frameCount)

@@ -136,6 +136,7 @@ const int effShellGetNextPlugin = 70;
 const int effBeginLoadBank = 75;
 // The next one was gleaned from http://www.asseca.org/vst-24-specs/efBeginLoadProgram.html
 const int  effBeginLoadProgram = 76;
+const int  effFlagsCanDoubleReplacing = 77;
 
 // The next two were gleaned from http://www.kvraudio.com/forum/printview.php?t=143587&start=0
 const int effStartProcess = 71;
@@ -295,8 +296,8 @@ public:
    int32_t uniqueID;
    int32_t version;
    // processReplacing 50-53
-   void (* processReplacing)( AEffect * , float* * , float* * , int );
-
+   void (* processReplacing)( AEffect * , float * * , float * * , int );
+   void (*processDoubleReplacing)(AEffect * , double * * , double * * , int );
 } ;
 
 

@@ -166,29 +166,34 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 					outputArray[j] = emptyChannels[emptyChannelIndex++];
 			}
 
-			// Convert input from double** to float** using pre-allocated buffers
-			for (int j = 0; j < effect->numInputs(); j++)
-			{
-				convertDoubleToFloat(floatInputs[j], inputArray[j], frameCount);
+			if (effect->canDoubleReplacing()) {
+				effect->processDoubleReplacing(inputArray, outputArray, frameCount);
 			}
+			else {
+				// Convert input from double** to float** using pre-allocated buffers
+				for (int j = 0; j < effect->numInputs(); j++)
+				{
+					convertDoubleToFloat(floatInputs[j], inputArray[j], frameCount);
+				}
 
-			if (effect->canReplacing())
-			{
-				effect->processReplacing(floatInputs, floatOutputs, frameCount);
-			}
-			else
-			{
-				// For non-replacing, VST expects to add to the output. Clear float buffer first.
+				if (effect->canReplacing())
+				{
+					effect->processReplacing(floatInputs, floatOutputs, frameCount);
+				}
+				else
+				{
+					// For non-replacing, VST expects to add to the output. Clear float buffer first.
+					for (int j = 0; j < effect->numOutputs(); j++)
+						memset(floatOutputs[j], 0, frameCount * sizeof(float));
+					effect->process(floatInputs, floatOutputs, frameCount);
+				}
+
+				// Convert output from float** back to double** into the final destination
 				for (int j = 0; j < effect->numOutputs(); j++)
-					memset(floatOutputs[j], 0, frameCount * sizeof(float));
-				effect->process(floatInputs, floatOutputs, frameCount);
-			}
-
-			// Convert output from float** back to double** into the final destination
-			for (int j = 0; j < effect->numOutputs(); j++)
-			{
-				if (channelOffset + j < channelCount) // Only convert for real output channels
-					convertFloatToDouble(outputArray[j], floatOutputs[j], frameCount);
+				{
+					if (channelOffset + j < channelCount) // Only convert for real output channels
+						convertFloatToDouble(outputArray[j], floatOutputs[j], frameCount);
+				}
 			}
 
 			if (effect->numOutputs() < effect->numInputs())

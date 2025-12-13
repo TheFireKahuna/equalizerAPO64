@@ -46,12 +46,14 @@ public:
 	void setProcessLevel(int value);
 	int getLanguage() const;
 	void setLanguage(int value);
+	bool canDoubleReplacing() const;
 
 	void prepareForProcessing(float sampleRate, int blockSize);
 	void writeToEffect(const std::wstring& chunkData, const std::unordered_map<std::wstring, float>& paramMap);
 	void readFromEffect(std::wstring& chunkData, std::unordered_map<std::wstring, float>& paramMap) const;
 
 	void startProcessing();
+	void processDoubleReplacing(double** inputArray, double** outputArray, int frameCount);
 	void processReplacing(float** inputArray, float** outputArray, int frameCount);
 	void process(float** inputArray, float** outputArray, int frameCount);
 	void stopProcessing();
