@@ -60,10 +60,11 @@ private:
 	float** floatOutputs = NULL;
 	float* _floatOutputBuffer = NULL;
 
-	// Delay compensation buffers
+	// Delay compensation
 	unsigned delayBufferLength = 0;
 	double** delayBuffers = NULL;
 	unsigned delayBufferOffset = 0;
+	unsigned delayCompensationSamplesRemaining = 0;
 
 	bool skipProcessing = false;
 	bool reportCrash = true;

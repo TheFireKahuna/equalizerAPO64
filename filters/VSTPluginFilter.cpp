@@ -100,18 +100,13 @@ std::vector<std::wstring> VSTPluginFilter::initialize(float sampleRate, unsigned
 		}
 	}
 
-	// Allocate delay compensation buffers
+	// Initialize delay compensation
+	// VST plugins with lookahead report their delay and output silence initially
+	// We need to discard those initial silent samples
 	delayBufferLength = firstEffect->getInitialDelay();
-	if (delayBufferLength > 0)
-	{
-		delayBuffers = (double**)MemoryHelper::alloc(channelCount * sizeof(double*));
-		for (unsigned i = 0; i < channelCount; i++)
-		{
-			delayBuffers[i] = (double*)MemoryHelper::alloc(delayBufferLength * sizeof(double));
-			memset(delayBuffers[i], 0, delayBufferLength * sizeof(double));
-		}
-		delayBufferOffset = 0;
-	}
+	delayBuffers = NULL;
+	delayBufferOffset = 0;
+	delayCompensationSamplesRemaining = delayBufferLength;
 
 	return channelNames;
 }
@@ -220,52 +215,31 @@ void VSTPluginFilter::process(double** output, double** input, unsigned frameCou
 			channelOffset += effectChannelCount;
 		}
 
-		// Apply delay compensation if needed
-		if (delayBuffers != NULL && delayBufferLength > 0)
+		// Apply delay compensation by discarding initial silent samples
+		// VST plugins with lookahead output silence for the first N samples (where N = reported delay)
+		// We discard those samples so the actual audio starts immediately
+		if (delayCompensationSamplesRemaining > 0)
 		{
-			for (unsigned i = 0; i < channelCount; i++)
+			if (delayCompensationSamplesRemaining >= frameCount)
 			{
-				double* outputChannel = output[i];
-				double* delayBuffer = delayBuffers[i];
-
-				if (delayBufferLength <= frameCount)
-				{
-					// Delay is smaller than frame count - output from buffer then from current processing
-					memcpy(outputChannel, delayBuffer + delayBufferOffset, (delayBufferLength - delayBufferOffset) * sizeof(double));
-					memcpy(outputChannel + delayBufferLength - delayBufferOffset, delayBuffer, delayBufferOffset * sizeof(double));
-					memcpy(outputChannel + delayBufferLength, outputChannel, (frameCount - delayBufferLength) * sizeof(double));
-					memcpy(delayBuffer, outputChannel + frameCount - delayBufferLength, delayBufferLength * sizeof(double));
-				}
-				else
-				{
-					// Create temporary buffer to hold current output
-					double* tempBuffer = (double*)MemoryHelper::alloc(frameCount * sizeof(double));
-					memcpy(tempBuffer, outputChannel, frameCount * sizeof(double));
-
-					if (delayBufferLength < delayBufferOffset + frameCount)
-					{
-						// Wrapping around the delay buffer
-						memcpy(outputChannel, delayBuffer + delayBufferOffset, (delayBufferLength - delayBufferOffset) * sizeof(double));
-						memcpy(outputChannel + delayBufferLength - delayBufferOffset, delayBuffer, (frameCount - (delayBufferLength - delayBufferOffset)) * sizeof(double));
-						memcpy(delayBuffer + delayBufferOffset, tempBuffer, (delayBufferLength - delayBufferOffset) * sizeof(double));
-						memcpy(delayBuffer, tempBuffer + delayBufferLength - delayBufferOffset, (frameCount - (delayBufferLength - delayBufferOffset)) * sizeof(double));
-					}
-					else
-					{
-						// Simple case - no wrapping
-						memcpy(outputChannel, delayBuffer + delayBufferOffset, frameCount * sizeof(double));
-						memcpy(delayBuffer + delayBufferOffset, tempBuffer, frameCount * sizeof(double));
-					}
-
-					MemoryHelper::free(tempBuffer);
-				}
+				// Still discarding initial silence - pass through input unchanged
+				delayCompensationSamplesRemaining -= frameCount;
+				for (unsigned i = 0; i < channelCount; i++)
+					memcpy(output[i], input[i], frameCount * sizeof(double));
 			}
-
-			// Update buffer offset
-			if (delayBufferLength <= frameCount)
-				delayBufferOffset = 0;
 			else
-				delayBufferOffset = (delayBufferOffset + frameCount) % delayBufferLength;
+			{
+				// Partial discard - shift valid samples to the beginning and fill end with input
+				unsigned validSamples = frameCount - delayCompensationSamplesRemaining;
+				for (unsigned i = 0; i < channelCount; i++)
+				{
+					// Move valid output samples to the beginning
+					memmove(output[i], output[i] + delayCompensationSamplesRemaining, validSamples * sizeof(double));
+					// Fill the end with input (passthrough for the discarded portion)
+					memcpy(output[i] + validSamples, input[i] + validSamples, delayCompensationSamplesRemaining * sizeof(double));
+				}
+				delayCompensationSamplesRemaining = 0;
+			}
 		}
 	}
 	__except (EXCEPTION_EXECUTE_HANDLER)
@@ -360,4 +334,5 @@ void VSTPluginFilter::cleanup()
 	}
 	delayBufferLength = 0;
 	delayBufferOffset = 0;
+	delayCompensationSamplesRemaining = 0;
 }
