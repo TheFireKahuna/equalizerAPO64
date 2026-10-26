@@ -18,35 +18,99 @@
 */
 
 #include "stdafx.h"
-#include "helpers/MemoryHelper.h"
-#include "helpers/StringHelper.h"
-#include "helpers/LogHelper.h"
+#define _USE_MATH_DEFINES
+#include <cmath>
+#ifndef _M_ARM64
+#include <immintrin.h>
+#endif
+
 #include "PreampFilter.h"
-#include "PreampFilterFactory.h"
 
 using namespace std;
 
-vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+PreampFilter::PreampFilter(double dbGain, bool removeDcOffset)
+	: dbGain(std::max(-100.0, std::min(100.0, dbGain))), removeDcOffset(removeDcOffset), gain(0.0), channelCount(0)
 {
-	PreampFilter* filter = NULL;
+	gain = pow(10.0, this->dbGain / 20.0);
+}
 
-	if (command == L"Preamp")
+vector<wstring> PreampFilter::initialize(float sampleRate, unsigned maxFrameCount, vector<wstring> channelNames)
+{
+	this->channelCount = channelNames.size();
+	return channelNames;
+}
+
+#pragma AVRT_CODE_BEGIN
+void PreampFilter::process(double** output, double** input, unsigned frameCount)
+{
+	const double gainFactor = this->gain;
+
+	for (size_t c = 0; c < channelCount; ++c)
 	{
-		// Conversion to period as decimal mark, if needed
-		wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
+		double* inputChannel = input[c];
+		double* outputChannel = output[c];
+		size_t i = 0;
 
-		double preamp_dB;
-		int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
-		if (matched == 1)
+		if (removeDcOffset && frameCount > 0)
 		{
-			TraceF(L"Adjusting preamp by %g dB", preamp_dB);
+			double sum = 0.0;
+			for (unsigned j = 0; j < frameCount; ++j)
+				sum += inputChannel[j];
+			double dc = sum / static_cast<double>(frameCount);
+			for (; i < frameCount; ++i)
+				outputChannel[i] = (inputChannel[i] - dc) * gainFactor;
+			continue;
+		}
 
-			void* mem = MemoryHelper::alloc(sizeof(PreampFilter));
-			filter = new(mem) PreampFilter(preamp_dB);
+#if defined(__AVX512F__) && !defined(_M_ARM64)
+		{
+			const size_t simd_width = 8;
+			if (frameCount >= simd_width) {
+				const __m512d gain_vec = _mm512_set1_pd(gainFactor);
+				for (; i + simd_width <= frameCount; i += simd_width)
+				{
+					const __m512d samples = _mm512_loadu_pd(inputChannel + i);
+					const __m512d result = _mm512_mul_pd(samples, gain_vec);
+					_mm512_storeu_pd(outputChannel + i, result);
+				}
+			}
+		}
+#endif
+
+#if defined(__AVX2__) && !defined(_M_ARM64)
+		{
+			const size_t simd_width = 4;
+			if (frameCount - i >= simd_width) {
+				const __m256d gain_vec = _mm256_set1_pd(gainFactor);
+				for (; i + simd_width <= frameCount; i += simd_width)
+				{
+					const __m256d samples = _mm256_loadu_pd(inputChannel + i);
+					const __m256d result = _mm256_mul_pd(samples, gain_vec);
+					_mm256_storeu_pd(outputChannel + i, result);
+				}
+			}
+		}
+#endif
+
+#if !defined(_M_ARM64)
+		{
+			const size_t simd_width = 2;
+			if (frameCount - i >= simd_width) {
+				const __m128d gain_vec = _mm_set1_pd(gainFactor);
+				for (; i + simd_width <= frameCount; i += simd_width)
+				{
+					const __m128d samples = _mm_loadu_pd(inputChannel + i);
+					const __m128d result = _mm_mul_pd(samples, gain_vec);
+					_mm_storeu_pd(outputChannel + i, result);
+				}
+			}
+		}
+#endif
+
+		for (; i < frameCount; ++i)
+		{
+			outputChannel[i] = inputChannel[i] * gainFactor;
 		}
 	}
-
-	if (filter == NULL)
-		return vector<IFilter*>(0);
-	return vector<IFilter*>(1, filter);
 }
+#pragma AVRT_CODE_END

@@ -1,44 +1,750 @@
-# EqualizerAPO (double precision edition)
+/*
+This file is part of EqualizerAPO, a system-wide equalizer.
+Copyright (C) 2014  Jonas Thedering
 
-This repo contains a modified 1.4.2 port of [EqualizerAPO](https://sourceforge.net/p/equalizerapo/) - a system wide equalizer for Windows, enhanced with double precision (64 bit) audio processing, expanded AVX support and a fully automated build pipeline using Visual Studio 2022.
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 2 of the License, or
+(at your option) any later version.
 
-This effort was inspired and founded on a previous conversion of EqualizerAPO to double precision processing (https://github.com/chebum/equalizer-apo-64), updated and later rebuilt here with the latest EAPO release, and further enhanced with expanded AVX usage for optimal performancee.
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
 
-Double procession processing (64 bit internal pipeline) in EqualizerAPO maintains precision and quality when applying multiple overlapping effects. Examples include convolution, complex parametric EQ setups or GraphicEQ's. Support for AVX256 also ensures similar performance to the original 32 bit pipeline, with additional optional support for AVX512 to further enhance performance. ARM is also supported via a native start-to-end build of all dependencies and Qt projects.
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
+*/
 
-## Features
-- **Double precision processing filter engine** (32bit floats -> 64bit doubles) for improved fidelity with more complex setups
-- Support for AVX2 & AVX-512 in both EAPO and all dependencies, including FFTW3's AVX2/AVX-512 optimizations.
-- Expanded usage of AVX instructions to reduce processing latency
-- Uses shared VC++ DLLs for improved compatibility
-- Compiled with VS 2022 for all components, using the latest Windows SDK and additional compiler optimizations.
-- Built with AOCL-FFTW 3.3.10 (optimized for AMD/modern CPUs)
-- Updated Qt 6.10 for GUI components with native ARM support.
-- Uses fp-precise instead of fp-fast for floating point math.
-- Automated build pipeline for all components and the installer via Github Actions
-- Fully native start-to-end ARM64 automated build.
+#include "stdafx.h"
+#define _USE_MATH_DEFINES
+#include <cmath>
+#include <regex>
+#include <sstream>
 
-## Installation
-Download the latest version from the [Releases page](https://github.com/TheFireKahuna/equalizerAPO64/releases).
+#include "helpers/MemoryHelper.h"
+#include "helpers/StringHelper.h"
+#include "helpers/LogHelper.h"
+#include "BiQuadFilter.h"
+#include "BiQuadFilterFactory.h"
 
-## Building EqualizerAPO
-This project uses a fully automated Github Actions CI pipeline for both the main project and all dependencies.
+using namespace std;
 
-The following forked repositories are used for a stable pipeline, each including a CI pipline and a packaged release using the latest Github Actions build:
-- [AOCL-FFTW 5.1 (FFTW 3.3.10)](https://github.com/thefirekahuna/amd-fftw)
-- [muparserx 4.0.12](https://github.com/thefirekahuna/muparserx)
-- [libsndfile 1.2.2](https://github.com/thefirekahuna/libsndfile)
-- [tclap 1.2.5](https://github.com/thefirekahuna/tclap)
+static wregex regexType(L"^\\s*ON\\s+([A-Za-z]+)");
+static wregex regexFreq(L"\\s+Fc\\s*([-+0-9.eE\u00A0]+)\\s*H\\s*z");
+static wregex regexGain(L"\\s+Gain\\s*([-+0-9.eE]+)\\s*dB");
+static wregex regexQ(L"\\s+Q\\s*([-+0-9.eE]+)");
+static wregex regexBW(L"\\s+BW\\s+Oct\\s*([-+0-9.eE]+)");
+static wregex regexSlope(L"^\\s*([-+0-9.eE]+)\\s*dB");
 
-Local builds are configured via shared environment variables, directly configurable in the relevant .vcxproj and .pro files as follows:
-```
-  <PropertyGroup>
-    <LIBSNDFILE_INCLUDE Condition="'$(LIBSNDFILE_INCLUDE)'==''">F:\Git\libsndfile\include</LIBSNDFILE_INCLUDE>
-    <LIBSNDFILE_LIB Condition="'$(LIBSNDFILE_LIB)'==''">F:\Git\libsndfile\out\build\x64-Release</LIBSNDFILE_LIB>
-    <FFTW_INCLUDE Condition="'$(FFTW_INCLUDE)'==''">F:\Git\amd-fftw\build\include</FFTW_INCLUDE>
-    <FFTW_LIB Condition="'$(FFTW_LIB)'==''">F:\Git\amd-fftw\out\build\x64-Release</FFTW_LIB>
-    <MUPARSERX_INCLUDE Condition="'$(MUPARSERX_INCLUDE)'==''">F:\Git\muparserx\parser</MUPARSERX_INCLUDE>
-    <MUPARSERX_LIB Condition="'$(MUPARSERX_LIB)'==''">F:\Git\muparserx\lib64</MUPARSERX_LIB>
-    <TCLAP_ROOT Condition="'$(TCLAP_ROOT)'==''">F:\Git\tclap</TCLAP_ROOT>
-  </PropertyGroup>
-```
+BiQuadFilterFactory::BiQuadFilterFactory()
+{
+	filterNameToTypeMap[L"PK"] = BiQuad::PEAKING;
+	filterNameToTypeMap[L"PEQ"] = BiQuad::PEAKING;
+	filterNameToTypeMap[L"MODAL"] = BiQuad::PEAKING;
+	filterNameToTypeMap[L"LP"] = BiQuad::LOW_PASS;
+	filterNameToTypeMap[L"HP"] = BiQuad::HIGH_PASS;
+	filterNameToTypeMap[L"LPQ"] = BiQuad::LOW_PASS;
+	filterNameToTypeMap[L"HPQ"] = BiQuad::HIGH_PASS;
+	filterNameToTypeMap[L"BP"] = BiQuad::BAND_PASS;
+	filterNameToTypeMap[L"BR"] = BiQuad::BAND_STOP;
+	filterNameToTypeMap[L"BANDSTOP"] = BiQuad::BAND_STOP;
+	filterNameToTypeMap[L"BAND-STOP"] = BiQuad::BAND_STOP;
+	filterNameToTypeMap[L"LS"] = BiQuad::LOW_SHELF;
+	filterNameToTypeMap[L"HS"] = BiQuad::HIGH_SHELF;
+	filterNameToTypeMap[L"LSC"] = BiQuad::LOW_SHELF;
+	filterNameToTypeMap[L"HSC"] = BiQuad::HIGH_SHELF;
+	filterNameToTypeMap[L"NO"] = BiQuad::NOTCH;
+	filterNameToTypeMap[L"AP"] = BiQuad::ALL_PASS;
+	filterNameToTypeMap[L"BUTTERWORTH"] = BiQuad::LOW_PASS;
+	filterNameToTypeMap[L"BESSEL"] = BiQuad::LOW_PASS;
+	filterNameToTypeMap[L"CHEBYSHEV"] = BiQuad::LOW_PASS;
+	filterNameToTypeMap[L"ELLIPTIC"] = BiQuad::LOW_PASS;
+
+	filterTypeToDescriptionMap[BiQuad::PEAKING] = L"peaking";
+	filterTypeToDescriptionMap[BiQuad::LOW_PASS] = L"low-pass";
+	filterTypeToDescriptionMap[BiQuad::HIGH_PASS] = L"high-pass";
+	filterTypeToDescriptionMap[BiQuad::BAND_PASS] = L"band-pass";
+	filterTypeToDescriptionMap[BiQuad::BAND_STOP] = L"band-stop";
+	filterTypeToDescriptionMap[BiQuad::LOW_SHELF] = L"low-shelf";
+	filterTypeToDescriptionMap[BiQuad::HIGH_SHELF] = L"high-shelf";
+	filterTypeToDescriptionMap[BiQuad::NOTCH] = L"notch";
+	filterTypeToDescriptionMap[BiQuad::ALL_PASS] = L"all-pass";
+}
+
+vector<IFilter*> BiQuadFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
+{
+	BiQuadFilter* filter = NULL;
+
+	if (command.find(L"Filter") == 0)
+	{
+		parameters = StringHelper::replaceCharacters(parameters, L",", L".");
+
+		wsmatch match;
+		wstring typeString;
+
+		bool found = regex_search(parameters, match, regexType);
+		if (found)
+		{
+			typeString = StringHelper::toUpperCase(match.str(1));
+			if (filterNameToTypeMap.find(typeString) != filterNameToTypeMap.end())
+			{
+				BiQuad::Type type = filterNameToTypeMap[typeString];
+				wstring typeDescription = filterTypeToDescriptionMap[type];
+				parameters = match.suffix().str();
+
+				wstringstream stream;
+				stream << L"Adding " << typeDescription << L" filter";
+
+				double freq = 0;
+				double gain = 0;
+				double bandwidthOrQOrS = 0;
+				bool isBandwidthOrS = false;
+				bool isCornerFreq = false;
+				bool error = false;
+
+				found = regex_search(parameters, match, regexFreq);
+				if (found)
+				{
+					wstring freqString = match.str(1);
+					freq = getFreq(freqString);
+					stream << " with frequency " << freq << " Hz";
+				}
+				else
+				{
+					LogF(L"No frequency given in filter string %s%s", typeString.c_str(), parameters.c_str());
+					error = true;
+				}
+
+				found = regex_search(parameters, match, regexGain);
+				if (found)
+				{
+					if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::NOTCH || type == BiQuad::ALL_PASS || type == BiQuad::BAND_STOP)
+						TraceF(L"Ignoring gain for filter of type %s", typeDescription.c_str());
+					else
+					{
+						wstring gainString = match.str(1);
+						gain = wcstod(gainString.c_str(), NULL);
+						if (type == BiQuad::PEAKING)
+							stream << ", gain " << gain << " dB";
+						else
+							stream << " and gain " << gain << " dB";
+					}
+				}
+				else if (type == BiQuad::PEAKING || type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
+				{
+					LogF(L"No gain given in filter string %s%s", typeString.c_str(), parameters.c_str());
+					error = true;
+				}
+
+				found = regex_search(parameters, match, regexQ);
+				if (found)
+				{
+					wstring qString = match.str(1);
+					bandwidthOrQOrS = wcstod(qString.c_str(), NULL);
+					bandwidthOrQOrS = max(0.0001, min(1000.0, bandwidthOrQOrS));
+					stream << " and Q " << bandwidthOrQOrS;
+				}
+
+				found = regex_search(parameters, match, regexBW);
+				if (found)
+				{
+					if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
+						TraceF(L"Ignoring bandwidth for filter of type %s", typeDescription.c_str());
+					else
+					{
+						wstring bwString = match.str(1);
+						bandwidthOrQOrS = wcstod(bwString.c_str(), NULL);
+						bandwidthOrQOrS = max(0.0001, min(100.0, bandwidthOrQOrS));
+						isBandwidthOrS = true;
+						stream << " and bandwidth " << bandwidthOrQOrS << " octaves";
+					}
+				}
+
+				found = regex_search(parameters, match, regexSlope);
+				if (found)
+				{
+					if (!(type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF))
+						TraceF(L"Ignoring slope for filter of type %s", typeDescription.c_str());
+					else
+					{
+						wstring slopeString = match.str(1);
+						bandwidthOrQOrS = wcstod(slopeString.c_str(), NULL);
+						isBandwidthOrS = true;
+						stream << " and slope " << bandwidthOrQOrS << " dB";
+					}
+				}
+
+				if (bandwidthOrQOrS == 0)
+				{
+					if (type == BiQuad::PEAKING || type == BiQuad::ALL_PASS || type == BiQuad::BAND_STOP)
+					{
+						LogF(L"No Q or bandwidth given in filter string %s%s", typeString.c_str(), parameters.c_str());
+						error = true;
+					}
+					else if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::BAND_PASS)
+					{
+						bandwidthOrQOrS = M_SQRT1_2;
+					}
+					else if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
+					{
+						bandwidthOrQOrS = 0.9;
+						isBandwidthOrS = true;
+					}
+					else if (type == BiQuad::NOTCH)
+					{
+						bandwidthOrQOrS = 30.0;
+					}
+				}
+				else if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
+				{
+					if (isBandwidthOrS)
+						bandwidthOrQOrS /= 12.0;
+					if (typeString[typeString.length() - 1] != L'C')
+						isCornerFreq = true;
+				}
+
+				if (!error)
+				{
+					TraceF(L"%s", stream.str().c_str());
+
+					void* mem = MemoryHelper::alloc(sizeof(BiQuadFilter));
+					filter = new(mem) BiQuadFilter(type, gain, freq, bandwidthOrQOrS, isBandwidthOrS, isCornerFreq);
+				}
+			}
+			else if (typeString != L"NONE")
+			{
+				LogF(L"Invalid filter type %s", typeString.c_str());
+			}
+		}
+	}
+
+	if (filter == NULL)
+		return vector<IFilter*>(0);
+	return vector<IFilter*>(1, filter);
+}
+
+double BiQuadFilterFactory::getFreq(const wstring& freqString)
+{
+	double result;
+	wstring s = StringHelper::replaceCharacters(freqString, L"\u00A0", L"");
+	int matched = swscanf_s(s.c_str(), L"%lf", &result);
+	if (matched == 1)
+	{
+		if (s.length() >= 5 && s.find_first_of(L"eE") == wstring::npos)
+		{
+			if (s[s.length() - 4] == L'.')
+			{
+				result *= 1000.0;
+			}
+		}
+
+		return result;
+	}
+	else
+		return -1.0;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	
+	
+	
+	
+																																																																																																																																																																																																																							 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
