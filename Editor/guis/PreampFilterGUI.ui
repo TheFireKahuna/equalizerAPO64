@@ -57,10 +57,10 @@
       <string> dB</string>
      </property>
      <property name="minimum">
-      <double>-100.000000000000000</double>
+      <double>-10.000000000000000</double>
      </property>
      <property name="maximum">
-      <double>100.000000000000000</double>
+      <double>10.000000000000000</double>
      </property>
      <property name="singleStep">
       <double>0.100000000000000</double>
@@ -88,10 +88,10 @@
       </size>
      </property>
      <property name="minimum">
-      <number>-200</number>
+      <number>-100</number>
      </property>
      <property name="maximum">
-      <number>200</number>
+      <number>100</number>
      </property>
      <property name="pageStep">
       <number>20</number>

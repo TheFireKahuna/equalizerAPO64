@@ -1,3 +1,5 @@
 Preamp: -6 dB
-Include: example.txt
+Filter: ON PK Fc 100 Hz Gain 0 dB Q 1.41
+Filter: ON PK Fc 1000 Hz Gain 0 dB Q 1.41
+Filter: ON PK Fc 8000 Hz Gain 0 dB Q 1.41
 GraphicEQ: 25 0; 40 0; 63 0; 100 0; 160 0; 250 0; 400 0; 630 0; 1000 0; 1600 0; 2500 0; 4000 0; 6300 0; 10000 0; 16000 0

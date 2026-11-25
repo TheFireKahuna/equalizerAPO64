@@ -48,6 +48,8 @@ private slots:
 
 private:
 	int getTypeCategory(BiQuad::Type type);
+	void getQModeRange(QChar mode, double& minVal, double& maxVal) const;
+	void syncQDialFromSpinBox(double value);
 
 	Ui::BiQuadFilterGUI* ui;
 	BiQuad::Type previousType = BiQuad::PEAKING;

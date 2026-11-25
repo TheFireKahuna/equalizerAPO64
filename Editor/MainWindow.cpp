@@ -17,6 +17,7 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <cmath>
 #include <sstream>
 #include <QDrag>
 #include <QElapsedTimer>
@@ -24,6 +25,7 @@
 #include <QMimeData>
 #include <QPushButton>
 #include <QStandardItemModel>
+#include <QStatusBar>
 #include <QStringBuilder>
 #include <QScrollArea>
 #include <QFileInfo>
@@ -36,6 +38,7 @@
 #include <windows.h>
 #include <shellapi.h>
 
+#include "helpers/SafetyLimits.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
@@ -132,6 +135,12 @@ MainWindow::MainWindow(QDir configDir, QWidget* parent)
 
 	analysisPlotScene = new AnalysisPlotScene(ui->graphicsView);
 	ui->graphicsView->setScene(analysisPlotScene);
+
+	safetyStatusLabel = new QLabel(this);
+	safetyStatusLabel->setContentsMargins(8, 2, 8, 2);
+	safetyStatusLabel->setText(tr("Checking equalizer safety..."));
+	statusBar()->setSizeGripEnabled(true);
+	statusBar()->addPermanentWidget(safetyStatusLabel, 1);
 
 	analysisThread = new AnalysisThread;
 	analysisThread->start();
@@ -737,21 +746,93 @@ void MainWindow::updateAnalysisPanel()
 	analysisThread->beginGetResult();
 	int sampleRate = analysisThread->getFreqDataSampleRate();
 	int latency = analysisThread->getLatency();
-	analysisPlotScene->setFreqData(analysisThread->getFreqData(), analysisThread->getFreqDataLength(), sampleRate);
-
 	double peakGain = analysisThread->getPeakGain();
-	ui->peakGainValueLabel->setText(tr("%0 dB").arg(peakGain, 0, 'f', 1));
+	bool bypassed = analysisThread->isSafetyBypassed();
+	int invalidLines = analysisThread->getInvalidLineCount();
+	int overflowLines = analysisThread->getOverflowLineCount();
+	const vector<FilterNode>& plotNodes = analysisThread->getPlotNodes();
+
+	if (!plotNodes.empty())
+		analysisPlotScene->setAnalyticalNodes(plotNodes);
+	else
+		analysisPlotScene->setFreqData(analysisThread->getFreqData(), analysisThread->getFreqDataLength(), sampleRate);
+
+	QString peakStr = std::isfinite(peakGain)
+		? QString("%1%2 dB").arg(peakGain > 0.0 ? "+" : "").arg(peakGain, 0, 'f', 2)
+		: tr("OVERFLOW");
+	ui->peakGainValueLabel->setText(peakStr);
 	ui->peakGainValueLabel->setForegroundRole(peakGain > 0 ? QPalette::Dark : QPalette::WindowText);
 
-	ui->latencyValueLabel->setText(tr("%0 ms (%1 s.)").arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
+	if (sampleRate > 0)
+	{
+		ui->latencyValueLabel->setText(tr("%0 ms (%1 s.)").arg(latency * 1000.0 / sampleRate, 0, 'f', 1).arg(latency));
+		ui->initTimeValueLabel->setText(tr("%0 ms").arg(analysisThread->getInitializationTime(), 0, 'f', 1));
 
-	ui->initTimeValueLabel->setText(tr("%0 ms").arg(analysisThread->getInitializationTime(), 0, 'f', 1));
-
-	double cpuUsage = analysisThread->getProcessingTime() * 100.0 / (analysisThread->getProcessedFrames() * 1000.0 / sampleRate);
-	ui->cpuUsageValueLabel->setText(tr("%0 % (one core)").arg(cpuUsage, 0, 'f', 1));
-	ui->cpuUsageValueLabel->setForegroundRole(cpuUsage >= 20 ? (cpuUsage >= 50 ? QPalette::Dark : QPalette::Midlight) : QPalette::WindowText);
+		unsigned procFrames = analysisThread->getProcessedFrames();
+		double cpuUsage = (procFrames > 0)
+			? (analysisThread->getProcessingTime() * 100.0 / (procFrames * 1000.0 / sampleRate))
+			: 0.0;
+		ui->cpuUsageValueLabel->setText(tr("%0 % (one core)").arg(cpuUsage, 0, 'f', 1));
+		ui->cpuUsageValueLabel->setForegroundRole(cpuUsage >= 20 ? (cpuUsage >= 50 ? QPalette::Dark : QPalette::Midlight) : QPalette::WindowText);
+	}
 
 	analysisThread->endGetResult();
+
+	// Non-intrusive safety status bar notification
+	if (safetyStatusLabel != NULL)
+	{
+		bool dark = GUIHelper::isDarkMode();
+		int totalIgnored = invalidLines + overflowLines;
+		QString ignoredSuffix;
+		if (totalIgnored > 0)
+		{
+			ignoredSuffix = tr("  |  %1 invalid/extra line(s) ignored").arg(totalIgnored);
+		}
+
+		if (bypassed)
+		{
+			safetyStatusLabel->setText(
+				tr("SAFETY BYPASS ACTIVE — Peak gain %1 exceeds +%2 dB limit (Equalizer is bypassed; lower gain below +%2 dB)")
+					.arg(peakStr)
+					.arg(SafetyLimits::MAX_PEAK_GAIN_DB, 0, 'f', 1)
+				+ ignoredSuffix);
+			safetyStatusLabel->setStyleSheet(dark
+				? "background-color: #7f1d1d; color: #fecaca; font-weight: bold; border-radius: 3px; padding: 2px 8px;"
+				: "background-color: #fee2e2; color: #991b1b; font-weight: bold; border: 1px solid #f87171; border-radius: 3px; padding: 2px 8px;");
+		}
+		else if (peakGain > 0.0)
+		{
+			safetyStatusLabel->setText(
+				tr("EQ Active (Mild clipping zone) — Peak gain: %1 (Safety bypass limit: +%2 dB)")
+					.arg(peakStr)
+					.arg(SafetyLimits::MAX_PEAK_GAIN_DB, 0, 'f', 1)
+				+ ignoredSuffix);
+			safetyStatusLabel->setStyleSheet(dark
+				? "background-color: #78350f; color: #fde68a; font-weight: bold; border-radius: 3px; padding: 2px 8px;"
+				: "background-color: #fef3c7; color: #92400e; font-weight: bold; border: 1px solid #fbbf24; border-radius: 3px; padding: 2px 8px;");
+		}
+		else if (totalIgnored > 0)
+		{
+			safetyStatusLabel->setText(
+				tr("EQ Active — Peak gain: %1 (Safety bypass limit: +%2 dB)")
+					.arg(peakStr)
+					.arg(SafetyLimits::MAX_PEAK_GAIN_DB, 0, 'f', 1)
+				+ ignoredSuffix);
+			safetyStatusLabel->setStyleSheet(dark
+				? "background-color: #78350f; color: #fde68a; border-radius: 3px; padding: 2px 8px;"
+				: "background-color: #fef3c7; color: #92400e; border: 1px solid #fbbf24; border-radius: 3px; padding: 2px 8px;");
+		}
+		else
+		{
+			safetyStatusLabel->setText(
+				tr("EQ Active — Peak gain: %1 (Safety bypass limit: +%2 dB)")
+					.arg(peakStr)
+					.arg(SafetyLimits::MAX_PEAK_GAIN_DB, 0, 'f', 1));
+			safetyStatusLabel->setStyleSheet(dark
+				? "background-color: #14532d; color: #bbf7d0; border-radius: 3px; padding: 2px 8px;"
+				: "background-color: #dcfce7; color: #166534; border: 1px solid #86efac; border-radius: 3px; padding: 2px 8px;");
+		}
+	}
 }
 
 void MainWindow::on_mainToolBar_visibilityChanged(bool visible)
@@ -936,36 +1017,32 @@ bool MainWindow::askForClose(int tabIndex)
 
 void MainWindow::startAnalysis()
 {
-	if (!ui->analysisDockWidget->isVisible())
-		return;
-
+	// Always run safety & peak-gain analysis even if the Analysis dock panel is hidden,
+	// so the status bar safety indicator stays continuously up-to-date.
 	shared_ptr<AbstractAPOInfo> selectedDevice;
 
-	int channelMask;
+	int channelMask = 0;
 	getDeviceAndChannelMask(&selectedDevice, &channelMask);
 
-	if (selectedDevice != NULL)
+	QString configPath;
+
+	if (ui->startFromComboBox->currentIndex() == 1)
 	{
-		QString configPath;
-
-		if (ui->startFromComboBox->currentIndex() == 1)
+		QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
+		if (scrollArea != NULL)
 		{
-			QScrollArea* scrollArea = qobject_cast<QScrollArea*>(ui->tabWidget->currentWidget());
-			if (scrollArea != NULL)
-			{
-				FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
+			FilterTable* filterTable = qobject_cast<FilterTable*>(scrollArea->widget());
 
-				if (filterTable->getConfigPath().length() > 0)
-					configPath = filterTable->getConfigPath();
-			}
+			if (filterTable->getConfigPath().length() > 0)
+				configPath = filterTable->getConfigPath();
 		}
-
-		if (configPath.isEmpty())
-			configPath = configDir.absoluteFilePath("config.txt");
-		configPath = QDir::toNativeSeparators(configPath);
-
-		analysisThread->setParameters(selectedDevice, channelMask, ui->analysisChannelComboBox->currentIndex(), configPath, ui->resolutionSpinBox->value());
 	}
+
+	if (configPath.isEmpty())
+		configPath = configDir.absoluteFilePath("config.txt");
+	configPath = QDir::toNativeSeparators(configPath);
+
+	analysisThread->setParameters(selectedDevice, channelMask, ui->analysisChannelComboBox->currentIndex(), configPath, ui->resolutionSpinBox->value());
 }
 
 void MainWindow::loadPreferences()

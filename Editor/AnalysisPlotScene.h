@@ -33,6 +33,7 @@ public:
 	AnalysisPlotScene(QObject* parent = 0);
 
 	void setFreqData(fftw_complex* freqData, int frameCount, unsigned sampleRate);
+	void setAnalyticalNodes(const std::vector<FilterNode>& newNodes);
 
 	const std::vector<FilterNode>& getNodes() const;
 

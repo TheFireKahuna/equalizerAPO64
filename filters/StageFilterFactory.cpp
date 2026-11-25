@@ -53,52 +53,7 @@ std::vector<IFilter*> StageFilterFactory::startOfFile(const std::wstring& config
 
 vector<IFilter*> StageFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
-	if (command == L"Stage")
-	{
-		stageMatches = false;
-
-		wstring stageString = StringHelper::toLowerCase(StringHelper::trim(parameters));
-		vector<wstring> parts = StringHelper::split(stageString, L' ');
-		wstring matchingPart;
-		for (auto it = parts.begin(); it != parts.end(); it++)
-		{
-			const wstring& part = *it;
-			if (part == L"pre-mix")
-			{
-				if (!capture && preMix)
-				{
-					stageMatches = true;
-					matchingPart = part;
-				}
-			}
-			else if (part == L"post-mix")
-			{
-				if (!capture && !preMix)
-				{
-					stageMatches = true;
-					matchingPart = part;
-				}
-			}
-			else if (part == L"capture")
-			{
-				if (capture)
-				{
-					stageMatches = true;
-					matchingPart = part;
-				}
-			}
-			else
-			{
-				LogF(L"Unknown stage \"%s\"! Only pre-mix, post-mix and capture are supported.", part.c_str());
-			}
-		}
-
-		if (stageMatches)
-			TraceF(L"Matching stage \"%s\"", matchingPart.c_str());
-		else
-			TraceF(L"Not matching stage set \"%s\"", stageString.c_str());
-	}
-
+	// User-defined Stage commands in config.txt are disabled; only automatic PreMix/PostMix stage selection is active.
 	if (!stageMatches)
 		// skip line for further factories
 		command = L"";

@@ -30,6 +30,7 @@ public:
 	explicit PreampFilter(double dbGain);
 	virtual ~PreampFilter() = default; 
 
+	FilterKind getFilterKind() const override { return FilterKind::Preamp; }
 	bool getInPlace() override { return true; }
 
 	std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;

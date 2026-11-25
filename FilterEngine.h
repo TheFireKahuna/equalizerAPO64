@@ -27,6 +27,7 @@
 
 #include "IFilterFactory.h"
 #include "FilterConfiguration.h"
+#include "helpers/GainIterator.h"
 #include "helpers/PrecisionTimer.h"
 #include "helpers/MemoryHelper.h"
 
@@ -67,8 +68,17 @@ public:
 	unsigned getMaxFrameCount() const {return maxFrameCount;}
 	mup::ParserX* getParser() {return parser;}
 
+	void setAnalysisMode(bool enabled) {analysisMode = enabled;}
+	bool isSafetyBypassed() const {return safetyBypassed;}
+	double getExactPeakGainDb() const {return exactPeakGainDb;}
+	int getInvalidLineCount() const {return invalidLineCount;}
+	int getOverflowLineCount() const {return overflowLineCount;}
+	const std::vector<FilterNode>& getAnalyticalPlotNodes() const {return analyticalPlotNodes;}
+
 private:
 	void addFilters(std::vector<IFilter*> filters);
+	bool isCommentedFilterValid(const std::wstring& uncommentedLine);
+	void cleanupFilterInfos();
 	void cleanupConfigurations();
 	static unsigned long __stdcall notificationThread(void* parameter);
 	void resizeBuffers(unsigned frameCount);
@@ -118,5 +128,12 @@ private:
 	void* shutdownEvent;
 	std::unordered_set<std::wstring> watchRegistryKeys;
 	bool lastInputWasSilent;
+
+	bool analysisMode = false;
+	bool safetyBypassed = false;
+	double exactPeakGainDb = 0.0;
+	int invalidLineCount = 0;
+	int overflowLineCount = 0;
+	std::vector<FilterNode> analyticalPlotNodes;
 };
 #pragma AVRT_VTABLES_END

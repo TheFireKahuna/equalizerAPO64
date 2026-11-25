@@ -30,7 +30,8 @@ CommentFilterGUIFactory::CommentFilterGUIFactory()
 QList<FilterTemplate> CommentFilterGUIFactory::createFilterTemplates()
 {
 	QList<FilterTemplate> list;
-	list.append(FilterTemplate(tr("Comment"), "# ", QStringList()));
+	// Standalone raw comment template disabled; CommentFilterGUI remains active as the On/Off toggle decorator.
+	// list.append(FilterTemplate(tr("Comment"), "# ", QStringList()));
 	return list;
 }
 

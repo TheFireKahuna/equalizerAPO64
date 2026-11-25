@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM64">
@@ -339,10 +339,12 @@
     <ClInclude Include="helpers\AbstractLibrary.h" />
     <ClInclude Include="helpers\aeffectx.h" />
     <ClInclude Include="helpers\ChannelHelper.h" />
+    <ClInclude Include="helpers\GainAnalysisHelper.h" />
     <ClInclude Include="helpers\GainIterator.h" />
     <ClInclude Include="helpers\LogHelper.h" />
     <ClInclude Include="helpers\PrecisionTimer.h" />
     <ClInclude Include="helpers\RegistryHelper.h" />
+    <ClInclude Include="helpers\SafetyLimits.h" />
     <ClInclude Include="helpers\ScopeGuard.h" />
     <ClInclude Include="helpers\StringHelper.h" />
     <ClInclude Include="helpers\UncaughtExceptions.h" />
@@ -392,6 +394,7 @@
     <ClCompile Include="filters\VSTPluginFilterFactory.cpp" />
     <ClCompile Include="helpers\AbstractLibrary.cpp" />
     <ClCompile Include="helpers\ChannelHelper.cpp" />
+    <ClCompile Include="helpers\GainAnalysisHelper.cpp" />
     <ClCompile Include="helpers\GainIterator.cpp" />
     <ClCompile Include="helpers\LogHelper.cpp" />
     <ClCompile Include="helpers\RegistryHelper.cpp" />

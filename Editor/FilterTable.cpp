@@ -36,21 +36,22 @@
 #include "MainWindow.h"
 #include "FilterTableRow.h"
 #include "FilterTableMimeData.h"
-#include "guis/ExpressionFilterGUIFactory.h"
+// #include "guis/ExpressionFilterGUIFactory.h"
 #include "guis/CommentFilterGUIFactory.h"
-#include "guis/DeviceFilterGUIFactory.h"
-#include "guis/ChannelFilterGUIFactory.h"
-#include "guis/StageFilterGUIFactory.h"
+// #include "guis/DeviceFilterGUIFactory.h"
+// #include "guis/ChannelFilterGUIFactory.h"
+// #include "guis/StageFilterGUIFactory.h"
 #include "guis/PreampFilterGUIFactory.h"
 #include "guis/BiQuadFilterGUIFactory.h"
-#include "guis/CopyFilterGUIFactory.h"
-#include "guis/DelayFilterGUIFactory.h"
-#include "guis/IncludeFilterGUIFactory.h"
+// #include "guis/CopyFilterGUIFactory.h"
+// #include "guis/DelayFilterGUIFactory.h"
+// #include "guis/IncludeFilterGUIFactory.h"
 #include "guis/GraphicEQFilterGUIFactory.h"
-#include "guis/ConvolutionFilterGUIFactory.h"
-#include "guis/VSTPluginFilterGUIFactory.h"
-#include "guis/LoudnessCorrectionFilterGUIFactory.h"
+// #include "guis/ConvolutionFilterGUIFactory.h"
+// #include "guis/VSTPluginFilterGUIFactory.h"
+// #include "guis/LoudnessCorrectionFilterGUIFactory.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "helpers/SafetyLimits.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
 #include "helpers/ChannelHelper.h"
@@ -69,20 +70,21 @@ FilterTable::FilterTable(MainWindow* mainWindow, QWidget* parent)
 	insertArrow->setPixmap(icon.pixmap(GUIHelper::scale(QSize(24, 15))));
 	insertArrow->setVisible(false);
 
-	factories.append(new ExpressionFilterGUIFactory);
+	// Only CommentFilterGUIFactory (On/Off toggle decorator) and the 3 safe EQ filter GUIs are enabled:
+	// factories.append(new ExpressionFilterGUIFactory);
 	factories.append(new CommentFilterGUIFactory);
-	factories.append(new IncludeFilterGUIFactory);
-	factories.append(new DeviceFilterGUIFactory);
-	factories.append(new ChannelFilterGUIFactory);
-	factories.append(new StageFilterGUIFactory);
+	// factories.append(new IncludeFilterGUIFactory);
+	// factories.append(new DeviceFilterGUIFactory);
+	// factories.append(new ChannelFilterGUIFactory);
+	// factories.append(new StageFilterGUIFactory);
 	factories.append(new PreampFilterGUIFactory);
 	factories.append(new BiQuadFilterGUIFactory);
-	factories.append(new DelayFilterGUIFactory);
-	factories.append(new CopyFilterGUIFactory);
+	// factories.append(new DelayFilterGUIFactory);
+	// factories.append(new CopyFilterGUIFactory);
 	factories.append(new GraphicEQFilterGUIFactory);
-	factories.append(new ConvolutionFilterGUIFactory);
-	factories.append(new VSTPluginFilterGUIFactory);
-	factories.append(new LoudnessCorrectionFilterGUIFactory);
+	// factories.append(new ConvolutionFilterGUIFactory);
+	// factories.append(new VSTPluginFilterGUIFactory);
+	// factories.append(new LoudnessCorrectionFilterGUIFactory);
 
 	QApplication::instance()->installEventFilter(this);
 }
@@ -157,30 +159,34 @@ void FilterTable::updateGuis()
 	{
 		QString line = item->text;
 		IFilterGUI* gui = NULL;
-		int pos = line.indexOf(':');
-		if (pos != -1)
+		// Lines beyond MAX_FILTER_COUNT (20) are ignored by the audio engine and rendered as invalid rows
+		if (row < SafetyLimits::MAX_FILTER_COUNT)
 		{
-			QString key = line.mid(0, pos);
-			QString value = line.mid(pos + 1);
-
-			// allow to use indentation
-			key = key.trimmed();
-			QString factoryKey = key;
-			QString factoryValue = value;
-
-			for (IFilterGUIFactory* factory : factories)
+			int pos = line.indexOf(':');
+			if (pos != -1)
 			{
-				gui = factory->createFilterGUI(factoryKey, factoryValue);
+				QString key = line.mid(0, pos);
+				QString value = line.mid(pos + 1);
 
-				if (gui != NULL || factoryKey == "")
-					break;
-			}
+				// allow to use indentation
+				key = key.trimmed();
+				QString factoryKey = key;
+				QString factoryValue = value;
 
-			if (gui != NULL)
-			{
 				for (IFilterGUIFactory* factory : factories)
 				{
-					gui = factory->decorateFilterGUI(gui);
+					gui = factory->createFilterGUI(factoryKey, factoryValue);
+
+					if (gui != NULL || factoryKey == "")
+						break;
+				}
+
+				if (gui != NULL)
+				{
+					for (IFilterGUIFactory* factory : factories)
+					{
+						gui = factory->decorateFilterGUI(gui);
+					}
 				}
 			}
 		}
@@ -215,6 +221,7 @@ void FilterTable::updateGuis()
 
 	QAction* addAction = new QAction(QIcon(":/icons/list-add-green.ico"), tr("Add filter"), toolBar);
 	addAction->setCheckable(true);
+	addAction->setVisible(canAddFilter());
 	connect(addAction, SIGNAL(triggered()), this, SLOT(addActionTriggered()));
 	toolBar->addAction(addAction);
 
@@ -320,8 +327,16 @@ void FilterTable::setLines(const QString& configPath, const QList<QString>& line
 	updateGuis();
 }
 
+bool FilterTable::canAddFilter() const
+{
+	return items.size() < SafetyLimits::MAX_FILTER_COUNT;
+}
+
 FilterTable::Item* FilterTable::addLine(const QString& line, FilterTable::Item* before)
 {
+	if (!canAddFilter())
+		return NULL;
+
 	Item* newItem = new Item(line);
 
 	if (before != NULL)
@@ -419,6 +434,10 @@ void FilterTable::copy()
 
 void FilterTable::paste()
 {
+	int remaining = SafetyLimits::MAX_FILTER_COUNT - items.size();
+	if (remaining <= 0)
+		return;
+
 	QClipboard* clipboard = QApplication::clipboard();
 	const QMimeData* mimeData = clipboard->mimeData();
 	if (mimeData->hasText())
@@ -440,14 +459,18 @@ void FilterTable::paste()
 		if (filterTableMimeData != NULL)
 			prefsList = filterTableMimeData->getPrefsList();
 
+		int countToInsert = std::min<int>((int)textLines.size(), remaining);
+		if (countToInsert <= 0)
+			return;
+
 		selected.clear();
 		focused = NULL;
 		selectionStart = NULL;
-		for (int i = 0; i < textLines.size(); i++)
+		for (int i = 0; i < countToInsert; i++)
 		{
 			QString line = textLines[i];
 			Item* item = new Item(line);
-			if (!prefsList.isEmpty())
+			if (i < prefsList.size())
 				item->prefs = prefsList[i];
 			selected.insert(item);
 			items.insert(dropRow++, item);
@@ -507,6 +530,9 @@ void FilterTable::updateChannels()
 
 void FilterTable::addActionTriggered()
 {
+	if (!canAddFilter())
+		return;
+
 	QMenu* menu = createAddPopupMenu();
 	QAction* addAction = qobject_cast<QAction*>(QObject::sender());
 	QToolBar* toolBar = qobject_cast<QToolBar*>(addAction->parentWidget());
@@ -514,7 +540,7 @@ void FilterTable::addActionTriggered()
 	QPoint p = toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));
 	QAction* action = menu->exec(p);
 	addAction->setChecked(false);
-	if (action != NULL)
+	if (action != NULL && canAddFilter())
 	{
 		FilterTemplate t = action->data().value<FilterTemplate>();
 		QString line = t.getLine();
@@ -728,7 +754,8 @@ void FilterTable::mouseMoveEvent(QMouseEvent* event)
 				drag->setMimeData(mimeData);
 				QSet<Item*> selectedBefore = selected;
 				internalDrag = true;
-				Qt::DropAction action = drag->exec(Qt::MoveAction | Qt::CopyAction);
+				Qt::DropActions allowedActions = canAddFilter() ? (Qt::MoveAction | Qt::CopyAction) : Qt::MoveAction;
+				Qt::DropAction action = drag->exec(allowedActions);
 				internalDrag = false;
 				if (action == Qt::MoveAction)
 				{
@@ -760,10 +787,13 @@ void FilterTable::dragEnterEvent(QDragEnterEvent* event)
 {
 	if (event->mimeData()->hasText())
 	{
-		if (event->keyboardModifiers() & Qt::ControlModifier)
-			event->setDropAction(Qt::CopyAction);
-		else
-			event->setDropAction(Qt::MoveAction);
+		bool wantsCopy = !internalDrag || ((event->keyboardModifiers() & Qt::ControlModifier) && canAddFilter());
+		if (wantsCopy && !canAddFilter())
+		{
+			event->ignore();
+			return;
+		}
+		event->setDropAction(wantsCopy ? Qt::CopyAction : Qt::MoveAction);
 		event->accept();
 	}
 
@@ -774,10 +804,14 @@ void FilterTable::dragMoveEvent(QDragMoveEvent* event)
 {
 	if (event->mimeData()->hasText())
 	{
-		if (event->keyboardModifiers() & Qt::ControlModifier)
-			event->setDropAction(Qt::CopyAction);
-		else
-			event->setDropAction(Qt::MoveAction);
+		bool wantsCopy = !internalDrag || ((event->keyboardModifiers() & Qt::ControlModifier) && canAddFilter());
+		if (wantsCopy && !canAddFilter())
+		{
+			insertArrow->hide();
+			event->ignore();
+			return;
+		}
+		event->setDropAction(wantsCopy ? Qt::CopyAction : Qt::MoveAction);
 
 		int dropRow = rowForPos(event->pos(), true);
 
@@ -801,10 +835,16 @@ void FilterTable::dropEvent(QDropEvent* event)
 	const QMimeData* mimeData = event->mimeData();
 	if (mimeData->hasText())
 	{
-		if (event->keyboardModifiers() & Qt::ControlModifier)
-			event->setDropAction(Qt::CopyAction);
-		else
-			event->setDropAction(Qt::MoveAction);
+		bool isPureInternalMove = internalDrag && !((event->keyboardModifiers() & Qt::ControlModifier) && canAddFilter());
+		int remaining = SafetyLimits::MAX_FILTER_COUNT - items.size();
+		if (!isPureInternalMove && remaining <= 0)
+		{
+			insertArrow->hide();
+			event->ignore();
+			return;
+		}
+
+		event->setDropAction(isPureInternalMove ? Qt::MoveAction : Qt::CopyAction);
 
 		QString text = mimeData->text();
 		QStringList textLines = text.split("\n");
@@ -813,6 +853,8 @@ void FilterTable::dropEvent(QDropEvent* event)
 		if (filterTableMimeData != NULL)
 			prefsList = filterTableMimeData->getPrefsList();
 
+		int countToInsert = isPureInternalMove ? (int)textLines.size() : std::min<int>((int)textLines.size(), remaining);
+
 		int dropRow = rowForPos(event->pos(), true);
 		if (dropRow == -1)
 			dropRow = items.size();
@@ -820,11 +862,11 @@ void FilterTable::dropEvent(QDropEvent* event)
 		selected.clear();
 		focused = NULL;
 		selectionStart = NULL;
-		for (int i = 0; i < textLines.size(); i++)
+		for (int i = 0; i < countToInsert; i++)
 		{
 			QString line = textLines[i];
 			Item* item = new Item(line);
-			if (!prefsList.isEmpty())
+			if (i < prefsList.size())
 				item->prefs = prefsList[i];
 			selected.insert(item);
 			items.insert(dropRow++, item);
@@ -902,20 +944,7 @@ void FilterTable::keyPressEvent(QKeyEvent* event)
 		update();
 	}
 
-	if (event->key() == Qt::Key_F2)
-	{
-		if (focused != NULL)
-		{
-			int rowIndex = items.indexOf(focused);
-			if (rowIndex != -1)
-			{
-				QLayoutItem* layoutItem = gridLayout->itemAtPosition(rowIndex, 0);
-				FilterTableRow* tableRow = qobject_cast<FilterTableRow*>(layoutItem->widget());
-				if (tableRow != NULL)
-					tableRow->editText();
-			}
-		}
-	}
+	// Raw text editing via F2 is disabled for safety.
 
 	if (event->key() == Qt::Key_Delete)
 	{

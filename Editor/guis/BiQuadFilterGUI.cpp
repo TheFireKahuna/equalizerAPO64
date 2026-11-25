@@ -19,18 +19,18 @@
 
 #define _USE_MATH_DEFINES
 #include <cmath>
+#include <algorithm>
 #include <QStandardItemModel>
 
+#include "helpers/SafetyLimits.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "BiQuadFilterGUI.h"
 #include "ui_BiQuadFilterGUI.h"
 
-static const double dialFreqSteps = 1000;
-static const double dialFreqMin = 20;
-static const double dialFreqMax = 20000;
-static const double dialQSteps = 1000;
-static const double dialQMin = 0.3333;
-static const double dialQMax = 33.3333;
+static const double dialFreqSteps = 1000.0;
+static const double dialFreqMin = SafetyLimits::MIN_FREQ_HZ;
+static const double dialFreqMax = SafetyLimits::MAX_FREQ_HZ;
+static const double dialQSteps = 1000.0;
 
 BiQuadFilterGUI::BiQuadFilterGUI(BiQuadFilter* filter)
 	: ui(new Ui::BiQuadFilterGUI)
@@ -40,6 +40,9 @@ BiQuadFilterGUI::BiQuadFilterGUI(BiQuadFilter* filter)
 	ui->freqDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->gainDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
 	ui->qDial->setFixedSize(GUIHelper::scale(QSize(100, 66)));
+
+	ui->freqSpinBox->setRange(SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
+	ui->gainSpinBox->setRange(SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 
 	ui->typeComboBox->addItem(tr("Peaking filter"), BiQuad::PEAKING);
 	ui->typeComboBox->addItem(tr("Low-pass filter"), BiQuad::LOW_PASS);
@@ -58,7 +61,8 @@ BiQuadFilterGUI::BiQuadFilterGUI(BiQuadFilter* filter)
 	if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
 		ui->freqComboBox->setCurrentIndex(filter->getIsCornerFreq() ? 1 : 0);
 
-	ui->freqSpinBox->setValue(filter->getFreq());
+	ui->freqSpinBox->setValue(std::clamp(filter->getFreq(), SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ));
+	ui->gainSpinBox->setValue(std::clamp(filter->getDbGain(), SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB));
 
 	if (type == BiQuad::PEAKING)
 		ui->qComboBox->setCurrentIndex(filter->getIsBandwidthOrS() ? 1 : 0);
@@ -69,17 +73,52 @@ BiQuadFilterGUI::BiQuadFilterGUI(BiQuadFilter* filter)
 	else if (type == BiQuad::NOTCH)
 		ui->qComboBox->setCurrentIndex(filter->getBandwidthOrQOrS() == 30.0 ? 0 : 1);
 
-	if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF) && filter->getIsBandwidthOrS() && filter->getBandwidthOrQOrS() != 0.9)
-		ui->qSpinBox->setValue(filter->getBandwidthOrQOrS() * 12.0);
-	else
-		ui->qSpinBox->setValue(filter->getBandwidthOrQOrS());
+	QChar currentMode = ui->qComboBox->currentData().toChar();
+	double minQVal, maxQVal;
+	getQModeRange(currentMode, minQVal, maxQVal);
+	ui->qSpinBox->setRange(minQVal, maxQVal);
 
-	ui->gainSpinBox->setValue(filter->getDbGain());
+	double initialQSpin = filter->getBandwidthOrQOrS();
+	if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF) && filter->getIsBandwidthOrS() && filter->getBandwidthOrQOrS() != 0.9)
+		initialQSpin = filter->getBandwidthOrQOrS() * 12.0;
+
+	ui->qSpinBox->setValue(std::clamp(initialQSpin, minQVal, maxQVal));
+	syncQDialFromSpinBox(ui->qSpinBox->value());
 }
 
 BiQuadFilterGUI::~BiQuadFilterGUI()
 {
 	delete ui;
+}
+
+void BiQuadFilterGUI::getQModeRange(QChar mode, double& minVal, double& maxVal) const
+{
+	if (mode == 'B')
+	{
+		minVal = SafetyLimits::MIN_BW_OCT_GUI;
+		maxVal = SafetyLimits::MAX_BW_OCT_GUI;
+	}
+	else if (mode == 'S')
+	{
+		minVal = SafetyLimits::MIN_SLOPE_DB;
+		maxVal = SafetyLimits::MAX_SLOPE_DB;
+	}
+	else
+	{
+		minVal = SafetyLimits::MIN_Q;
+		maxVal = SafetyLimits::MAX_Q;
+	}
+}
+
+void BiQuadFilterGUI::syncQDialFromSpinBox(double value)
+{
+	QChar mode = ui->qComboBox->currentData().toChar();
+	double minVal, maxVal;
+	getQModeRange(mode, minVal, maxVal);
+	double clamped = std::clamp(value, minVal, maxVal);
+	bool previousValue = ui->qDial->blockSignals(true);
+	ui->qDial->setValue(round(dialQSteps * log(clamped / minVal) / log(maxVal / minVal)));
+	ui->qDial->blockSignals(previousValue);
 }
 
 void BiQuadFilterGUI::store(QString& command, QString& parameters)
@@ -131,18 +170,18 @@ void BiQuadFilterGUI::store(QString& command, QString& parameters)
 	}
 
 	if ((type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF) && mode == 'S')
-		parameters += QString(" %1 dB").arg(ui->qSpinBox->value());
+		parameters += QString(" %1 dB").arg(std::clamp(ui->qSpinBox->value(), SafetyLimits::MIN_SLOPE_DB, SafetyLimits::MAX_SLOPE_DB));
 
-	parameters += QString(" Fc %1 Hz").arg(ui->freqSpinBox->value());
+	parameters += QString(" Fc %1 Hz").arg(std::clamp(ui->freqSpinBox->value(), SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ));
 
 	if (type == BiQuad::PEAKING || type == BiQuad::LOW_SHELF
 		|| type == BiQuad::HIGH_SHELF)
-		parameters += QString(" Gain %1 dB").arg(ui->gainSpinBox->value());
+		parameters += QString(" Gain %1 dB").arg(std::clamp(ui->gainSpinBox->value(), SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB));
 
 	if (mode == 'Q')
-		parameters += QString(" Q %1").arg(ui->qSpinBox->value());
+		parameters += QString(" Q %1").arg(std::clamp(ui->qSpinBox->value(), SafetyLimits::MIN_Q, SafetyLimits::MAX_Q));
 	else if (mode == 'B')
-		parameters += QString(" BW Oct %1").arg(ui->qSpinBox->value());
+		parameters += QString(" BW Oct %1").arg(std::clamp(ui->qSpinBox->value(), SafetyLimits::MIN_BW_OCT_GUI, SafetyLimits::MAX_BW_OCT_GUI));
 }
 
 void BiQuadFilterGUI::on_freqDial_valueChanged(int value)
@@ -152,8 +191,9 @@ void BiQuadFilterGUI::on_freqDial_valueChanged(int value)
 
 void BiQuadFilterGUI::on_freqSpinBox_valueChanged(double value)
 {
+	double clamped = std::clamp(value, dialFreqMin, dialFreqMax);
 	bool previousValue = ui->freqDial->blockSignals(true);
-	ui->freqDial->setValue(round(dialFreqSteps * log(value / dialFreqMin) / log(dialFreqMax / dialFreqMin)));
+	ui->freqDial->setValue(round(dialFreqSteps * log(clamped / dialFreqMin) / log(dialFreqMax / dialFreqMin)));
 	ui->freqDial->blockSignals(previousValue);
 
 	emit updateModel();
@@ -161,14 +201,15 @@ void BiQuadFilterGUI::on_freqSpinBox_valueChanged(double value)
 
 void BiQuadFilterGUI::on_qDial_valueChanged(int value)
 {
-	ui->qSpinBox->setValue(pow(dialQMax / dialQMin, value / dialQSteps) * dialQMin);
+	QChar mode = ui->qComboBox->currentData().toChar();
+	double minVal, maxVal;
+	getQModeRange(mode, minVal, maxVal);
+	ui->qSpinBox->setValue(pow(maxVal / minVal, value / dialQSteps) * minVal);
 }
 
 void BiQuadFilterGUI::on_qSpinBox_valueChanged(double value)
 {
-	bool previousValue = ui->qDial->blockSignals(true);
-	ui->qDial->setValue(round(dialQSteps * log(value / dialQMin) / log(dialQMax / dialQMin)));
-	ui->qDial->blockSignals(previousValue);
+	syncQDialFromSpinBox(value);
 
 	emit updateModel();
 }
@@ -274,22 +315,27 @@ void BiQuadFilterGUI::on_freqComboBox_currentIndexChanged(int index)
 		{
 			double q = ui->qSpinBox->value();
 			double a = pow(10, dbGain / 40);
-			s = 1.0 / ((1.0 / (q * q) - 2.0) / (a + 1.0 / a) + 1.0);
+			double denom = (1.0 / (q * q) - 2.0) / (a + 1.0 / a) + 1.0;
+			s = (denom > 1e-4) ? (1.0 / denom) : 1.0;
 		}
+		if (s < 1e-4)
+			s = 1e-4;
 
-		double centerFreqFactor = pow(10.0, abs(dbGain) / 80.0 / s);
+		double centerFreqFactor = pow(10.0, std::abs(dbGain) / 80.0 / s);
 		double freq = ui->freqSpinBox->value();
 		if ((freqMode == 'E') == (type == BiQuad::LOW_SHELF))
 			freq *= centerFreqFactor;
 		else
 			freq /= centerFreqFactor;
-		ui->freqSpinBox->setValue(freq);
+		ui->freqSpinBox->setValue(std::clamp(freq, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ));
 	}
 }
 
 void BiQuadFilterGUI::on_qComboBox_currentIndexChanged(int index)
 {
 	QChar mode = ui->qComboBox->currentData().toChar();
+	double oldSpinVal = ui->qSpinBox->value();
+
 	if (mode == 'F' || mode == 'Q')
 		ui->qSpinBox->setSuffix("");
 	else if (mode == 'B')
@@ -300,59 +346,69 @@ void BiQuadFilterGUI::on_qComboBox_currentIndexChanged(int index)
 	ui->qDial->setEnabled(mode != 'F');
 	ui->qSpinBox->setEnabled(mode != 'F');
 
+	double minVal, maxVal;
+	getQModeRange(mode, minVal, maxVal);
+
+	double targetVal = oldSpinVal;
+
 	if (mode == 'F')
 	{
 		BiQuad::Type type = (BiQuad::Type)ui->typeComboBox->currentData().toInt();
 		if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::BAND_PASS)
-			ui->qSpinBox->setValue(M_SQRT1_2);
+			targetVal = M_SQRT1_2;
 		else if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
-			ui->qSpinBox->setValue(0.9);
+			targetVal = 0.9;
 		else if (type == BiQuad::NOTCH)
-			ui->qSpinBox->setValue(30);
+			targetVal = 30.0;
 
 		qIsBwOrS = type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF;
 	}
 	else if (qIsBwOrS && mode == 'Q')
 	{
 		BiQuad::Type type = (BiQuad::Type)ui->typeComboBox->currentData().toInt();
-		double q;
 		if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF) // from S
 		{
-			double s = ui->qSpinBox->value();
+			double s = oldSpinVal;
 			if (s != 0.9)
 				s /= 12.0;
-			double a = pow(10, ui->gainSpinBox->value() / 40);
-			q = 1.0 / sqrt((a + 1.0 / a) * (1.0 / s - 1.0) + 2.0);
+			double a = pow(10.0, ui->gainSpinBox->value() / 40.0);
+			double rad = std::max(1e-6, (a + 1.0 / a) * (1.0 / std::max(1e-4, s) - 1.0) + 2.0);
+			targetVal = 1.0 / sqrt(rad);
 		}
 		else // from BW
 		{
-			double n = ui->qSpinBox->value();
+			double n = std::max(1e-4, oldSpinVal);
 			double p2n = pow(2.0, n);
-			q = sqrt(p2n) / (p2n - 1.0);
+			targetVal = sqrt(p2n) / std::max(1e-6, p2n - 1.0);
 		}
-		ui->qSpinBox->setValue(q);
 		qIsBwOrS = false;
 	}
 	else if (!qIsBwOrS && mode == 'B')
 	{
-		double q = ui->qSpinBox->value();
-		double n = 2.0 / M_LN2 * asinh(1.0 / (2.0 * q));
-		ui->qSpinBox->setValue(n);
+		double q = std::max(1e-4, oldSpinVal);
+		targetVal = 2.0 / M_LN2 * asinh(1.0 / (2.0 * q));
 		qIsBwOrS = true;
 	}
 	else if (!qIsBwOrS && mode == 'S')
 	{
-		double q = ui->qSpinBox->value();
-		double a = pow(10, ui->gainSpinBox->value() / 40);
-		double s = 1.0 / ((1.0 / (q * q) - 2.0) / (a + 1.0 / a) + 1.0);
-		ui->qSpinBox->setValue(s * 12.0);
+		double q = std::max(1e-4, oldSpinVal);
+		double a = pow(10.0, ui->gainSpinBox->value() / 40.0);
+		double denom = (1.0 / (q * q) - 2.0) / (a + 1.0 / a) + 1.0;
+		double s = (denom > 1.0) ? (1.0 / denom) : 1.0;
+		targetVal = s * 12.0;
 		qIsBwOrS = true;
 	}
 	else if (mode == 'S')
 	{
-		ui->qSpinBox->setValue(12.0);
+		targetVal = 12.0;
 		qIsBwOrS = true;
 	}
+
+	bool prevBlock = ui->qSpinBox->blockSignals(true);
+	ui->qSpinBox->setRange(minVal, maxVal);
+	ui->qSpinBox->setValue(std::clamp(targetVal, minVal, maxVal));
+	ui->qSpinBox->blockSignals(prevBlock);
+	syncQDialFromSpinBox(ui->qSpinBox->value());
 
 	emit updateModel();
 }

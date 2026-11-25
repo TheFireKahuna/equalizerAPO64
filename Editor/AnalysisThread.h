@@ -19,12 +19,14 @@
 
 #pragma once
 
+#include <vector>
 #include <QThread>
 #include <QMutex>
 #include <QWaitCondition>
 #include <fftw3.h>
 
 #include "DeviceAPOInfo.h"
+#include "helpers/GainIterator.h"
 
 class AnalysisThread : public QThread
 {
@@ -40,7 +42,11 @@ public:
 	fftw_complex* getFreqData() const;
 	int getFreqDataLength() const;
 	int getFreqDataSampleRate() const;
+	const std::vector<FilterNode>& getPlotNodes() const;
 	double getPeakGain() const;
+	bool isSafetyBypassed() const;
+	int getInvalidLineCount() const;
+	int getOverflowLineCount() const;
 	int getLatency() const;
 	double getInitializationTime() const;
 	double getProcessingTime() const;
@@ -67,12 +73,16 @@ private:
 	// output
 	fftw_complex* resultFreqData = NULL;
 	int freqDataLength = 0;
-	int freqDataSampleRate;
-	double peakGain;
-	int latency;
-	double initializationTime;
-	double processingTime;
-	int processedFrames;
+	int freqDataSampleRate = 48000;
+	std::vector<FilterNode> plotNodes;
+	double peakGain = 0.0;
+	bool safetyBypassed = false;
+	int invalidLineCount = 0;
+	int overflowLineCount = 0;
+	int latency = 0;
+	double initializationTime = 0.0;
+	double processingTime = 0.0;
+	int processedFrames = 0;
 
 	// internal (not protected by mutex)
 	int lastFrameCount = -1;

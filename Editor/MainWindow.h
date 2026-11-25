@@ -24,6 +24,7 @@
 #include <QMainWindow>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QLabel>
 #include <QDir>
 
 #include "FilterTable.h"
@@ -111,6 +112,7 @@ private:
 	std::shared_ptr<AbstractAPOInfo> defaultOutputDevice;
 	AnalysisPlotScene* analysisPlotScene;
 	AnalysisThread* analysisThread = NULL;
+	QLabel* safetyStatusLabel = NULL;
 	bool restart = false;
 	bool noSavePreferences = false;
 	bool noSaveFilePreferences = false;

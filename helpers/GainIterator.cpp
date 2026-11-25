@@ -84,12 +84,16 @@ double GainIterator::gainAt(double freq)
 	}
 	else
 	{
-		double t = (log(freq) - logLeft) / logRightMinusLeft;
-		// to support dbGain == -INF for both nodes
+		// Guard against two nodes placed at the exact same frequency (step transition)
 		if (nodeLeft->dbGain == nodeRight->dbGain)
 			dbGain = nodeLeft->dbGain;
+		else if (std::abs(logRightMinusLeft) <= 1e-12)
+			dbGain = 0.5 * (nodeLeft->dbGain + nodeRight->dbGain);
 		else
+		{
+			double t = (log(freq) - logLeft) / logRightMinusLeft;
 			dbGain = nodeLeft->dbGain + t * (nodeRight->dbGain - nodeLeft->dbGain);
+		}
 	}
 
 	return dbGain;

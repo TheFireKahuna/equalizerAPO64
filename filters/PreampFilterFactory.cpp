@@ -18,13 +18,20 @@
 */
 
 #include "stdafx.h"
+#include <regex>
+#include <cwchar>
+
 #include "helpers/MemoryHelper.h"
 #include "helpers/StringHelper.h"
 #include "helpers/LogHelper.h"
+#include "helpers/SafetyLimits.h"
 #include "PreampFilter.h"
 #include "PreampFilterFactory.h"
 
 using namespace std;
+
+static const wregex regexStrictPreamp(
+	L"^\\s*([-+]?(?:[0-9]+(?:\\.[0-9]+)?|\\.[0-9]+)(?:[eE][-+]?[0-9]+)?)\\s*[dD][bB]\\s*$");
 
 vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, wstring& command, wstring& parameters)
 {
@@ -35,14 +42,29 @@ vector<IFilter*> PreampFilterFactory::createFilter(const wstring& configPath, ws
 		// Conversion to period as decimal mark, if needed
 		wstring value = StringHelper::replaceCharacters(parameters, L",", L".");
 
-		double preamp_dB;
-		int matched = swscanf_s(value.c_str(), L" %lf dB", &preamp_dB);
-		if (matched == 1)
+		wsmatch match;
+		if (regex_match(value, match, regexStrictPreamp))
 		{
-			TraceF(L"Adjusting preamp by %g dB", preamp_dB);
+			wchar_t* endPtr = NULL;
+			wstring numStr = match.str(1);
+			double preamp_dB = wcstod(numStr.c_str(), &endPtr);
+			if (endPtr == numStr.c_str() + numStr.size() && SafetyLimits::isGainValid(preamp_dB))
+			{
+				preamp_dB = std::clamp(preamp_dB, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
+				TraceF(L"Adjusting preamp by %g dB", preamp_dB);
 
-			void* mem = MemoryHelper::alloc(sizeof(PreampFilter));
-			filter = new(mem) PreampFilter(preamp_dB);
+				void* mem = MemoryHelper::alloc(sizeof(PreampFilter));
+				filter = new(mem) PreampFilter(preamp_dB);
+			}
+			else
+			{
+				LogF(L"Rejected out-of-range Preamp value \"%s\" (allowed: %.1f .. +%.1f dB)",
+					parameters.c_str(), SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
+			}
+		}
+		else
+		{
+			LogF(L"Rejected malformed Preamp syntax \"%s\"", parameters.c_str());
 		}
 	}
 

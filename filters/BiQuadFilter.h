@@ -34,9 +34,12 @@ public:
     BiQuadFilter(BiQuad::Type type, double dbGain, double freq, double bandwidthOrQOrS, bool isBandwidthOrS, bool isCornerFreq);
     virtual ~BiQuadFilter() = default;
 
+    FilterKind getFilterKind() const override { return FilterKind::BiQuad; }
     bool getInPlace() override { return true; }
     std::vector<std::wstring> initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames) override;
     void process(double** output, double** input, unsigned frameCount) override;
+
+    BiQuad createValidatedBiQuad(double sampleRate, double* outCenterFreqHz = nullptr, double* outEffectiveQ = nullptr) const;
 
     BiQuad::Type getType() const;
     double getDbGain() const;

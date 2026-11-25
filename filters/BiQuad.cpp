@@ -37,13 +37,13 @@ BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandw
 	if (!isBandwidthOrS) // Q
 		alpha = sn / (2 * bandwidthOrQOrS);
 	else if (type == LOW_SHELF || type == HIGH_SHELF) // S
-		alpha = sn / 2 * sqrt((A + 1 / A) * (1 / bandwidthOrQOrS - 1) + 2);
+		alpha = sn / 2 * sqrt(std::max(0.0, (A + 1 / A) * (1 / bandwidthOrQOrS - 1) + 2));
 	else // BW
 		alpha = sn * sinh(M_LN2 / 2 * bandwidthOrQOrS * omega / sn);
 
 	double beta = 2 * sqrt(A) * alpha;
 
-	double b0, b1, b2, a0, a1, a2;
+	double b0 = 1.0, b1 = 0.0, b2 = 0.0, a0 = 1.0, a1 = 0.0, a2 = 0.0;
 
 	switch (type)
 	{
@@ -127,20 +127,32 @@ BiQuad::BiQuad(Type type, double dbGain, double freq, double srate, double bandw
 
 double BiQuad::gainAt(double freq, double srate)
 {
-	double omega = 2 * M_PI * freq / srate;
-	double sn = sin(omega / 2.0);
-	double phi = sn * sn;
+	double omega = 2.0 * M_PI * freq / srate;
+	double c1 = cos(omega);
+	double s1 = sin(omega);
+	double c2 = cos(2.0 * omega);
+	double s2 = sin(2.0 * omega);
+
 	double b0 = this->a0;
 	double b1 = this->a[0];
 	double b2 = this->a[1];
-	double a0 = 1.0;
 	double a1 = this->a[2];
 	double a2 = this->a[3];
 
-	double dbGain = 10 * log10(pow(b0 + b1 + b2, 2) - 4 * (b0 * b1 + 4 * b0 * b2 + b1 * b2) * phi + 16 * b0 * b2 * phi * phi)
-		- 10 * log10(pow(a0 + a1 + a2, 2) - 4 * (a0 * a1 + 4 * a0 * a2 + a1 * a2) * phi + 16 * a0 * a2 * phi * phi);
+	double numRe = b0 + b1 * c1 + b2 * c2;
+	double numIm = -(b1 * s1 + b2 * s2);
+	double denRe = 1.0 + a1 * c1 + a2 * c2;
+	double denIm = -(a1 * s1 + a2 * s2);
 
-	return dbGain;
+	double numSq = numRe * numRe + numIm * numIm;
+	double denSq = denRe * denRe + denIm * denIm;
+
+	if (denSq <= 1e-30)
+		return std::numeric_limits<double>::infinity();
+	if (numSq <= 1e-30)
+		return -300.0;
+
+	return 10.0 * log10(numSq / denSq);
 }
 
 void BiQuad::getCoefficients(double(&out_coeffs)[4], double& out_a0) const

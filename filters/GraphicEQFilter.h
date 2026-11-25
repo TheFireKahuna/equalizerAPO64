@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include <vector>
 #include <fftw3.h>
 
 #include "ConvolutionFilter.h"
@@ -31,13 +32,17 @@ class GraphicEQFilter : public ConvolutionFilter
 public:
 	GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned filterLength);
 
-	const std::vector<FilterNode>& getNodes();
+	FilterKind getFilterKind() const override { return FilterKind::GraphicEQ; }
+
+	const std::vector<FilterNode>& getNodes() const;
+	unsigned getFilterLength() const { return filterLength; }
+	void computeImpulseResponse(double sampleRate, std::vector<double>& outIr) const;
 
 protected:
 	void initializeFilters(unsigned frameCount) override;
 
 private:
-	void mps(fftw_complex* timeData, fftw_complex* freqData, fftw_plan planForward, fftw_plan planReverse);
+	void mps(fftw_complex* timeData, fftw_complex* freqData, fftw_plan planForward, fftw_plan planReverse) const;
 
 	std::vector<FilterNode> nodes;
 	unsigned filterLength;

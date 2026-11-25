@@ -22,6 +22,7 @@
 #include <QPainter>
 #include <QScrollBar>
 
+#include "helpers/SafetyLimits.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "FilterTableRow.h"
 #include "ui_FilterTableRow.h"
@@ -39,9 +40,11 @@ FilterTableRow::FilterTableRow(FilterTable* table, int number, FilterTable::Item
 
 	ui->labelNumber->setText(QString("%0").arg(number));
 
-	ui->toolBar->addAction(ui->actionAdd);
+	if (table->canAddFilter())
+		ui->toolBar->addAction(ui->actionAdd);
 	ui->toolBar->addAction(ui->actionRemove);
-	ui->toolBar->addAction(ui->actionEditText);
+	// Raw text edit button (pencil icon) is disabled for safety:
+	// ui->toolBar->addAction(ui->actionEditText);
 	ui->toolBar->updateMaximumHeight();
 
 	ui->stackedWidget->setContentsMargins(0, 5, 0, 5);
@@ -53,7 +56,14 @@ FilterTableRow::FilterTableRow(FilterTable* table, int number, FilterTable::Item
 	}
 	else
 	{
-		ui->stackedWidget->addWidget(new QLabel(item->text));
+		QString prefix = (number > SafetyLimits::MAX_FILTER_COUNT)
+			? tr("[Ignored: exceeds %1-line limit] ").arg(SafetyLimits::MAX_FILTER_COUNT)
+			: tr("[Invalid / out-of-range — ignored] ");
+		QLabel* invalidLabel = new QLabel(prefix + item->text);
+		invalidLabel->setStyleSheet(GUIHelper::isDarkMode()
+			? "color: #ff8a80; font-weight: bold; padding-left: 4px;"
+			: "color: #b71c1c; font-weight: bold; padding-left: 4px;");
+		ui->stackedWidget->addWidget(invalidLabel);
 	}
 	ui->stackedWidget->setCurrentIndex(1);
 }
@@ -72,8 +82,7 @@ QRect FilterTableRow::getHeaderRect()
 
 void FilterTableRow::editText()
 {
-	if (!ui->actionEditText->isChecked())
-		ui->actionEditText->trigger();
+	// Raw text editing is disabled for safety.
 }
 
 QSize FilterTableRow::sizeHint() const
@@ -87,8 +96,7 @@ QSize FilterTableRow::sizeHint() const
 
 void FilterTableRow::mouseDoubleClickEvent(QMouseEvent*)
 {
-	if (gui == NULL && ui->stackedWidget->currentIndex() == 1)
-		ui->actionEditText->trigger();
+	// Double-click raw text editing is disabled for safety.
 }
 
 void FilterTableRow::paintEvent(QPaintEvent*)
@@ -148,6 +156,12 @@ void FilterTableRow::updateModel()
 
 void FilterTableRow::on_actionAdd_triggered()
 {
+	if (!table->canAddFilter())
+	{
+		ui->actionAdd->setChecked(false);
+		return;
+	}
+
 	QMenu* menu = table->createAddPopupMenu();
 	QRect rect = ui->toolBar->actionGeometry(ui->actionAdd);
 	QPoint p = ui->toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));

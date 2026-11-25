@@ -88,10 +88,10 @@
       <string> Hz</string>
      </property>
      <property name="minimum">
-      <double>0.010000000000000</double>
+      <double>10.000000000000000</double>
      </property>
      <property name="maximum">
-      <double>99999.990000000005239</double>
+      <double>20000.000000000000000</double>
      </property>
      <property name="value">
       <double>1000.000000000000000</double>
@@ -129,10 +129,10 @@
       </size>
      </property>
      <property name="minimum">
-      <number>-200</number>
+      <number>-100</number>
      </property>
      <property name="maximum">
-      <number>200</number>
+      <number>100</number>
      </property>
      <property name="pageStep">
       <number>20</number>
@@ -151,10 +151,13 @@
       <string> dB</string>
      </property>
      <property name="minimum">
-      <double>-199.990000000000009</double>
+      <double>-10.000000000000000</double>
      </property>
      <property name="maximum">
-      <double>199.990000000000009</double>
+      <double>10.000000000000000</double>
+     </property>
+     <property name="singleStep">
+      <double>0.100000000000000</double>
      </property>
     </widget>
    </item>
@@ -164,10 +167,10 @@
       <number>4</number>
      </property>
      <property name="minimum">
-      <double>0.000100000000000</double>
+      <double>0.330000000000000</double>
      </property>
      <property name="maximum">
-      <double>999.999900000000025</double>
+      <double>33.330000000000000</double>
      </property>
      <property name="singleStep">
       <double>0.100000000000000</double>

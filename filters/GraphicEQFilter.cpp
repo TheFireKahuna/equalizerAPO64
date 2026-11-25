@@ -36,13 +36,14 @@ GraphicEQFilter::GraphicEQFilter(const std::vector<FilterNode>& nodes, unsigned 
 {
 }
 
-const std::vector<FilterNode>& GraphicEQFilter::getNodes()
+const std::vector<FilterNode>& GraphicEQFilter::getNodes() const
 {
 	return nodes;
 }
 
-void GraphicEQFilter::initializeFilters(unsigned frameCount)
+void GraphicEQFilter::computeImpulseResponse(double srate, std::vector<double>& outIr) const
 {
+	double safeSampleRate = (srate > 100.0) ? srate : 48000.0;
 	fftw_make_planner_thread_safe();
 	fftw_complex* timeData = fftw_alloc_complex(filterLength * 2);
 	fftw_complex* freqData = fftw_alloc_complex(filterLength * 2);
@@ -52,7 +53,7 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 	GainIterator gainIterator(nodes);
 	for (unsigned i = 0; i < filterLength; i++)
 	{
-		double freq = i * 1.0 * sampleRate / (filterLength * 2);
+		double freq = i * 1.0 * safeSampleRate / (filterLength * 2);
 		double dbGain = gainIterator.gainAt(freq);
 		double gain = (double)pow(10.0, dbGain / 20.0);
 
@@ -79,28 +80,32 @@ void GraphicEQFilter::initializeFilters(unsigned frameCount)
 		timeData[i][1] *= factor;
 	}
 
-	double* buf = new double[filterLength];
+	outIr.resize(filterLength);
 	for (unsigned i = 0; i < filterLength; i++)
 	{
-		buf[i] = timeData[i][0];
+		outIr[i] = timeData[i][0];
 	}
 
 	fftw_free(timeData);
 	fftw_free(freqData);
 	fftw_destroy_plan(planForward);
 	fftw_destroy_plan(planReverse);
+}
+
+void GraphicEQFilter::initializeFilters(unsigned frameCount)
+{
+	std::vector<double> buf;
+	computeImpulseResponse(sampleRate, buf);
 
 	filters = (HConvSingle*)MemoryHelper::alloc(sizeof(HConvSingle) * channelCount);
 	for (unsigned i = 0; i < channelCount; i++)
 	{
-		hcInitSingle(&filters[i], buf, filterLength, frameCount, 1);
+		hcInitSingle(&filters[i], buf.data(), filterLength, frameCount, 1);
 	}
-
-	delete buf;
 }
 
 // Minimum phase spectrum from coefficients
-void GraphicEQFilter::mps(fftw_complex* timeData, fftw_complex* freqData, fftw_plan planForward, fftw_plan planReverse)
+void GraphicEQFilter::mps(fftw_complex* timeData, fftw_complex* freqData, fftw_plan planForward, fftw_plan planReverse) const
 {
 	double threshold = pow(10.0, -100.0 / 20.0);
 	double logThreshold = (double)log(threshold);

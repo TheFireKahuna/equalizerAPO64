@@ -18,8 +18,10 @@
 */
 
 #include <algorithm>
+#include <cmath>
 
 #include "helpers/GainIterator.h"
+#include "helpers/SafetyLimits.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "AnalysisPlotScene.h"
 #include "AnalysisPlotView.h"
@@ -38,6 +40,9 @@ void AnalysisPlotView::drawBackground(QPainter* painter, const QRectF& rect)
 	painter->setRenderHint(QPainter::Antialiasing, true);
 	AnalysisPlotScene* s = qobject_cast<AnalysisPlotScene*>(scene());
 	const std::vector<FilterNode>& nodes = s->getNodes();
+	if (nodes.empty())
+		return;
+
 	GainIterator gainIterator(nodes);
 	QPainterPath path;
 	bool first = true;
@@ -55,7 +60,7 @@ void AnalysisPlotView::drawBackground(QPainter* painter, const QRectF& rect)
 				y = sceneRect().top() - 1;
 		}
 
-        if (abs(db-lastDb) < 0.001f)
+		if (abs(db - lastDb) < 0.001f)
 			y = floor(y) + 0.5;
 		lastDb = db;
 		if (first)
@@ -72,19 +77,50 @@ void AnalysisPlotView::drawBackground(QPainter* painter, const QRectF& rect)
 	path.lineTo(rect.right() + 1, rect.bottom() + 1);
 	path.lineTo(rect.left() - 1, rect.bottom() + 1);
 
-	double thresholdY = s->dbToY(0);
-	if (rect.top() < thresholdY)
+	double zeroDbY = s->dbToY(0.0);
+	double bypassLimitY = s->dbToY(SafetyLimits::MAX_PEAK_GAIN_DB);
+
+	// Mild clipping zone (0 dB .. +5.0 dB): warm amber fill
+	if (zeroDbY != -1 && bypassLimitY != -1 && rect.top() < zeroDbY && rect.bottom() > bypassLimitY)
 	{
-		QPainterPath rectPath;
-		rectPath.addRect(rect.left(), rect.top(), rect.width(), min(thresholdY - rect.top(), rect.height()));
-		QPainterPath clippingPath = path.intersected(rectPath);
+		double bandTop = std::max(rect.top(), bypassLimitY);
+		double bandBottom = std::min(rect.bottom(), zeroDbY);
+		if (bandBottom > bandTop)
+		{
+			QPainterPath mildRectPath;
+			mildRectPath.addRect(rect.left(), bandTop, rect.width(), bandBottom - bandTop);
+			QPainterPath mildClipPath = path.intersected(mildRectPath);
+			painter->setPen(Qt::NoPen);
+			painter->setBrush(QColor(255, 152, 0, 175));
+			painter->drawPath(mildClipPath);
+			painter->setBrush(Qt::NoBrush);
+		}
+	}
+
+	// Safety bypass exceedance zone (> +5.0 dB): bright red fill
+	if (bypassLimitY != -1 && rect.top() < bypassLimitY)
+	{
+		QPainterPath bypassRectPath;
+		bypassRectPath.addRect(rect.left(), rect.top(), rect.width(), min(bypassLimitY - rect.top(), rect.height()));
+		QPainterPath bypassClipPath = path.intersected(bypassRectPath);
 		painter->setPen(Qt::NoPen);
-		painter->setBrush(Qt::red);
-		painter->drawPath(clippingPath);
+		painter->setBrush(QColor(229, 57, 53, 220));
+		painter->drawPath(bypassClipPath);
 		painter->setBrush(Qt::NoBrush);
 	}
 
-    bool dark = GUIHelper::isDarkMode();
-    painter->setPen(dark ? Qt::white : Qt::black);
+	// Draw dashed +5.0 dB safety ceiling reference line
+	if (bypassLimitY != -1 && bypassLimitY >= rect.top() - 2 && bypassLimitY <= rect.bottom() + 2)
+	{
+		QPen ceilingPen(QColor(229, 57, 53, 210));
+		ceilingPen.setStyle(Qt::DashLine);
+		ceilingPen.setWidthF(1.2);
+		painter->setPen(ceilingPen);
+		double lineY = floor(bypassLimitY) + 0.5;
+		painter->drawLine(QPointF(rect.left(), lineY), QPointF(rect.right(), lineY));
+	}
+
+	bool dark = GUIHelper::isDarkMode();
+	painter->setPen(dark ? Qt::white : Qt::black);
 	painter->drawPath(path);
 }

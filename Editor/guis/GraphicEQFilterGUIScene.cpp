@@ -21,6 +21,7 @@
 #include <QGraphicsSceneMouseEvent>
 #include <QKeyEvent>
 
+#include "helpers/SafetyLimits.h"
 #include "Editor/widgets/FrequencyPlotView.h"
 #include "GraphicEQFilterGUIScene.h"
 
@@ -38,10 +39,20 @@ void GraphicEQFilterGUIScene::setNodes(const std::vector<FilterNode>& nodes)
 	for (int i = (int)this->nodes.size() - 1; i >= 0; i--)
 		removeNode(i);
 
-	this->nodes = nodes;
+	std::vector<FilterNode> clampedNodes;
+	clampedNodes.reserve(std::min<size_t>(nodes.size(), SafetyLimits::MAX_GRAPHIC_EQ_NODES));
+	for (size_t k = 0; k < nodes.size() && (int)clampedNodes.size() < SafetyLimits::MAX_GRAPHIC_EQ_NODES; ++k)
+	{
+		double f = std::clamp(nodes[k].freq, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
+		double g = std::clamp(nodes[k].dbGain, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
+		clampedNodes.push_back(FilterNode(f, g));
+	}
+	std::sort(clampedNodes.begin(), clampedNodes.end());
+
+	this->nodes = clampedNodes;
 
 	int i = 0;
-	for (FilterNode node : nodes)
+	for (FilterNode node : this->nodes)
 	{
 		GraphicEQFilterGUIItem* item = new GraphicEQFilterGUIItem(i, node.freq, node.dbGain);
 		addItem(item);
@@ -58,6 +69,12 @@ void GraphicEQFilterGUIScene::setNodes(const std::vector<FilterNode>& nodes)
 
 void GraphicEQFilterGUIScene::addNode(double hz, double db)
 {
+	if ((int)nodes.size() >= SafetyLimits::MAX_GRAPHIC_EQ_NODES)
+		return;
+
+	hz = std::clamp(hz, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
+	db = std::clamp(db, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
+
 	FilterNode node(hz, db);
 	vector<FilterNode>::iterator it = lower_bound(nodes.begin(), nodes.end(), node);
 	int index = it - nodes.begin();
@@ -109,6 +126,9 @@ void GraphicEQFilterGUIScene::removeNode(int index)
 
 void GraphicEQFilterGUIScene::setNode(int index, double hz, double db)
 {
+	hz = std::clamp(hz, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
+	db = std::clamp(db, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
+
 	GraphicEQFilterGUIItem* item = items[index];
 	item->setHz(hz);
 	item->setDb(db);
@@ -189,12 +209,14 @@ void GraphicEQFilterGUIScene::itemMoved(int index)
 			hz = round(hz);
 		else
 			hz = round(hz * 10) / 10;
+		hz = std::clamp(hz, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
 		item->setHz(hz);
 	}
 	if (getZoomY() < 4)
 		db = round(db * 10) / 10;
 	else
 		db = round(db * 100) / 100;
+	db = std::clamp(db, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 	item->setDb(db);
 
 	int newIndex = index;
@@ -247,11 +269,15 @@ void GraphicEQFilterGUIScene::itemSelectionChanged(int index, bool selected)
 
 void GraphicEQFilterGUIScene::mouseDoubleClickEvent(QGraphicsSceneMouseEvent* event)
 {
-	if (getBandCount() != -1)
+	if (getBandCount() != -1 || (int)nodes.size() >= SafetyLimits::MAX_GRAPHIC_EQ_NODES)
 		return;
 
-	double hz = xToHz(event->scenePos().x());
-	double db = yToDb(event->scenePos().y());
+	double hz = std::clamp(xToHz(event->scenePos().x()), SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
+	if (hz >= 10000)
+		hz = round(hz);
+	else
+		hz = round(hz * 10) / 10;
+	double db = std::clamp(round(yToDb(event->scenePos().y()) * 10) / 10, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 	addNode(hz, db);
 }
 
@@ -356,6 +382,7 @@ void GraphicEQFilterGUIScene::setBandCount(int value)
 			{
 				double dbGain = gainIterator.gainAt(band);
 				dbGain = round(dbGain * 100) / 100;
+				dbGain = std::clamp(dbGain, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 				FilterNode node(band, dbGain);
 				newNodes.push_back(node);
 			}

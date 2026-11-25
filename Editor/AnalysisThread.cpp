@@ -17,6 +17,7 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <algorithm>
 #include <QElapsedTimer>
 
 #include "FilterEngine.h"
@@ -41,9 +42,9 @@ AnalysisThread::~AnalysisThread()
 		fftw_free(resultFreqData);
 
 	if (buf != NULL)
-		delete buf;
+		delete[] buf;
 	if (buf2 != NULL)
-		delete buf2;
+		delete[] buf2;
 	if (timeData != NULL)
 		fftw_free(timeData);
 	if (freqData != NULL)
@@ -59,7 +60,7 @@ void AnalysisThread::setParameters(shared_ptr<AbstractAPOInfo> device, int chann
 	this->channelMask = channelMask;
 	this->channelIndex = channelIndex;
 	this->configPath = configPath;
-	this->frameCount = frameCount;
+	this->frameCount = std::max(128, frameCount);
 
 	condition.wakeAll();
 }
@@ -89,9 +90,29 @@ int AnalysisThread::getFreqDataSampleRate() const
 	return freqDataSampleRate;
 }
 
+const vector<FilterNode>& AnalysisThread::getPlotNodes() const
+{
+	return plotNodes;
+}
+
 double AnalysisThread::getPeakGain() const
 {
 	return peakGain;
+}
+
+bool AnalysisThread::isSafetyBypassed() const
+{
+	return safetyBypassed;
+}
+
+int AnalysisThread::getInvalidLineCount() const
+{
+	return invalidLineCount;
+}
+
+int AnalysisThread::getOverflowLineCount() const
+{
+	return overflowLineCount;
 }
 
 int AnalysisThread::getLatency() const
@@ -138,8 +159,8 @@ void AnalysisThread::run()
 		QElapsedTimer timer;
 		timer.start();
 
-		unsigned channelCount = device->getChannelCount();
-		if (channelMask != 0 && channelMask != device->getChannelMask())
+		unsigned channelCount = (device != NULL) ? device->getChannelCount() : 2;
+		if (device != NULL && channelMask != 0 && channelMask != (int)device->getChannelMask())
 		{
 			channelCount = 0;
 			for (int i = 0; i < 31; i++)
@@ -151,34 +172,40 @@ void AnalysisThread::run()
 		}
 		if (channelCount == 0)
 		{
-			channelCount = 8;
-			channelMask = KSAUDIO_SPEAKER_7POINT1_SURROUND;
+			channelCount = 2;
+			channelMask = KSAUDIO_SPEAKER_STEREO;
 		}
 
-		unsigned sampleRate = device->getSampleRate();
+		unsigned sampleRate = (device != NULL) ? device->getSampleRate() : 48000;
 		if (sampleRate == 0)
 			sampleRate = 48000;
+
+		int safeChannelIndex = std::clamp(channelIndex, 0, (int)channelCount - 1);
 
 		qint64 startTime = timer.nsecsElapsed();
 
 		FilterEngine engine;
-		engine.setDeviceInfo(device->isInput(), true, device->getDeviceName(), device->getConnectionName(), device->getDeviceGuid(), device->getDeviceString());
+		engine.setAnalysisMode(true);
+		if (device != NULL)
+			engine.setDeviceInfo(device->isInput(), true, device->getDeviceName(), device->getConnectionName(), device->getDeviceGuid(), device->getDeviceString());
+		else
+			engine.setDeviceInfo(false, true, L"Default", L"Default", L"", L"");
 		engine.initialize(sampleRate, channelCount, channelCount, channelCount, channelMask, frameCount, configPath.toStdWString());
 		double initializationTime = (timer.nsecsElapsed() - startTime) / 1e6;
 
-		if (frameCount != lastFrameCount || channelCount != lastChannelCount)
+		if (frameCount != lastFrameCount || (int)channelCount != lastChannelCount)
 		{
 			if (buf != NULL)
-				delete buf;
+				delete[] buf;
 			buf = new double[frameCount * channelCount];
 			memset(buf, 0, frameCount * channelCount * sizeof(double));
 
 			if (buf2 != NULL)
-				delete buf2;
+				delete[] buf2;
 			buf2 = new double[frameCount * channelCount];
 		}
 		for (unsigned i = 0; i < channelCount; i++)
-			buf[i] = 1.0f;
+			buf[i] = 1.0;
 
 		if (frameCount != lastFrameCount)
 		{
@@ -192,6 +219,7 @@ void AnalysisThread::run()
 
 			if (planForward != NULL)
 				fftw_destroy_plan(planForward);
+			fftw_make_planner_thread_safe();
 			planForward = fftw_plan_dft_r2c_1d(frameCount, timeData, freqData, FFTW_ESTIMATE);
 		}
 
@@ -205,23 +233,23 @@ void AnalysisThread::run()
 		// stop searching for startFrame after 10 seconds of audio data
 		while (processedFrames < 10 * sampleRate)
 		{
-			qint64 startTime = timer.nsecsElapsed();
+			qint64 procStart = timer.nsecsElapsed();
 			engine.process(buf2, buf, frameCount);
-			processingTime += (timer.nsecsElapsed() - startTime) / 1e6;
+			processingTime += (timer.nsecsElapsed() - procStart) / 1e6;
 			processedFrames += frameCount;
 
 			if (startFrame != -1)
 			{
 				for (int i = 0; i < startFrame; i++)
 				{
-					timeData[frameCount - startFrame + i] = buf2[i * channelCount + channelIndex];
+					timeData[frameCount - startFrame + i] = buf2[i * channelCount + safeChannelIndex];
 				}
 				break;
 			}
 
 			for (int i = 0; i < frameCount; i++)
 			{
-				double s = buf2[i * channelCount + channelIndex];
+				double s = buf2[i * channelCount + safeChannelIndex];
 				if (abs(s) > 1e-5f)
 				{
 					startFrame = i;
@@ -233,7 +261,7 @@ void AnalysisThread::run()
 			{
 				for (int i = 0; i < frameCount - startFrame; i++)
 				{
-					timeData[i] = buf2[(startFrame + i) * channelCount + channelIndex];
+					timeData[i] = buf2[(startFrame + i) * channelCount + safeChannelIndex];
 				}
 
 				if (startFrame == 0)
@@ -243,37 +271,30 @@ void AnalysisThread::run()
 			if (latency == 0)
 			{
 				for (unsigned i = 0; i < channelCount; i++)
-					buf[i] = 0.0f;
+					buf[i] = 0.0;
 			}
 
 			if (startFrame == -1)
 				latency += frameCount;
 		}
 
-		double peakGain;
 		if (startFrame != -1)
 		{
 			latency += startFrame;
-
 			fftw_execute(planForward);
-
-			peakGain = -DBL_MAX;
-
-			for (int i = 0; i < frameCount / 2; i++)
-			{
-				double sqrGain = freqData[i][0] * freqData[i][0] + freqData[i][1] * freqData[i][1];
-				if (sqrGain > peakGain)
-					peakGain = sqrGain;
-			}
-			peakGain = sqrt(peakGain);
-			peakGain = log10(peakGain) * 20.0;
 		}
 		else
 		{
 			latency = 0;
-			peakGain = -numeric_limits<double>::infinity();
 			memset(freqData, 0, frameCount * sizeof(fftw_complex));
 		}
+
+		// Use the exact resolution-independent peak gain and analytical curve from GainAnalysisHelper
+		double exactPeakGain = engine.getExactPeakGainDb();
+		bool bypassed = engine.isSafetyBypassed();
+		int invalidLines = engine.getInvalidLineCount();
+		int overflowLines = engine.getOverflowLineCount();
+		vector<FilterNode> exactPlotNodes = engine.getAnalyticalPlotNodes();
 
 		mutex.lock();
 		if (this->freqDataLength != frameCount)
@@ -285,14 +306,18 @@ void AnalysisThread::run()
 		memcpy(resultFreqData, freqData, frameCount * sizeof(fftw_complex));
 		this->freqDataLength = frameCount;
 		this->freqDataSampleRate = sampleRate;
+		this->plotNodes = std::move(exactPlotNodes);
 		this->latency = latency;
-		this->peakGain = peakGain;
+		this->peakGain = exactPeakGain;
+		this->safetyBypassed = bypassed;
+		this->invalidLineCount = invalidLines;
+		this->overflowLineCount = overflowLines;
 		this->initializationTime = initializationTime;
 		this->processingTime = processingTime;
 		this->processedFrames = processedFrames;
 		mutex.unlock();
 
-		qDebug("Analysis took %.1f ms", timer.nsecsElapsed() / 1e6);
+		qDebug("Analysis took %.1f ms (exact peak: %.2f dB, bypassed: %d)", timer.nsecsElapsed() / 1e6, exactPeakGain, bypassed ? 1 : 0);
 
 		emit analysisFinished();
 	}

@@ -28,8 +28,17 @@
 class IFilter
 {
 public:
+	enum class FilterKind
+	{
+		Other,
+		Preamp,
+		BiQuad,
+		GraphicEQ
+	};
+
 	virtual ~IFilter() {}
 
+	virtual FilterKind getFilterKind() const {return FilterKind::Other;}
 	// request to get all channel names instead of selection
 	virtual bool getAllChannels() {return false;}
 	// return false to request that output and input do not point to the same memory locations

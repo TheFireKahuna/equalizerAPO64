@@ -40,22 +40,24 @@
 #include "helpers/LogHelper.h"
 #include "helpers/MemoryHelper.h"
 #include "helpers/ChannelHelper.h"
+#include "helpers/SafetyLimits.h"
+#include "helpers/GainAnalysisHelper.h"
 #include "FilterEngine.h"
-#include "filters/ExpressionFilterFactory.h"
-#include "filters/DeviceFilterFactory.h"
+// #include "filters/ExpressionFilterFactory.h"
+// #include "filters/DeviceFilterFactory.h"
 #include "filters/StageFilterFactory.h"
-#include "filters/IfFilterFactory.h"
-#include "filters/ChannelFilterFactory.h"
+// #include "filters/IfFilterFactory.h"
+// #include "filters/ChannelFilterFactory.h"
 #include "filters/BiQuadFilterFactory.h"
-#include "filters/IIRFilterFactory.h"
+// #include "filters/IIRFilterFactory.h"
 #include "filters/PreampFilterFactory.h"
-#include "filters/DelayFilterFactory.h"
-#include "filters/CopyFilterFactory.h"
-#include "filters/IncludeFilterFactory.h"
-#include "filters/ConvolutionFilterFactory.h"
+// #include "filters/DelayFilterFactory.h"
+// #include "filters/CopyFilterFactory.h"
+// #include "filters/IncludeFilterFactory.h"
+// #include "filters/ConvolutionFilterFactory.h"
 #include "filters/GraphicEQFilterFactory.h"
-#include "filters/VSTPluginFilterFactory.h"
-#include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
+// #include "filters/VSTPluginFilterFactory.h"
+// #include "filters/loudnessCorrection/LoudnessCorrectionFilterFactory.h"
 
 using namespace std;
 using namespace mup;
@@ -81,21 +83,22 @@ FilterEngine::FilterEngine()
 	parser = new ParserX();
 	parser->EnableAutoCreateVar(true);
 
-	factories.push_back(new DeviceFilterFactory());
-	factories.push_back(new IfFilterFactory());
-	factories.push_back(new ExpressionFilterFactory());
-	factories.push_back(new IncludeFilterFactory());
+	// Only StageFilterFactory (internal PreMix/PostMix handling) and the 3 safe EQ filter types are enabled:
+	// factories.push_back(new DeviceFilterFactory());
+	// factories.push_back(new IfFilterFactory());
+	// factories.push_back(new ExpressionFilterFactory());
+	// factories.push_back(new IncludeFilterFactory());
 	factories.push_back(new StageFilterFactory());
-	factories.push_back(new ChannelFilterFactory());
-	factories.push_back(new IIRFilterFactory());
+	// factories.push_back(new ChannelFilterFactory());
+	// factories.push_back(new IIRFilterFactory());
 	factories.push_back(new BiQuadFilterFactory());
 	factories.push_back(new PreampFilterFactory());
-	factories.push_back(new DelayFilterFactory());
-	factories.push_back(new CopyFilterFactory());
-	factories.push_back(new ConvolutionFilterFactory());
+	// factories.push_back(new DelayFilterFactory());
+	// factories.push_back(new CopyFilterFactory());
+	// factories.push_back(new ConvolutionFilterFactory());
 	factories.push_back(new GraphicEQFilterFactory());
-	factories.push_back(new VSTPluginFilterFactory());
-	factories.push_back(new LoudnessCorrectionFilterFactory());
+	// factories.push_back(new VSTPluginFilterFactory());
+	// factories.push_back(new LoudnessCorrectionFilterFactory());
 }
 
 FilterEngine::~FilterEngine()
@@ -258,6 +261,12 @@ void FilterEngine::loadConfig(const wstring& customPath)
 	watchRegistryKeys.clear();
 	parser->ClearVar();
 
+	safetyBypassed = false;
+	exactPeakGainDb = 0.0;
+	invalidLineCount = 0;
+	overflowLineCount = 0;
+	analyticalPlotNodes.clear();
+
 	for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
 	{
 		IFilterFactory* factory = *it;
@@ -279,6 +288,25 @@ void FilterEngine::loadConfig(const wstring& customPath)
 			addFilters(newFilters);
 	}
 
+	// Compute exact analytical peak gain BEFORE activating the configuration
+	exactPeakGainDb = GainAnalysisHelper::analyzeChain(
+		filterInfos,
+		sampleRate,
+		analysisMode ? &analyticalPlotNodes : nullptr);
+
+	if (!std::isfinite(exactPeakGainDb) || exactPeakGainDb > SafetyLimits::MAX_PEAK_GAIN_DB)
+	{
+		safetyBypassed = true;
+		LogF(L"SAFETY BYPASS ACTIVATED: Peak gain %.2f dB exceeds +%.1f dB limit. Bypassing equalizer.",
+			exactPeakGainDb, SafetyLimits::MAX_PEAK_GAIN_DB);
+
+		if (!analysisMode)
+		{
+			// Discard all candidate filters so the audio engine enters pure bypass
+			cleanupFilterInfos();
+		}
+	}
+
 	void* mem = MemoryHelper::alloc(sizeof(FilterConfiguration));
 	FilterConfiguration* config = new(mem) FilterConfiguration(this, filterInfos, (unsigned)allChannelNames.size());
 
@@ -293,6 +321,72 @@ void FilterEngine::loadConfig(const wstring& customPath)
 		nextConfig = config;
 
 	LeaveCriticalSection(&loadSection);
+}
+
+bool FilterEngine::isCommentedFilterValid(const wstring& uncommentedLine)
+{
+	size_t pos = uncommentedLine.find(L':');
+	if (pos == wstring::npos)
+		return false;
+
+	wstring key = StringHelper::trim(uncommentedLine.substr(0, pos));
+	wstring value = uncommentedLine.substr(pos + 1);
+	if (key.empty())
+		return false;
+
+	for (IFilterFactory* factory : factories)
+	{
+		wstring testKey = key;
+		wstring testValue = value;
+		vector<IFilter*> testFilters;
+		try
+		{
+			testFilters = factory->createFilter(L"", testKey, testValue);
+		}
+		catch (exception&)
+		{
+			return false;
+		}
+
+		if (testKey.empty())
+		{
+			// Suppressed by StageFilterFactory (e.g. PreMix stage) - treat as non-applicable
+			return true;
+		}
+
+		if (!testFilters.empty())
+		{
+			for (IFilter* f : testFilters)
+			{
+				f->~IFilter();
+				MemoryHelper::free(f);
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void FilterEngine::cleanupFilterInfos()
+{
+	for (FilterInfo* info : filterInfos)
+	{
+		if (info != NULL)
+		{
+			if (info->filter != NULL)
+			{
+				info->filter->~IFilter();
+				MemoryHelper::free(info->filter);
+			}
+			if (info->inChannels != NULL)
+				MemoryHelper::free(info->inChannels);
+			if (info->outChannels != NULL)
+				MemoryHelper::free(info->outChannels);
+			MemoryHelper::free(info);
+		}
+	}
+	filterInfos.clear();
 }
 
 void FilterEngine::loadConfigFile(const wstring& path)
@@ -340,25 +434,57 @@ void FilterEngine::loadConfigFile(const wstring& path)
 			addFilters(newFilters);
 	}
 
-	while (inputStream.good())
+	int lineNumber = 0;
+	string encodedLine;
+	while (getline(inputStream, encodedLine))
 	{
-		string encodedLine;
-		getline(inputStream, encodedLine);
 		if (encodedLine.size() > 0 && encodedLine[encodedLine.size() - 1] == '\r')
 			encodedLine.resize(encodedLine.size() - 1);
 
+		lineNumber++;
+		if (lineNumber > SafetyLimits::MAX_FILTER_COUNT)
+		{
+			overflowLineCount++;
+			continue;
+		}
+
 		wstring line = StringHelper::toWString(encodedLine, CP_UTF8);
-		if (line.find(L'\uFFFD') != -1)
+		if (line.find(L'\uFFFD') != wstring::npos)
 			line = StringHelper::toWString(encodedLine, CP_ACP);
 
-		size_t pos = line.find(L':');
-		if (pos != -1)
+		wstring trimmedLine = StringHelper::trim(line);
+		if (trimmedLine.empty())
 		{
-			wstring key = line.substr(0, pos);
+			invalidLineCount++;
+			continue;
+		}
+
+		// Handle disabled filters ("# Preamp: ...", "# Filter: ...", "# GraphicEQ: ...")
+		if (trimmedLine[0] == L'#')
+		{
+			wstring uncommented = StringHelper::trim(trimmedLine.substr(1));
+			if (!isCommentedFilterValid(uncommented))
+			{
+				invalidLineCount++;
+				LogF(L"Ignored invalid commented line %d: %s", lineNumber, line.c_str());
+			}
+			continue;
+		}
+
+		size_t pos = line.find(L':');
+		if (pos != wstring::npos)
+		{
+			wstring key = StringHelper::trim(line.substr(0, pos));
 			wstring value = line.substr(pos + 1);
 
-			// allow to use indentation
-			key = StringHelper::trim(key);
+			if (key.empty())
+			{
+				invalidLineCount++;
+				continue;
+			}
+
+			bool suppressedByStage = false;
+			bool matched = false;
 
 			for (vector<IFilterFactory*>::const_iterator it = factories.cbegin(); it != factories.cend(); it++)
 			{
@@ -369,19 +495,34 @@ void FilterEngine::loadConfigFile(const wstring& path)
 				{
 					newFilters = factory->createFilter(path, key, value);
 				}
-				catch (exception e)
+				catch (exception& e)
 				{
 					LogF(L"%S", e.what());
 				}
 
 				if (key == L"")
+				{
+					suppressedByStage = true;
 					break;
+				}
 				if (!newFilters.empty())
 				{
 					addFilters(newFilters);
+					matched = true;
 					break;
 				}
 			}
+
+			if (!suppressedByStage && !matched)
+			{
+				invalidLineCount++;
+				LogF(L"Ignored invalid configuration line %d: %s", lineNumber, line.c_str());
+			}
+		}
+		else
+		{
+			invalidLineCount++;
+			LogF(L"Ignored malformed configuration line %d: %s", lineNumber, line.c_str());
 		}
 	}
 
@@ -477,6 +618,21 @@ void convertDoubleToFloat(float* dest, const double* src, size_t count) {
 }
 
 
+// Zero-latency sample sanitizer & hard ceiling (+6 dBFS) against NaN/Inf and phase-dispersion transients
+static void sanitizeAndClampBuffer(double* buf, size_t count) {
+	const double limit = SafetyLimits::HARD_CLIP_AMPLITUDE;
+	for (size_t i = 0; i < count; ++i) {
+		const double s = buf[i];
+		if (!std::isfinite(s)) {
+			buf[i] = 0.0;
+		} else if (s > limit) {
+			buf[i] = limit;
+		} else if (s < -limit) {
+			buf[i] = -limit;
+		}
+	}
+}
+
 // Process interleaved audio (float*)
 void FilterEngine::process(float* output, float* input, unsigned frameCount)
 {
@@ -511,6 +667,7 @@ void FilterEngine::process(float* output, float* input, unsigned frameCount)
 
 	// Conversion from double back to float using SIMD
 	const unsigned outputSampleCount = outputChannelCount * frameCount;
+	sanitizeAndClampBuffer(outputBuf1D.data(), outputSampleCount);
 	convertDoubleToFloat(output, outputBuf1D.data(), outputSampleCount);
 
 	if (nextConfig != NULL && transitionCounter >= transitionLength)
@@ -564,6 +721,7 @@ void FilterEngine::process(float** output, float** input, unsigned frameCount)
 
 	// Optimized conversion back for each channel
 	for (unsigned c = 0; c < outputChannelCount; c++) {
+		sanitizeAndClampBuffer(outputBuf2D[c].get(), frameCount);
 		convertDoubleToFloat(output[c], outputBuf2D[c].get(), frameCount);
 	}
 

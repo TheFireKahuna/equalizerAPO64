@@ -17,8 +17,10 @@
     51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <algorithm>
 #include <QPainter>
 
+#include "helpers/SafetyLimits.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "GraphicEQFilterGUIScene.h"
 #include "GraphicEQFilterGUIItem.h"
@@ -84,10 +86,27 @@ QVariant GraphicEQFilterGUIItem::itemChange(QGraphicsItem::GraphicsItemChange ch
 	else if (change == ItemPositionChange)
 	{
 		GraphicEQFilterGUIScene* s = qobject_cast<GraphicEQFilterGUIScene*>(scene());
-		if (s->getBandCount() != -1)
+		if (s != NULL)
 		{
 			QPointF newPos = value.toPointF();
-			newPos.setX(s->hzToX(getHz()));
+			double yTop = s->dbToY(SafetyLimits::MAX_GAIN_DB);
+			double yBot = s->dbToY(SafetyLimits::MIN_GAIN_DB);
+			double minY = std::min(yTop, yBot);
+			double maxY = std::max(yTop, yBot);
+			newPos.setY(std::clamp(newPos.y(), minY, maxY));
+
+			if (s->getBandCount() != -1)
+			{
+				newPos.setX(s->hzToX(getHz()));
+			}
+			else
+			{
+				double xLeft = s->hzToX(SafetyLimits::MIN_FREQ_HZ);
+				double xRight = s->hzToX(SafetyLimits::MAX_FREQ_HZ);
+				double minX = std::min(xLeft, xRight);
+				double maxX = std::max(xLeft, xRight);
+				newPos.setX(std::clamp(newPos.x(), minX, maxX));
+			}
 			result = newPos;
 		}
 	}

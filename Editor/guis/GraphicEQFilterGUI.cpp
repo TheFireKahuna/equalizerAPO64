@@ -17,12 +17,15 @@
 	51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
 
+#include <algorithm>
+#include <cmath>
 #include <vector>
 #include <QFileDialog>
 #include <QScrollBar>
 #include <QTextStream>
 
 #include "helpers/GainIterator.h"
+#include "helpers/SafetyLimits.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/ResizeCorner.h"
 #include "Editor/FilterTable.h"
@@ -114,7 +117,9 @@ void GraphicEQFilterGUI::store(QString& command, QString& parameters)
 		else
 			parameters += "; ";
 
-		parameters += QString("%0 %1").arg(node.freq).arg(node.dbGain);
+		double f = std::clamp(node.freq, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
+		double g = std::clamp(node.dbGain, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
+		parameters += QString("%0 %1").arg(f).arg(g);
 	}
 }
 
@@ -225,15 +230,18 @@ void GraphicEQFilterGUI::on_tableWidget_cellChanged(int row, int column)
 		QTableWidgetItem* freqItem = ui->tableWidget->item(row, 0);
 		bool ok;
 		double freq = freqItem->text().toDouble(&ok);
-		if (ok)
+		if (ok && std::isfinite(freq))
 		{
+			freq = std::clamp(freq, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
 			double gain = scene->getNodes()[row].dbGain;
 			scene->setNode(row, freq, gain);
 		}
 		else
 		{
 			freq = scene->getNodes()[row].freq;
+			ui->tableWidget->blockSignals(true);
 			freqItem->setText(QString("%0").arg(freq));
+			ui->tableWidget->blockSignals(false);
 		}
 	}
 	else if (column == 1)
@@ -241,15 +249,18 @@ void GraphicEQFilterGUI::on_tableWidget_cellChanged(int row, int column)
 		QTableWidgetItem* gainItem = ui->tableWidget->item(row, 1);
 		bool ok;
 		double gain = gainItem->text().toDouble(&ok);
-		if (ok)
+		if (ok && std::isfinite(gain))
 		{
+			gain = std::clamp(gain, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 			double freq = scene->getNodes()[row].freq;
 			scene->setNode(row, freq, gain);
 		}
 		else
 		{
 			gain = scene->getNodes()[row].dbGain;
+			ui->tableWidget->blockSignals(true);
 			gainItem->setText(QString("%0").arg(gain));
+			ui->tableWidget->blockSignals(false);
 		}
 	}
 }
@@ -343,8 +354,13 @@ void GraphicEQFilterGUI::on_actionImport_triggered()
 							match = it.next();
 							QString gainString = match.captured();
 							double gain = gainString.toDouble(&ok);
-							if (ok)
+							if (ok && std::isfinite(freq) && std::isfinite(gain)
+								&& (int)newNodes.size() < SafetyLimits::MAX_GRAPHIC_EQ_NODES)
+							{
+								freq = std::clamp(freq, SafetyLimits::MIN_FREQ_HZ, SafetyLimits::MAX_FREQ_HZ);
+								gain = std::clamp(gain, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 								newNodes.push_back(FilterNode(freq, gain));
+							}
 						}
 					}
 				}
@@ -409,7 +425,7 @@ void GraphicEQFilterGUI::on_actionInvertResponse_triggered()
 {
 	vector<FilterNode> newNodes = scene->getNodes();
 	for (FilterNode& node : newNodes)
-		node.dbGain = -node.dbGain;
+		node.dbGain = std::clamp(-node.dbGain, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 
 	scene->setNodes(newNodes);
 	emit updateModel();
@@ -418,6 +434,8 @@ void GraphicEQFilterGUI::on_actionInvertResponse_triggered()
 void GraphicEQFilterGUI::on_actionNormalizeResponse_triggered()
 {
 	vector<FilterNode> newNodes = scene->getNodes();
+	if (newNodes.empty())
+		return;
 
 	double maxGain = -DBL_MAX;
 	for (FilterNode node : newNodes)
@@ -429,7 +447,7 @@ void GraphicEQFilterGUI::on_actionNormalizeResponse_triggered()
 	if (maxGain != 0)
 	{
 		for (FilterNode& node : newNodes)
-			node.dbGain -= maxGain;
+			node.dbGain = std::clamp(node.dbGain - maxGain, SafetyLimits::MIN_GAIN_DB, SafetyLimits::MAX_GAIN_DB);
 
 		scene->setNodes(newNodes);
 		emit updateModel();

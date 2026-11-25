@@ -58,6 +58,79 @@ bool BiQuadFilter::getIsCornerFreq() const
     return isCornerFreq;
 }
 
+BiQuad BiQuadFilter::createValidatedBiQuad(double sampleRate, double* outCenterFreqHz, double* outEffectiveQ) const
+{
+    double safeSampleRate = (sampleRate > 100.0) ? sampleRate : 48000.0;
+    double biquadFreq = freq;
+    if (isCornerFreq && (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF))
+    {
+        double s = bandwidthOrQOrS;
+        if (!isBandwidthOrS) // Q
+        {
+            double q = bandwidthOrQOrS;
+            double a = pow(10.0, dbGain / 40.0);
+            double denom = (1.0 / (q * q) - 2.0) / (a + 1.0 / a) + 1.0;
+            s = (denom > 1e-6) ? (1.0 / denom) : 100.0;
+        }
+        if (s < 1e-6)
+            s = 1e-6;
+        double centerFreqFactor = pow(10.0, std::abs(dbGain) / 80.0 / s);
+        if (type == BiQuad::LOW_SHELF)
+            biquadFreq *= centerFreqFactor;
+        else
+            biquadFreq /= centerFreqFactor;
+    }
+
+    double maxAllowedFreq = std::max(10.0, 0.495 * safeSampleRate);
+    biquadFreq = std::clamp(biquadFreq, 1.0, maxAllowedFreq);
+
+    if (outCenterFreqHz != nullptr)
+        *outCenterFreqHz = biquadFreq;
+
+    if (outEffectiveQ != nullptr)
+    {
+        double effQ = 1.0;
+        if (!isBandwidthOrS)
+        {
+            effQ = bandwidthOrQOrS;
+        }
+        else if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
+        {
+            double a = pow(10.0, dbGain / 40.0);
+            double rad = std::max(1e-4, (a + 1.0 / a) * (1.0 / std::max(1e-4, bandwidthOrQOrS) - 1.0) + 2.0);
+            effQ = 1.0 / sqrt(rad);
+        }
+        else
+        {
+            double p2n = pow(2.0, std::max(1e-4, bandwidthOrQOrS));
+            effQ = sqrt(p2n) / std::max(1e-6, p2n - 1.0);
+        }
+        *outEffectiveQ = std::clamp(effQ, 0.33, 50.0);
+    }
+
+    BiQuad masterBiquad(type, dbGain, biquadFreq, safeSampleRate, bandwidthOrQOrS, isBandwidthOrS);
+
+    double temp_a0;
+    double temp_coeffs[4];
+    masterBiquad.getCoefficients(temp_coeffs, temp_a0);
+
+    bool stable = std::isfinite(temp_a0)
+        && std::isfinite(temp_coeffs[0])
+        && std::isfinite(temp_coeffs[1])
+        && std::isfinite(temp_coeffs[2])
+        && std::isfinite(temp_coeffs[3])
+        && (std::abs(temp_coeffs[3]) < 1.0 - 1e-9)
+        && (std::abs(temp_coeffs[2]) < 1.0 + temp_coeffs[3] - 1e-9);
+
+    if (!stable)
+    {
+        double unity[4] = { 0.0, 0.0, 0.0, 0.0 };
+        masterBiquad.setCoefficients(unity, 1.0);
+    }
+
+    return masterBiquad;
+}
+
 std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned maxFrameCount, std::vector<std::wstring> channelNames)
 {
     this->channelCount = channelNames.size();
@@ -68,25 +141,8 @@ std::vector<std::wstring> BiQuadFilter::initialize(float sampleRate, unsigned ma
     x1.assign(channelCount, 0.0); x2.assign(channelCount, 0.0);
     y1.assign(channelCount, 0.0); y2.assign(channelCount, 0.0);
 
-    double biquadFreq = freq;
-    if (isCornerFreq && (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF))
-    {
-        double s = bandwidthOrQOrS;
-        if (!isBandwidthOrS) // Q
-        {
-            double q = bandwidthOrQOrS;
-            double a = pow(10, dbGain / 40);
-            s = 1.0 / ((1.0 / (q * q) - 2.0) / (a + 1.0 / a) + 1.0);
-        }
-        double centerFreqFactor = pow(10.0, abs(dbGain) / 80.0 / s);
-        if (type == BiQuad::LOW_SHELF)
-            biquadFreq *= centerFreqFactor;
-        else
-            biquadFreq /= centerFreqFactor;
-    }
-
-    // 1. Create a single master BiQuad to perform the coefficient calculation.
-    BiQuad masterBiquad(type, dbGain, biquadFreq, sampleRate, bandwidthOrQOrS, isBandwidthOrS);
+    // 1. Create a single validated master BiQuad to perform the coefficient calculation.
+    BiQuad masterBiquad = createValidatedBiQuad(sampleRate);
 
     // 2. Prepare variables to receive the coefficients.
     double temp_a0;
